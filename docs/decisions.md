@@ -47,6 +47,7 @@
 | 错误模型 | `shared/errors` 统一 ErrorCode + 用户文案；响应可带 `code` |
 | LLM 入口 | Feature 经 `shared/llm/run.ts`；契约表见 `docs/features.md` |
 | 会话边界 | V1 仅 `translateSession` 当前会话；不做跨页历史 / 云同步 |
+| 侧边栏打开 | `sidePanel.open()` 需用户手势：右键菜单必须**先同步开面板、再执行翻译**；面板打开失败不得覆盖译文结果 |
 
 ## 明确不做的事（避免范围膨胀）
 

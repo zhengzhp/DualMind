@@ -105,6 +105,70 @@ test.describe('划词工具栏', () => {
     await expect(page.locator(PRIMARY)).toBeHidden();
   });
 
+  test('流式翻译中按 Esc 收起', async ({ page, serviceWorker }) => {
+    await seedSettings(serviceWorker, OLLAMA_SETTINGS);
+    await page.goto('https://example.com');
+    await expect(page.locator('dualmind-toolbar')).toHaveCount(1);
+
+    await selectEnglishText(page);
+    const primary = page.locator(PRIMARY);
+    await primary.click();
+    await expect(primary).toHaveText('停止', { timeout: 20_000 });
+
+    // 回归：翻译进行中 Esc 必须能关闭（旧逻辑在 loading 时会拒绝收起）
+    await page.keyboard.press('Escape');
+    await expect(primary).toBeHidden();
+  });
+
+  test('翻译完成后点击外部收起', async ({ page, serviceWorker }) => {
+    await seedSettings(serviceWorker, OLLAMA_SETTINGS);
+    await page.goto('https://example.com');
+    await expect(page.locator('dualmind-toolbar')).toHaveCount(1);
+
+    await selectEnglishText(page);
+    const primary = page.locator(PRIMARY);
+    await primary.click();
+    await expect(primary).toHaveText('翻译', { timeout: 180_000 });
+
+    // 回归：有译文时外部点击也应收起（旧逻辑因 hasTranslation 而「钉住」）
+    await page.mouse.click(5, 5);
+    await expect(primary).toBeHidden();
+  });
+
+  test('选区贴近底边时浮层翻转到选区上方', async ({ page, serviceWorker }) => {
+    await seedSettings(serviceWorker, OLLAMA_SETTINGS);
+    await page.goto('https://example.com');
+
+    // 造一个贴在视口底部的段落，选区底边几乎触底
+    const selection = await page.evaluate(() => {
+      const el = document.createElement('p');
+      el.id = 'dm-e2e-bottom';
+      el.style.cssText = 'position:fixed;left:20px;bottom:2px;margin:0;';
+      el.textContent = 'Bottom edge selection for flip check.';
+      document.body.appendChild(el);
+
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      const sel = window.getSelection();
+      sel?.removeAllRanges();
+      sel?.addRange(range);
+      el.dispatchEvent(
+        new MouseEvent('mouseup', { bubbles: true, composed: true }),
+      );
+
+      const rect = range.getBoundingClientRect();
+      return { top: rect.top, bottom: rect.bottom };
+    });
+
+    const primary = page.locator(PRIMARY);
+    await expect(primary).toBeVisible();
+    const box = await primary.boundingBox();
+
+    expect(box).not.toBeNull();
+    // 下方空间不足 → flip 后浮层顶边应位于选区之上
+    expect(box!.y).toBeLessThan(selection.top);
+  });
+
   test('滚动时浮层跟随选区', async ({ page, serviceWorker }) => {
     await seedSettings(serviceWorker, OLLAMA_SETTINGS);
     await page.goto('https://example.com');

@@ -233,23 +233,29 @@ export default defineBackground(() => {
 
   browser.contextMenus?.onClicked.addListener(async (info, tab) => {
     if (info.menuItemId !== 'dualmind-translate' || !info.selectionText) return;
+
+    // 关键：sidePanel.open() 必须在用户手势有效期内调用。
+    // 若放到 await translateText()（网络耗时）之后再打开，手势已失效，会抛
+    // 「sidePanel.open() may only be called in response to a user gesture」，
+    // 且该异常会被下面的 catch 捕获，用错误覆盖掉刚写好的译文。
+    // 因此先同步开面板，再执行翻译。
+    if (sidePanelApi && tab?.windowId != null) {
+      void sidePanelApi.open({ windowId: tab.windowId }).catch(() => {});
+    }
+
+    const text = info.selectionText;
     try {
-      await translateText({ text: info.selectionText });
-      if (tab?.windowId != null) {
-        await sidePanelApi?.open({ windowId: tab.windowId });
-      }
+      await translateText({ text });
     } catch (err) {
+      // 仅翻译失败才写错误会话；开侧边栏失败不应影响译文结果
       const settings = await getSettings();
       await translateSessionItem.setValue({
-        sourceText: info.selectionText,
+        sourceText: text,
         translatedText: '',
         targetLanguage: settings.targetLanguage,
         updatedAt: Date.now(),
         error: formatErrorForUi(err),
       });
-      if (tab?.windowId != null) {
-        await sidePanelApi?.open({ windowId: tab.windowId }).catch(() => {});
-      }
     }
   });
 
