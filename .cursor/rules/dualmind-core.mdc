@@ -5,6 +5,8 @@ alwaysApply: true
 
 # DualMind 核心约束
 
+> 代理入口（优先级、Ask first、Never、完成报告）见仓库根目录 `AGENTS.md`。本规则在会话中始终注入，与 AGENTS 互补、勿重复长篇照抄。
+
 与用户交流默认使用 **简体中文**。代码默认 TypeScript；UI 优先 Tailwind。
 
 ## 产品边界（V1）

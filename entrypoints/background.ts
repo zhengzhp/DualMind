@@ -1,10 +1,20 @@
-import { translateText } from '@/features/translate/service';
+import {
+  translateText,
+  translateTextStream,
+} from '@/features/translate/service';
 import {
   createProviderFromSettings,
   resolveModel,
 } from '@/providers/registry';
+import { formatErrorForUi, normalizeError } from '@/shared/errors';
 import { fail, ok } from '@/shared/messaging/client';
-import type { MessageType, ProtocolMap } from '@/shared/messaging/protocol';
+import {
+  TRANSLATE_PORT,
+  type MessageType,
+  type ProtocolMap,
+  type TranslatePortClientMessage,
+  type TranslatePortServerMessage,
+} from '@/shared/messaging/protocol';
 import {
   getSettings,
   saveSettings,
@@ -51,7 +61,7 @@ const handlers: HandlerMap = {
     if (result.ok) {
       return { ok: true, detail: result.detail };
     }
-    return { ok: false, error: result.error };
+    return { ok: false, error: result.error, code: result.code };
   },
 
   'settings:get': async () => getSettings(),
@@ -61,7 +71,6 @@ const handlers: HandlerMap = {
   'session:get': async () => translateSessionItem.getValue(),
 
   'sidepanel:open': async () => {
-    // 实际打开逻辑在 onMessage 中结合 sender.tab 处理
     return { ok: true as const };
   },
 
@@ -79,15 +88,95 @@ const handlers: HandlerMap = {
   },
 };
 
+/** Port 流式翻译：支持 abort */
+function attachTranslatePort(port: {
+  postMessage: (msg: unknown) => void;
+  onMessage: {
+    addListener: (cb: (msg: unknown) => void) => void;
+  };
+  onDisconnect: { addListener: (cb: () => void) => void };
+}) {
+  let abortController: AbortController | null = null;
+
+  const post = (msg: TranslatePortServerMessage) => {
+    try {
+      port.postMessage(msg);
+    } catch {
+      /* port 已断开 */
+    }
+  };
+
+  port.onMessage.addListener((raw: unknown) => {
+    const message = raw as TranslatePortClientMessage;
+
+    if (message.type === 'abort') {
+      abortController?.abort();
+      return;
+    }
+
+    if (message.type !== 'start') return;
+
+    // 新请求取消旧请求
+    abortController?.abort();
+    abortController = new AbortController();
+    const signal = abortController.signal;
+
+    void (async () => {
+      try {
+        for await (const event of translateTextStream({
+          text: message.text,
+          targetLanguage: message.targetLanguage,
+          signal,
+        })) {
+          if (signal.aborted) break;
+          if (event.type === 'chunk') {
+            post({
+              type: 'chunk',
+              text: event.text,
+              accumulated: event.accumulated,
+            });
+          } else if (event.type === 'done') {
+            post({ type: 'done', result: event.result });
+          }
+        }
+      } catch (err) {
+        const normalized = normalizeError(err);
+        if (normalized.code === 'ABORTED') {
+          post({
+            type: 'error',
+            code: 'ABORTED',
+            message: formatErrorForUi(normalized),
+          });
+          return;
+        }
+        post({
+          type: 'error',
+          code: normalized.code,
+          message: formatErrorForUi(normalized),
+        });
+      }
+    })();
+  });
+
+  port.onDisconnect.addListener(() => {
+    abortController?.abort();
+    abortController = null;
+  });
+}
+
 export default defineBackground(() => {
-  // 点击扩展图标 → 打开 Side Panel（Monica 风格主入口）
   sidePanelApi
     ?.setPanelBehavior({ openPanelOnActionClick: true })
     .catch(() => {
       /* Firefox 等可能不支持，忽略 */
     });
 
-  // webextension-polyfill 要求 async 监听器返回 true；未知消息直接忽略
+  browser.runtime.onConnect.addListener((port) => {
+    if (port.name === TRANSLATE_PORT) {
+      attachTranslatePort(port);
+    }
+  });
+
   browser.runtime.onMessage.addListener(((
     message: unknown,
     sender: { tab?: { windowId?: number } },
@@ -122,7 +211,6 @@ export default defineBackground(() => {
     return true;
   }) as Parameters<typeof browser.runtime.onMessage.addListener>[0]);
 
-  // 快捷键：翻译选区（向当前 tab 广播）
   browser.commands?.onCommand.addListener(async (command) => {
     if (command !== 'translate-selection') return;
     const [tab] = await browser.tabs.query({
@@ -135,7 +223,6 @@ export default defineBackground(() => {
     });
   });
 
-  // 右键菜单
   void browser.contextMenus?.removeAll().then(() => {
     browser.contextMenus.create({
       id: 'dualmind-translate',
@@ -151,14 +238,14 @@ export default defineBackground(() => {
       if (tab?.windowId != null) {
         await sidePanelApi?.open({ windowId: tab.windowId });
       }
-    } catch {
+    } catch (err) {
       const settings = await getSettings();
       await translateSessionItem.setValue({
         sourceText: info.selectionText,
         translatedText: '',
         targetLanguage: settings.targetLanguage,
         updatedAt: Date.now(),
-        error: '翻译失败，请检查 Provider 设置',
+        error: formatErrorForUi(err),
       });
       if (tab?.windowId != null) {
         await sidePanelApi?.open({ windowId: tab.windowId }).catch(() => {});
@@ -166,7 +253,6 @@ export default defineBackground(() => {
     }
   });
 
-  // 预热：校验当前模型配置是否可读（不强制）
   getSettings()
     .then((s) => {
       try {

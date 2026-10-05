@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { formatErrorForUi } from '@/shared/errors';
 import { sendMessage } from '@/shared/messaging/client';
 import {
   TARGET_LANGUAGES,
@@ -38,7 +39,7 @@ export default function App() {
       setStatus('已保存');
       window.setTimeout(() => setStatus(''), 1500);
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      setError(formatErrorForUi(err));
     } finally {
       setSaving(false);
     }
@@ -62,7 +63,7 @@ export default function App() {
         setStatus('');
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      setError(formatErrorForUi(err));
       setStatus('');
     }
   }
@@ -95,7 +96,7 @@ export default function App() {
         setSettings(next);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      setError(formatErrorForUi(err));
       setStatus('');
     }
   }

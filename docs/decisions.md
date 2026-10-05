@@ -1,7 +1,8 @@
 # DualMind 决策记录（本次对话）
 
 > 日期：2026-10-06  
-> 来源：V1 架构规划与落地对话
+> 来源：V1 架构规划与落地对话  
+> 代理入口与 Always / Ask / Never 见仓库根目录 [AGENTS.md](../AGENTS.md)
 
 ## 产品决策
 
@@ -33,6 +34,15 @@
 | 划词工具栏 | 可配置：自动显示 / 仅快捷键（Alt+T） |
 | 设置 | 目标语言、Provider、API Key、Ollama Host/模型、站点禁用列表 |
 | Side Panel 模块 | Translate 可用；Chat / Agent 仅占位 |
+
+## 运行时补充（2026-10-06）
+
+| 决策 | 结论 |
+|------|------|
+| 流式输出 | Provider 支持 `chatStream`（OpenAI 兼容 SSE）；UI 经 Port 收 chunk，可 Abort |
+| 错误模型 | `shared/errors` 统一 ErrorCode + 用户文案；响应可带 `code` |
+| LLM 入口 | Feature 经 `shared/llm/run.ts`；契约表见 `docs/features.md` |
+| 会话边界 | V1 仅 `translateSession` 当前会话；不做跨页历史 / 云同步 |
 
 ## 明确不做的事（避免范围膨胀）
 

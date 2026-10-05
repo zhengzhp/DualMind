@@ -1,7 +1,9 @@
 import { type ContentScriptContext } from 'wxt/utils/content-script-context';
 import { createShadowRootUi } from 'wxt/utils/content-script-ui/shadow-root';
 import { browser } from 'wxt/browser';
+import { formatErrorForUi } from '@/shared/errors';
 import { sendMessage } from '@/shared/messaging/client';
+import { streamTranslate } from '@/shared/messaging/stream';
 import type { AppSettings } from '@/shared/storage/types';
 import {
   TOOLBAR_ID,
@@ -21,7 +23,7 @@ interface ToolbarState {
 
 /**
  * 在页面上挂载划词工具栏（Shadow DOM）
- * 翻译请求一律走 Background
+ * 翻译请求一律走 Background（Port 流式）
  */
 export async function mountSelectionToolbar(
   ctx: ContentScriptContext,
@@ -38,6 +40,7 @@ export async function mountSelectionToolbar(
   let anchorX = 0;
   let anchorY = 0;
   let hideTimer: number | undefined;
+  let abortController: AbortController | null = null;
 
   const ui = await createShadowRootUi(ctx, {
     name: 'dualmind-toolbar',
@@ -63,19 +66,28 @@ export async function mountSelectionToolbar(
       return;
     }
 
-    const bodyHtml = state.loading
-      ? `<div class="dm-muted"><span class="dm-loader"></span>翻译中…</div>`
-      : state.error
-        ? `<div class="dm-error">${escapeHtml(state.error)}</div>`
-        : state.translatedText
-          ? escapeHtml(state.translatedText)
-          : `<div class="dm-muted">选中文本后点击翻译</div>`;
+    let bodyHtml: string;
+    if (state.loading && !state.translatedText) {
+      bodyHtml = `<div class="dm-muted"><span class="dm-loader"></span>翻译中…</div>`;
+    } else if (state.error) {
+      bodyHtml = `<div class="dm-error">${escapeHtml(state.error)}</div>`;
+    } else if (state.translatedText) {
+      bodyHtml = escapeHtml(state.translatedText);
+      if (state.loading) {
+        bodyHtml += `<div class="dm-muted" style="margin-top:6px"><span class="dm-loader"></span>生成中…</div>`;
+      }
+    } else {
+      bodyHtml = `<div class="dm-muted">选中文本后点击翻译</div>`;
+    }
+
+    const translateLabel = state.loading ? '停止' : '翻译';
+    const translateAction = state.loading ? 'stop' : 'translate';
 
     root.innerHTML = `
       <div class="dm-wrap" style="left:${anchorX}px;top:${anchorY}px;">
         <div class="dm-card">
           <div class="dm-actions">
-            <button class="dm-btn primary" data-action="translate" ${state.loading ? 'disabled' : ''}>翻译</button>
+            <button class="dm-btn primary" data-action="${translateAction}">${translateLabel}</button>
             <button class="dm-btn" data-action="copy" ${!state.translatedText ? 'disabled' : ''}>复制</button>
             <button class="dm-btn" data-action="panel">侧边栏</button>
             <button class="dm-btn" data-action="close">关闭</button>
@@ -97,8 +109,14 @@ export async function mountSelectionToolbar(
 
   async function onAction(action?: string) {
     if (action === 'close') {
+      abortController?.abort();
+      abortController = null;
       state.visible = false;
       render();
+      return;
+    }
+    if (action === 'stop') {
+      abortController?.abort();
       return;
     }
     if (action === 'copy' && state.translatedText) {
@@ -127,6 +145,11 @@ export async function mountSelectionToolbar(
       render();
       return;
     }
+
+    abortController?.abort();
+    const controller = new AbortController();
+    abortController = controller;
+
     state.sourceText = text;
     state.loading = true;
     state.error = '';
@@ -135,12 +158,25 @@ export async function mountSelectionToolbar(
     render();
 
     try {
-      const result = await sendMessage('translate:run', { text });
+      const result = await streamTranslate({
+        text,
+        signal: controller.signal,
+        onChunk: (accumulated) => {
+          state.translatedText = accumulated;
+          render();
+        },
+      });
       state.translatedText = result.translatedText;
       state.sourceText = result.sourceText;
     } catch (err) {
-      state.error = err instanceof Error ? err.message : String(err);
+      const msg = formatErrorForUi(err);
+      if (msg !== '已取消') {
+        state.error = msg;
+      }
     } finally {
+      if (abortController === controller) {
+        abortController = null;
+      }
       state.loading = false;
       render();
     }
@@ -149,7 +185,6 @@ export async function mountSelectionToolbar(
   function showNearSelection(text: string, autoTranslate = false) {
     const rect = getSelectionRect();
     if (!rect) return;
-    // position:fixed 使用视口坐标
     anchorX = Math.min(Math.max(8, rect.left), window.innerWidth - 280);
     anchorY = Math.min(rect.bottom + 8, window.innerHeight - 120);
     state.sourceText = text;

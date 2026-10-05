@@ -1,5 +1,7 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { formatErrorForUi } from '@/shared/errors';
 import { sendMessage } from '@/shared/messaging/client';
+import { streamTranslate } from '@/shared/messaging/stream';
 import type { TranslateSession } from '@/shared/storage/settings';
 import {
   TARGET_LANGUAGES,
@@ -17,6 +19,7 @@ export default function App() {
   const [targetLanguage, setTargetLanguage] = useState('zh-CN');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const abortRef = useRef<AbortController | null>(null);
 
   const refresh = useCallback(async () => {
     const [s, sess] = await Promise.all([
@@ -28,16 +31,22 @@ export default function App() {
     setSession(sess);
     if (sess) {
       setSourceText(sess.sourceText);
-      setTranslatedText(sess.translatedText);
+      // 本地正在流式时，以本地状态为准，避免 storage 回写打断
+      if (!abortRef.current) {
+        setTranslatedText(sess.translatedText);
+      }
       setTargetLanguage(sess.targetLanguage);
-      if (sess.error) setError(sess.error);
+      if (sess.error && !abortRef.current) setError(sess.error);
     }
   }, []);
 
   useEffect(() => {
     void refresh();
     const unwatch = storageWatch();
-    return unwatch;
+    return () => {
+      unwatch();
+      abortRef.current?.abort();
+    };
   }, [refresh]);
 
   /** 监听 session 变化（划词翻译后 Side Panel 自动更新） */
@@ -62,12 +71,21 @@ export default function App() {
       setError('请输入或粘贴要翻译的文本');
       return;
     }
+
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     setLoading(true);
     setError('');
+    setTranslatedText('');
+
     try {
-      const result = await sendMessage('translate:run', {
+      const result = await streamTranslate({
         text,
         targetLanguage,
+        signal: controller.signal,
+        onChunk: (accumulated) => setTranslatedText(accumulated),
       });
       setTranslatedText(result.translatedText);
       setSourceText(result.sourceText);
@@ -76,10 +94,20 @@ export default function App() {
         updatedAt: Date.now(),
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      const msg = formatErrorForUi(err);
+      if (msg !== '已取消') {
+        setError(msg);
+      }
     } finally {
+      if (abortRef.current === controller) {
+        abortRef.current = null;
+      }
       setLoading(false);
     }
+  }
+
+  function handleStop() {
+    abortRef.current?.abort();
   }
 
   async function handleCopy() {
@@ -168,14 +196,23 @@ export default function App() {
             </label>
 
             <div className="flex gap-2">
-              <button
-                type="button"
-                disabled={loading}
-                onClick={() => void handleTranslate()}
-                className="flex-1 rounded-xl bg-brand-500 px-3 py-2 text-sm font-semibold text-white hover:bg-brand-600 disabled:opacity-60"
-              >
-                {loading ? '翻译中…' : '翻译'}
-              </button>
+              {loading ? (
+                <button
+                  type="button"
+                  onClick={handleStop}
+                  className="flex-1 rounded-xl border border-brand-200 bg-white px-3 py-2 text-sm font-semibold text-brand-700 hover:bg-brand-50"
+                >
+                  停止
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => void handleTranslate()}
+                  className="flex-1 rounded-xl bg-brand-500 px-3 py-2 text-sm font-semibold text-white hover:bg-brand-600"
+                >
+                  翻译
+                </button>
+              )}
               <button
                 type="button"
                 disabled={!translatedText}
@@ -198,7 +235,7 @@ export default function App() {
                 value={translatedText}
                 readOnly
                 rows={8}
-                placeholder="译文将显示在这里"
+                placeholder={loading ? '正在生成…' : '译文将显示在这里'}
                 className="mt-1 w-full resize-y rounded-xl border border-brand-100 bg-white p-3 text-sm leading-relaxed text-brand-900 outline-none"
               />
             </label>

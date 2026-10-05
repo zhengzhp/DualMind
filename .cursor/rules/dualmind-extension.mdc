@@ -14,9 +14,11 @@ alwaysApply: false
 
 ## 翻译
 
-- 编排只在 `features/translate/service.ts`
+- 编排只在 `features/translate/service.ts`；经 `shared/llm` 调模型
+- 流式走 Port `dualmind-translate`，支持 abort；一次性可用 `translate:run`
 - Prompt 约束「只输出译文」
-- 结果写入 `translateSession`，供 Side Panel 承接
+- 结果（含流式中间态）写入 `translateSession`，供 Side Panel 承接
+- 错误用 `shared/errors` 的 ErrorCode / `formatErrorForUi`，勿把 Key 打进文案
 
 ## Content / UI
 
