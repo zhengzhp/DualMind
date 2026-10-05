@@ -31,9 +31,11 @@
 
 | 决策 | 结论 |
 |------|------|
-| 划词工具栏 | 可配置：自动显示 / 仅快捷键（Alt+T） |
+| 划词工具栏 | 可配置：自动显示 / 仅快捷键（默认 Alt+Shift+K，可在 chrome://extensions/shortcuts 改键） |
+| 划词快捷键通道 | 仅 `chrome.commands` → Background → Content；不在 Content 硬编码 keydown，避免与浏览器/系统抢键及双触发 |
 | 设置 | 目标语言、Provider、API Key、Ollama Host/模型、站点禁用列表 |
 | Side Panel 模块 | Translate 可用；Chat / Agent 仅占位 |
+| Side Panel 模型 | 翻译页顶部可切换 Provider + 当前模型；Key/Host 仍在 Options |
 
 ## 运行时补充（2026-10-06）
 

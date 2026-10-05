@@ -25,6 +25,7 @@
 | `pnpm dev` | 开发（WXT） |
 | `pnpm build` | 生产构建 |
 | `pnpm compile` | `tsc --noEmit` |
+| `pnpm test` | Vitest 单测 |
 | `pnpm zip` | 打包 zip |
 
 **默认不执行** `dev` / `build` / `compile` / `zip`，除非用户明确要求。

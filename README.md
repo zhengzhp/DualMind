@@ -27,7 +27,7 @@ Chrome 打开 `chrome://extensions` → 开启开发者模式 → 加载 `.outpu
 1. 打开扩展 **设置**，选择 Provider：
    - **Ollama**：确认本机已启动（默认 `http://127.0.0.1:11434`），点击「刷新列表」选择模型。
    - **OpenAI Compatible**：填写 Base URL（含 `/v1`）、API Key、模型名。
-2. 任意网页划词 → 浮动工具栏点「翻译」，或快捷键 `Alt+T`。
+2. 任意网页划词 → 浮动工具栏点「翻译」，或快捷键 `Alt+Shift+K`（可在 `chrome://extensions/shortcuts` 修改）。
 3. 点击扩展图标打开 Side Panel，可继续编辑原文并重译。
 
 ## 架构要点

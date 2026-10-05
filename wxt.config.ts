@@ -34,8 +34,8 @@ export default defineConfig({
     commands: {
       'translate-selection': {
         suggested_key: {
-          default: 'Alt+T',
-          mac: 'Alt+T',
+          default: 'Alt+Shift+K',
+          mac: 'Alt+Shift+K',
         },
         description: '翻译当前选中文本',
       },

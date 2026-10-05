@@ -148,7 +148,7 @@ export default function App() {
               className="field"
             >
               <option value="auto">选中后自动显示</option>
-              <option value="shortcut">仅快捷键（Alt+T）显示并翻译</option>
+              <option value="shortcut">仅快捷键（Alt+Shift+K）显示并翻译</option>
             </select>
           </Field>
 

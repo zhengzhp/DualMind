@@ -6,3 +6,7 @@ dist
 .DS_Store
 *.log
 web-ext-artifacts
+.e2e-profile
+test-results
+playwright-report
+blob-report

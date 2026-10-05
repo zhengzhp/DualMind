@@ -12,6 +12,12 @@ import {
   getSelectionRect,
   getSelectionText,
 } from './dom';
+import {
+  computeToolbarPosition,
+  shouldHideToolbar,
+  shouldShowOnMouseUp,
+  shouldShowOnShortcut,
+} from './logic';
 
 interface ToolbarState {
   sourceText: string;
@@ -185,8 +191,12 @@ export async function mountSelectionToolbar(
   function showNearSelection(text: string, autoTranslate = false) {
     const rect = getSelectionRect();
     if (!rect) return;
-    anchorX = Math.min(Math.max(8, rect.left), window.innerWidth - 280);
-    anchorY = Math.min(rect.bottom + 8, window.innerHeight - 120);
+    const pos = computeToolbarPosition(rect, {
+      width: window.innerWidth,
+      height: window.innerHeight,
+    });
+    anchorX = pos.x;
+    anchorY = pos.y;
     state.sourceText = text;
     state.translatedText = '';
     state.error = '';
@@ -201,8 +211,13 @@ export async function mountSelectionToolbar(
   function scheduleHideCheck() {
     window.clearTimeout(hideTimer);
     hideTimer = window.setTimeout(() => {
-      const text = getSelectionText();
-      if (!text && !state.loading && !state.translatedText) {
+      if (
+        shouldHideToolbar({
+          hasSelection: Boolean(getSelectionText()),
+          loading: state.loading,
+          hasTranslation: Boolean(state.translatedText),
+        })
+      ) {
         state.visible = false;
         render();
       }
@@ -217,34 +232,25 @@ export async function mountSelectionToolbar(
         return;
       }
       const text = getSelectionText();
-      if (!text) {
-        scheduleHideCheck();
+      if (
+        !shouldShowOnMouseUp({
+          toolbarTrigger: settings.toolbarTrigger,
+          selectionText: text,
+        })
+      ) {
+        if (!text) scheduleHideCheck();
         return;
       }
-      if (settings.toolbarTrigger === 'auto') {
-        showNearSelection(text, false);
-      }
+      showNearSelection(text, false);
     },
     true,
   );
 
-  document.addEventListener(
-    'keydown',
-    (event) => {
-      if (event.altKey && (event.key === 't' || event.key === 'T')) {
-        const text = getSelectionText();
-        if (!text) return;
-        event.preventDefault();
-        showNearSelection(text, true);
-      }
-    },
-    true,
-  );
-
+  // 快捷键仅走 chrome.commands → Background → 本消息，避免与页面/系统抢 Alt 键
   browser.runtime.onMessage.addListener((message: unknown) => {
     if ((message as { type?: string })?.type === 'content:shortcut-translate') {
       const text = getSelectionText();
-      if (!text) return;
+      if (!shouldShowOnShortcut(text)) return;
       showNearSelection(text, true);
     }
   });
