@@ -47,11 +47,21 @@ export function createToolbarStyles(): string {
     .dm-body {
       padding: 10px 12px 12px;
       line-height: 1.5;
-      white-space: pre-wrap;
-      word-break: break-word;
       max-height: 240px;
       overflow: auto;
     }
+    .dm-status {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .dm-status-text { min-width: 0; }
+    .dm-text {
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    /* 仅当上方状态行可见时，正文才需要额外间距 */
+    .dm-status:not([hidden]) + .dm-text:not([hidden]) { margin-top: 6px; }
     .dm-muted { color: #5a7390; }
     .dm-error { color: #b42318; }
     .dm-loader {
@@ -61,19 +71,14 @@ export function createToolbarStyles(): string {
       border-top-color: #1b7fd1;
       border-radius: 50%;
       animation: dm-spin 0.7s linear infinite;
-      margin-right: 6px;
-      vertical-align: -2px;
+      flex: none;
     }
+    /* [hidden] 的 UA display:none 优先级低于作者样式，需显式声明 */
+    .dm-status[hidden],
+    .dm-text[hidden],
+    .dm-loader[hidden] { display: none; }
     @keyframes dm-spin { to { transform: rotate(360deg); } }
   `;
-}
-
-export function escapeHtml(input: string): string {
-  return input
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
 }
 
 export function getSelectionText(): string {
