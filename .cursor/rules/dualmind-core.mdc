@@ -1,0 +1,34 @@
+---
+description: DualMind 项目核心约束与产品边界（始终生效）
+alwaysApply: true
+---
+
+# DualMind 核心约束
+
+与用户交流默认使用 **简体中文**。代码默认 TypeScript；UI 优先 Tailwind。
+
+## 产品边界（V1）
+
+- **做**：划词翻译、Side Panel 翻译工作台、BYOK 设置（OpenAI Compatible / Ollama）
+- **不做**：全文沉浸译、PDF、自有后端、Browser Operator / 重度自动化
+- 参考 Monica 的分层入口；禁止 All-in-One 堆功能
+
+## 架构铁律
+
+- **仅 Background** 可调用 LLM / Ollama；禁止 Content Script 持有 API Key 或直连模型
+- Provider 适配层（`providers/`）**永不碰 DOM**
+- 新能力放 `features/<name>/`，勿把逻辑塞进 `TranslateService`
+- Side Panel：Translate 可用；Chat / Agent 仅占位，除非用户明确要求实现
+
+## 技术栈
+
+- WXT 0.21 + React + TS + Tailwind；Node >= 22
+- storage：`wxt/utils/storage`
+- 消息走 `shared/messaging`；设置走 `shared/storage`
+
+## 文档
+
+改架构或产品边界前先读并更新：
+
+- `docs/decisions.md`
+- `docs/architecture-v1.md`

@@ -1,0 +1,30 @@
+---
+description: DualMind 扩展代码约定（providers / features / entrypoints）
+globs: "{entrypoints,features,providers,shared}/**/*.{ts,tsx}"
+alwaysApply: false
+---
+
+# 扩展代码约定
+
+## Provider
+
+- 实现 `ChatProvider`：`listModels` / `chat` / `testConnection`
+- 新模型供应商只加 `providers/*` + `registry`，不改 DOM 层
+- Ollama：经 Background 访问；Host 可配；模型列表来自 `/api/tags`；错误需可读（未启动 / 未 pull）
+
+## 翻译
+
+- 编排只在 `features/translate/service.ts`
+- Prompt 约束「只输出译文」
+- 结果写入 `translateSession`，供 Side Panel 承接
+
+## Content / UI
+
+- 划词 UI 在 `features/selection-toolbar/`
+- Side Panel / Options 用函数组件 + Hooks；核心逻辑加中文注释
+- 处理 loading / 空值 / 错误态
+
+## 权限
+
+- 不随意扩大 `host_permissions` / 添加自动化相关权限
+- Agent 能力需独立 feature + 强确认，不得混入翻译链路

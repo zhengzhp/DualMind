@@ -1,0 +1,15 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  margin: 0;
+  min-height: 100%;
+  font-family: 'IBM Plex Sans', 'Noto Sans SC', system-ui, -apple-system, sans-serif;
+  background: #f4f7fb;
+  color: #0f2f4d;
+}
