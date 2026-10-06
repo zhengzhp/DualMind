@@ -318,9 +318,18 @@ export default defineBackground(() => {
       currentWindow: true,
     });
     if (tab?.id == null) return;
-    await browser.tabs.sendMessage(tab.id, {
-      type: 'content:shortcut-translate',
-    });
+    try {
+      await browser.tabs.sendMessage(tab.id, {
+        type: 'content:shortcut-translate',
+      });
+    } catch (err) {
+      // 目标页未注入 content script 时会抛错（如 chrome:// 页、扩展更新后未刷新的旧标签页）。
+      // 显式记录，避免快捷键表现为「静默无效」而难以定位。
+      console.warn(
+        '[dualmind] 快捷键消息投递失败：目标页可能未注入 content script',
+        err,
+      );
+    }
   });
 
   void browser.contextMenus?.removeAll().then(() => {

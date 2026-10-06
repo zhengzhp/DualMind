@@ -31,7 +31,7 @@
 
 | 决策 | 结论 |
 |------|------|
-| 划词工具栏 | 可配置：自动显示 / 仅快捷键（默认 Alt+Shift+K，可在 chrome://extensions/shortcuts 改键） |
+| 划词工具栏 | **默认「仅快捷键」**（Alt+Shift+K）；可改为「选中后自动显示」。快捷键可在 chrome://extensions/shortcuts 改键 |
 | 浮层关闭 | 统一走 `closeToolbar`：关闭按钮 / 外部点击 / Esc 均收起；有译文不再「钉住」，选区塌陷兜底收起 |
 | 浮层定位 | `@floating-ui/dom` 虚拟元素（选区矩形）跟随，滚动/缩放自动重算并做边缘翻转与越界平移 |
 | 划词快捷键通道 | 仅 `chrome.commands` → Background → Content；不在 Content 硬编码 keydown，避免与浏览器/系统抢键及双触发 |

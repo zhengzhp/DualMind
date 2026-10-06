@@ -1,7 +1,7 @@
 /** 支持的 Provider 类型 */
 export type ProviderType = 'openai-compatible' | 'ollama';
 
-/** 划词工具栏显示策略 */
+/** 划词工具栏显示策略（默认 `shortcut`：仅快捷键触发，不打扰） */
 export type ToolbarTrigger = 'auto' | 'shortcut';
 
 /** OpenAI 兼容接口配置 */
@@ -31,7 +31,8 @@ export interface AppSettings {
 
 export const DEFAULT_SETTINGS: AppSettings = {
   targetLanguage: 'zh-CN',
-  toolbarTrigger: 'auto',
+  // 默认「仅快捷键」：避免选中即弹层打扰（用户可改为 auto）
+  toolbarTrigger: 'shortcut',
   disabledHosts: [],
   providerType: 'ollama',
   openai: {
