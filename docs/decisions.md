@@ -68,3 +68,23 @@
 - 不要在 Content Script 里存/读 API Key 或直连 LLM
 - 不要默认开启强打扰悬浮球；站点可禁用
 - Agent 级浏览器操作必须后置，且需强确认与独立权限说明
+
+## V1 收官（2026-10-06）
+
+**状态：功能冻结，仅修 bug。** 新能力（沉浸译 / Chat / Agent）进入 V1.5+，须先更新本文件与 `docs/features.md`。
+
+本地校验结果：
+
+| 项目 | 结果 |
+|------|------|
+| `pnpm compile`（tsc --noEmit） | ✅ 通过 |
+| `pnpm test`（Vitest） | ✅ 7 个文件 / 56 用例全通过 |
+| `pnpm build` | 本次未跑（本机 `pnpm dev` 在运行，避免写入 `.output` 冲突） |
+| `pnpm test:e2e` | 本次未跑（依赖真实本地 Ollama 及 `qwen-coder-8k:latest`） |
+| Firefox | 未验证（Chrome / Edge 优先，脚本已备） |
+
+边界说明：
+
+- CI（`.github/workflows/ci.yml`）只跑 `compile` + `test`；E2E 需真实模型，**不进 CI**，本地手动执行。
+- 上架权限 / 单一用途 / 数据使用说明见 [store-listing.md](./store-listing.md)。
+- 文档漂移已修：`architecture-v1.md` 目录结构补齐 `shared/ui`、`shared/extensionPages.ts`、`shared/dev`。

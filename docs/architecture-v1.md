@@ -28,6 +28,9 @@ shared/
   errors.ts           # 统一错误码与用户文案
   messaging/          # 类型安全消息 + 流式 Port
   storage/            # 设置与会话
+  ui/                 # 纯展示组件（SegmentedControl / SearchableSelect 等）
+  extensionPages.ts   # 扩展页打开/聚焦与关闭侧栏（不经过 Background）
+  dev/                # 开发期辅助（WXT 热更新标签页收敛）
 ```
 
 Feature 契约表见：[features.md](./features.md)
@@ -53,4 +56,9 @@ Content / Side Panel → Port `dualmind-translate` → Background → `translate
 - [x] TranslateService + messaging
 - [x] 划词工具栏
 - [x] Side Panel 工作台
+- [x] 全页工作台（workspace）
 - [x] Options 设置页
+- [x] V1 收官（compile / 单测全绿；**功能冻结，仅修 bug**）
+
+> V1 已冻结：不再新增功能，仅接受 bug 修复。新能力（沉浸译 / Chat / Agent）进入 V1.5+，
+> 须先更新 [docs/decisions.md](./decisions.md) 与 [docs/features.md](./features.md)。

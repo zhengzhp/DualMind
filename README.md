@@ -67,6 +67,7 @@ Chrome 打开 `chrome://extensions` → 开启开发者模式 → 加载 `.outpu
 |------|------|
 | [docs/decisions.md](docs/decisions.md) | 本次对话已拍板决策 |
 | [docs/architecture-v1.md](docs/architecture-v1.md) | V1 架构摘要 |
+| [docs/store-listing.md](docs/store-listing.md) | 上架权限用途 / 单一用途 / 数据使用说明 |
 | [docs/cursor-cheatsheet.md](docs/cursor-cheatsheet.md) | Cursor 快捷键与 `/` 命令速查 |
 | [AGENTS.md](AGENTS.md) | 给 AI / 协作者的入口说明 |
 | `.cursor/rules/` | Cursor 项目规则（自动约束后续对话） |
