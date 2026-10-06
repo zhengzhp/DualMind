@@ -30,7 +30,7 @@ Chrome 打开 `chrome://extensions` → 开启开发者模式 → 加载 `.outpu
 |----------|----------|
 | `features/selection-toolbar/`、`entrypoints/content.ts` | 前台页自动刷 / 或手动刷新 |
 | `entrypoints/background.ts` | Reload 扩展（可能短暂打断 SW） |
-| `entrypoints/sidepanel`、`entrypoints/options` | 刷新对应扩展页即可 |
+| `entrypoints/sidepanel`、`entrypoints/workspace`、`entrypoints/options` | 刷新对应扩展页即可 |
 
 **改了快捷键（`wxt.config.ts` 的 `commands.suggested_key`）后，必须卸载并重新安装扩展**：Chrome 只在「首次安装」时采纳 `suggested_key`，Reload / 更新都不会重新绑定（这就是快捷键「描述有、按键为空」的常见原因）。也可在 `chrome://extensions/shortcuts` 手动设置。
 
@@ -53,7 +53,7 @@ Chrome 打开 `chrome://extensions` → 开启开发者模式 → 加载 `.outpu
    - **Ollama**：确认本机已启动（默认 `http://127.0.0.1:11434`），点击「刷新列表」选择模型。
    - **OpenAI Compatible**：填写 Base URL（含 `/v1`）、API Key、模型名。
 2. 任意网页划词 → 按快捷键 `Alt+K`（macOS 为 `Option+K`）弹出浮层并翻译。默认「仅快捷键」，可在设置改为「选中后自动显示」；改键见 `chrome://extensions/shortcuts`。
-3. 点击扩展图标打开 Side Panel，可继续编辑原文并重译。
+3. 点击扩展图标打开 Side Panel，可继续编辑原文并重译；点「工作台」打开加宽的全页（`workspace.html`）并收起侧栏，与侧栏共用同一翻译会话。
 
 ## 架构要点
 

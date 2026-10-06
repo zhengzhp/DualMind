@@ -26,8 +26,12 @@ test.describe('Options 设置页', () => {
     // 拉取模型列表
     await page.getByRole('button', { name: '刷新列表' }).click();
     await expect(page.getByText(/已获取 \d+ 个模型/)).toBeVisible();
-    // 已选模型出现在下拉里（合并了当前已选与远端列表）
-    await expect(page.locator(`option[value="${OLLAMA_MODEL}"]`)).toHaveCount(1);
+    // 已选模型出现在下拉里（合并了当前已选与远端列表）：自绘下拉需先展开面板
+    await page.getByTestId('ollama-model-select').click();
+    await expect(
+      page.getByRole('option', { name: OLLAMA_MODEL, exact: true }),
+    ).toBeVisible();
+    await page.keyboard.press('Escape');
 
     // 检测连接
     await page.getByRole('button', { name: '检测连接' }).click();

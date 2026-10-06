@@ -18,9 +18,9 @@
 ## 目录结构
 
 ```text
-entrypoints/          # background / content / sidepanel / options
+entrypoints/          # background / content / sidepanel / workspace / options
 features/
-  translate/          # 翻译用例与 prompt
+  translate/          # 翻译用例、prompt、工作台 UI（侧栏 / 全页共用）
   selection-toolbar/  # 划词浮层
 providers/            # Provider 适配层（不碰 DOM；支持 chatStream）
 shared/

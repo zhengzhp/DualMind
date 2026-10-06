@@ -1,5 +1,5 @@
 import { WorkbenchApp } from '@/features/translate/ui/WorkbenchApp';
 
 export default function App() {
-  return <WorkbenchApp surface="sidepanel" />;
+  return <WorkbenchApp surface="workspace" />;
 }

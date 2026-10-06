@@ -11,7 +11,7 @@
 | 首发能力 | 翻译（划词 + Side Panel + 设置） |
 | 参考竞品 | Monica：分层入口；不照搬 All-in-One / 重度自动化 |
 | V1 不做 | 网页沉浸式全文双语、PDF 对照、自有后端、Browser Operator |
-| 主入口 | Side Panel（点击扩展图标打开）；弱化 Popup |
+| 主入口 | Side Panel（点击扩展图标打开）；弱化 Popup；侧栏「工作台」打开 `workspace.html`，**先开页再关侧栏**（与「设置」相同） |
 | 后续路线 | V1.5 沉浸译 → V2 摘要/聊天 → V3 浏览器 Agent（独立 feature） |
 
 ## 技术决策
@@ -36,7 +36,7 @@
 | 浮层定位 | `@floating-ui/dom` 虚拟元素（选区矩形）跟随，滚动/缩放自动重算并做边缘翻转与越界平移 |
 | 划词快捷键通道 | 仅 `chrome.commands` → Background → Content；不在 Content 硬编码 keydown，避免与浏览器/系统抢键及双触发 |
 | 设置 | 目标语言、Provider、API Key、Ollama Host/模型、站点禁用列表 |
-| Side Panel 模块 | Translate 可用；Chat / Agent 仅占位 |
+| Side Panel 模块 | Translate 可用；Chat / Agent 仅占位；全页工作台与侧栏共用翻译 UI / `translateSession` |
 | Side Panel 模型 | 翻译页顶部可切换 Provider + 当前模型；Key/Host 仍在 Options |
 | 划词浮层侧边栏 | 按钮为 **toggle**（开/收起）；扩展图标行为不改 |
 | 划词目标语 | 未显式指定时中英互切：英→中、中→英、**混排→中**；Side Panel 手选语言仍优先 |
