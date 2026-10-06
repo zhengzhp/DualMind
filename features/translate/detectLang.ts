@@ -56,3 +56,23 @@ export function isTargetLanguage(
   if (target === 'en') return kind === 'en';
   return false;
 }
+
+/**
+ * 划词 / 快捷键翻译的目标语言。
+ *
+ * 优先使用用户设置的目标语；当源文本**已经是该目标语**时自动反向
+ * （中→英、英→中），避免发出「中文翻中文」这类无意义请求。
+ *
+ * 反向只对 zh* / en 生效（沿用 `isTargetLanguage` 的可靠判定），
+ * ja/ko/fr 等目标无法可靠判定，一律原样返回交给模型处理。
+ */
+export function resolveSelectionTargetLanguage(
+  text: string,
+  preferred: string,
+): string {
+  if (!isTargetLanguage(text, preferred)) return preferred;
+  const kind = classifySourceLang(text);
+  if (kind === 'zh') return 'en';
+  if (kind === 'en') return 'zh-CN';
+  return preferred;
+}

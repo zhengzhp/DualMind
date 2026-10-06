@@ -4,6 +4,7 @@ import { browser } from 'wxt/browser';
 import { formatErrorForUi } from '@/shared/errors';
 import { sendMessage } from '@/shared/messaging/client';
 import { streamTranslate } from '@/shared/messaging/stream';
+import { resolveSelectionTargetLanguage } from '@/features/translate/detectLang';
 import type { AppSettings } from '@/shared/storage/types';
 import {
   TOOLBAR_ID,
@@ -188,8 +189,24 @@ export async function mountSelectionToolbar(
     render();
 
     try {
+      // 目标语言：每次翻译都实时读取最新设置，避免 content 启动快照陈旧
+      // （与沉浸译 start() 的取法一致）；读取失败则退回启动快照。
+      let preferredTarget = settings.targetLanguage;
+      try {
+        const latest = await sendMessage('settings:get', undefined);
+        preferredTarget = latest.targetLanguage;
+      } catch {
+        /* 忽略：沿用启动快照 */
+      }
+      // 源文本已是目标语时自动反向，避免「中文翻中文」
+      const targetLanguage = resolveSelectionTargetLanguage(
+        text,
+        preferredTarget,
+      );
+
       const result = await streamTranslate({
         text,
+        targetLanguage,
         signal: controller.signal,
         onChunk: (accumulated) => {
           if (mySession !== sessionId) return; // 已被关闭 → 丢弃

@@ -3,6 +3,7 @@ import {
   classifySourceLang,
   isTargetLanguage,
   resolveAutoTargetLanguage,
+  resolveSelectionTargetLanguage,
 } from './detectLang';
 
 describe('classifySourceLang', () => {
@@ -76,5 +77,31 @@ describe('isTargetLanguage', () => {
     expect(isTargetLanguage('Bonjour', 'fr')).toBe(false);
     // 混排不能算作任一目标语言
     expect(isTargetLanguage('hello 世界', 'zh-CN')).toBe(false);
+  });
+});
+
+describe('resolveSelectionTargetLanguage', () => {
+  it('目标语与源语言不同 → 使用用户设置的目标语', () => {
+    expect(resolveSelectionTargetLanguage('Hello world', 'zh-CN')).toBe(
+      'zh-CN',
+    );
+    expect(resolveSelectionTargetLanguage('你好世界', 'en')).toBe('en');
+    expect(resolveSelectionTargetLanguage('Bonjour', 'zh-CN')).toBe('zh-CN');
+  });
+
+  it('源文本已是目标语 → 自动反向', () => {
+    expect(resolveSelectionTargetLanguage('你好世界', 'zh-CN')).toBe('en');
+    expect(resolveSelectionTargetLanguage('你好世界', 'zh-TW')).toBe('en');
+    expect(resolveSelectionTargetLanguage('Hello world', 'en')).toBe('zh-CN');
+  });
+
+  it('ja/ko/fr 等无法可靠判定 → 原样沿用设置，不反向', () => {
+    expect(resolveSelectionTargetLanguage('こんにちは', 'ja')).toBe('ja');
+    expect(resolveSelectionTargetLanguage('Bonjour', 'fr')).toBe('fr');
+  });
+
+  it('混排不算任一目标语 → 沿用设置', () => {
+    expect(resolveSelectionTargetLanguage('hello 世界', 'zh-CN')).toBe('zh-CN');
+    expect(resolveSelectionTargetLanguage('hello 世界', 'en')).toBe('en');
   });
 });

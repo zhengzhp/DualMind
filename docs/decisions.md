@@ -55,7 +55,7 @@
 | Side Panel 模型 | 翻译页顶部可切换 Provider + 当前模型；Key/Host 仍在 Options |
 | Provider 文案 | 统一称 **「本地 Ollama」/「OpenAI 兼容」**，两处 UI 共用 `PROVIDER_OPTIONS` / `PROVIDER_HINT`（`shared/storage/types.ts`，与 `TARGET_LANGUAGES` 同处）。**不再使用单说「OpenAI」的标签**：`openai-compatible` 覆盖 DeepSeek / Groq / 中转 / 自建 `/v1` 等任意兼容端点，叫「OpenAI」会让用户以为只能填官方 API（尤其模型下拉出现 `deepseek-*` 时字面矛盾） |
 | 划词浮层侧边栏 | 按钮为 **toggle**（开/收起）；扩展图标行为不改 |
-| 划词目标语 | 未显式指定时中英互切：英→中、中→英、**混排→中**；Side Panel 手选语言仍优先 |
+| 划词目标语 | **跟随设置**：划词 / 快捷键翻译每次实时读取 `settings.targetLanguage`（与沉浸译 `start()` 一致，取实时值而非 content 启动快照）；当源文本**已是该目标语**时自动反向（中→英、英→中，仅 zh*/en 可可靠判定），避免「中文翻中文」。未显式指定的调用方（右键菜单等）仍走中英互切 `resolveAutoTargetLanguage`；Side Panel 手选语言仍优先 |
 
 ## 运行时补充（2026-10-06）
 
