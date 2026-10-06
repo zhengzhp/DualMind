@@ -91,6 +91,18 @@ flowchart LR
 - [x] Options 设置页
 - [x] V1 收官（compile / 单测全绿；**功能冻结，仅修 bug**）
 - [x] V1.5 沉浸式全文双语翻译（`features/immersive/`；分段 / 分批并发 / 双语渲染 / 增量补译）
+- [ ] V2 摘要 / 聊天（`features/chat/`，独立 `chat:*` 消息前缀）
+- [ ] V3 浏览器 Agent（独立 feature + 强确认 + 独立权限说明）
+
+### 发布闸门（V3 完成后统一执行）
+
+> 决定见 [decisions.md](./decisions.md)「发布与验证节奏」：提审发布、全量验证与 `compile` 均后置到 V3 完成后，此前只做改动所需的最小验证。
+
+- [ ] `pnpm compile`（tsc --noEmit）
+- [ ] `pnpm test`（Vitest 全量）
+- [ ] `pnpm build` → `pnpm test:e2e`（真实 Ollama；需观察界面时用 `pnpm test:e2e:headed`）
+- [ ] 复核 [store-listing.md](./store-listing.md) 与最终 `manifest` 的权限 / 单一用途 / 数据使用一致
+- [ ] 提审 Chrome Web Store / Edge Add-ons
 
 > V1 已冻结：不再新增功能，仅接受 bug 修复。新能力（沉浸译 / Chat / Agent）进入 V1.5+，
 > 须先更新 [docs/decisions.md](./decisions.md) 与 [docs/features.md](./features.md)。
