@@ -6,7 +6,7 @@
 
 ## V2 会话边界（摘要 / 聊天）
 
-- **chatSessions**（`local:chatSessions`）：**全局**会话列表，每条含 `pageUrl` / `pageTitle` / `messages` / `updatedAt`；上限 **50 会话 / 每会话 200 条**，超限淘汰最旧
+- **chatSessions**（`local:chatSessions`）：**全局**会话列表，每条含 `pageUrl` / `pageTitle` / `messages` / `updatedAt` / 可选 `allowCrossPage`（用户已确认本会话继续用当前页，不再做来源一致性检查）；上限 **50 会话 / 每会话 200 条**，超限淘汰最旧
 - **chatPrefs**（`local:chatPrefs`）：上下文范围（选区 / 当前页正文）等偏好
 - 页面正文**不写 storage**：仅随已发送消息保存上下文片段 / 引用
 - **禁止**复用 `translateSession` / `translate:*`：聊天属独立 feature，见下表

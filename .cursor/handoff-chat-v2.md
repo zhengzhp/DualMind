@@ -16,7 +16,7 @@
 | `tsc --noEmit` | ✅ 0 错误 |
 | Vitest | ✅ **21 文件 / 182 用例**（chat 相关：`chatSessions` 18 / `prompts` 7 / `budget` 7 / `pageUrl` 8 / `siteAccess` 5） |
 | `wxt build` | ✅ 已跑（2026-10-07），产物 `.output/chrome-mv3` 已更新 |
-| E2E | ✅ **chat 6/6、workspace 2/2 通过**；selection-toolbar + immersive **15/16**（1 条既有 flake，见第 7 节） |
+| E2E | ✅ **chat 7/7、workspace 2/2 通过**；selection-toolbar + immersive **15/16**（1 条既有 flake，见第 7 节） |
 | 实机（Chrome）验收 | ⬜ **未做** —— 见第 6 节「请用户验证」 |
 | git | 工作区**干净**；`main` 与 `origin/main` **已同步**（本轮 3 个提交已 push） |
 
@@ -94,7 +94,13 @@ content:chat-extract    # BG → Content（tabs.sendMessage），返回 ChatCont
 
 ## 5. 产品问题（已拍板并实现 · 2026-10-07）
 
-1. **会话与页面绑定 → 发送前确认**：重开旧会话追问时，若会话已记录 `pageUrl` 且已有历史消息，先探测当前活动页（新增 `chat:page-info`，仅 `tabs.query`、不触发内容脚本，比较时**忽略 hash**）；不一致则在面板弹确认条「仍要基于当前页继续？」，点「仍要继续」才发，点「取消」不发。新建会话 / 首轮提问不做这次探测。纯逻辑 `features/chat/pageUrl.ts`（+ 单测）。
+1. **会话与页面绑定 → 发送前确认（方案 A · 改良版）**：重开旧会话追问时，若会话已记录 `pageUrl`、已有历史消息且未标记 `allowCrossPage`，先探测当前活动页（`chat:page-info`，仅 `tabs.query`、不触发内容脚本，比较时**忽略 hash**）；不一致则弹确认条。
+    - 确认条**并列显示两侧地址**（会话来源 + 当前页），三个动作：**仍要继续** / **本会话不再提示**（置 `session.allowCrossPage = true`，此后不再检查）/ **取消**。
+    - 取消**把提问还回输入框**（原先 `handleSend` 先清 `draft` 再 send，会丢草稿 —— 已修）。
+    - 确认任一路径都**先把当前页写回会话来源**（`pageUrl` / `pageTitle`），避免上下文读取失败时回退旧来源而每次发送都弹（已修）。
+    - `send()` 改为返回 `SendStatus`（`sent` / `pending-mismatch` / `blocked`），且**不 await 流式**（否则输入框要等整轮回答结束才清空）。
+    - 纯逻辑 `features/chat/pageUrl.ts`（+ 单测）。
+    - **未覆盖（留给后续）**：跨页确认后 `turns` 里两页内容混在一起，UI 无分隔标注（方案 B 的内容）。
 2. **右键菜单与 disabledHosts → 按站点置灰**：三个菜单项在内容脚本被禁用的站点上 `contextMenus.update({ enabled: false })`，由 Background 在 `tabs.onActivated` / `onUpdated` / `storage.onChanged` 时重算。判定抽到 `shared/siteAccess.ts`（内容脚本与 Background 共用，避免语义漂移）。
     - 注意：`contextMenus` 无查询 API，E2E 无法断言 enabled，只能实机右键验证。
 
@@ -108,7 +114,7 @@ content:chat-extract    # BG → Content（tabs.sendMessage），返回 ChatCont
 4. **右键菜单**：右键「用 DualMind 总结本页」→ 侧栏是否**自动打开 + 自动切聊天 Tab + 自动提问**，且**只触发一次**。
 5. **布局**：侧栏消息区限高 `max-h-[46vh]` 是否合适（输入框未钉底，见第 8 节）。
 6. 全页工作台（`/workspace.html`）同路径走一遍，检查消息区是否撑满高度。
-7. **来源不一致确认**：先在一个页面（如 A 站）问一句生成会话 → 打开 B 站 → 重开该会话 → 发送 → 应弹「仍要基于当前页继续？」；「取消」不发出，「仍要继续」才发出。
+7. **来源不一致确认**：先在 A 站问一句生成会话 → 打开 B 站 → 重开该会话 → 发送 → 应弹确认条。逐项验证：并列显示两侧地址；「取消」应**把问题还回输入框**且不发送；「仍要继续」发出并继续基于 B 站；「本会话不再提示」发出后再发一次**不再弹**。
 8. **右键菜单置灰**：把当前站点加入「禁用站点」→ 刷新后在页面右键，三个 DualMind 菜单项应**置灰**（不可点）；移出禁用列表后恢复。
 
 > 涉及**真实 Side Panel** 的验证，若要跑 E2E 请用 **`pnpm test:e2e:headed`**（`E2E_HEADED=1`）—— 无头下真实侧栏用例会自动 skip。

@@ -162,6 +162,11 @@ export interface ChatSession {
   turns: ChatTurn[];
   createdAt: number;
   updatedAt: number;
+  /**
+   * 用户已确认「本会话继续用当前页」：置为 true 后不再做来源一致性检查。
+   * 可选字段（老会话没有 → undefined → 视为未确认，检查照常执行）。
+   */
+  allowCrossPage?: boolean;
 }
 
 /** 会话列表项：不含 `turns`，避免列表读取时搬运大数组 */

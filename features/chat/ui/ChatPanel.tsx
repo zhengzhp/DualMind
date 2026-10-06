@@ -49,8 +49,16 @@ export function ChatPanel({
   async function handleSend() {
     const text = draft;
     if (!text.trim() || chat.streaming) return;
-    setDraft('');
-    await chat.send(text);
+    // 发出去或被「来源不一致」拦下时才清空输入框；未受理（在途 / 空）则原样保留
+    const status = await chat.send(text);
+    if (status !== 'blocked') setDraft('');
+  }
+
+  /** 取消来源确认：把提问还回输入框，避免辛苦打的一行字凭空消失 */
+  function handleCancelMismatch() {
+    const pending = chat.mismatchConfirm;
+    chat.cancelMismatch();
+    if (pending?.question) setDraft(pending.question);
   }
 
   const scope = chat.prefs?.contextScope ?? 'page';
@@ -156,21 +164,34 @@ export function ChatPanel({
           data-testid="chat-mismatch-confirm"
           className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800"
         >
-          <p className="break-words leading-relaxed">
-            该会话来自其他页面（{chat.mismatchConfirm.sessionUrl}
-            ），当前页面不同。仍要基于当前页继续提问吗？
+          <p className="font-semibold">该会话来自其他页面</p>
+          <p className="mt-1 break-words leading-relaxed">
+            会话来源：{chat.mismatchConfirm.sessionUrl}
           </p>
-          <div className="mt-1.5 flex gap-1.5">
+          <p className="break-words leading-relaxed">
+            当前页面：{chat.mismatchConfirm.currentUrl}
+          </p>
+          <p className="mt-1 leading-relaxed">
+            继续后将基于「当前页面」作答，并把该页记为会话来源。
+          </p>
+          <div className="mt-1.5 flex flex-wrap gap-1.5">
             <button
               type="button"
-              onClick={chat.confirmMismatch}
+              onClick={() => chat.confirmMismatch()}
               className="rounded-lg bg-amber-500 px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-amber-600"
             >
               仍要继续
             </button>
             <button
               type="button"
-              onClick={chat.cancelMismatch}
+              onClick={() => chat.confirmMismatch({ remember: true })}
+              className="rounded-lg border border-amber-300 bg-white px-2.5 py-1 text-[11px] font-medium text-amber-800 hover:bg-amber-100"
+            >
+              本会话不再提示
+            </button>
+            <button
+              type="button"
+              onClick={handleCancelMismatch}
               className="rounded-lg border border-amber-200 bg-white px-2.5 py-1 text-[11px] font-medium text-amber-800 hover:bg-amber-50"
             >
               取消

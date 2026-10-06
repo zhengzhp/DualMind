@@ -45,13 +45,18 @@ function createSession(): ChatSession {
 
 /** 会话来自其他页面时的待确认状态（发送前先问用户） */
 export interface MismatchConfirm {
-  /** 用户原本要发送的提问（确认后原样发出） */
+  /** 用户原本要发送的提问（确认后原样发出，取消则还回输入框） */
   question: string;
   /** 会话记录的来源页 */
   sessionUrl: string;
   /** 当前活动标签页地址 */
   currentUrl: string;
+  /** 当前活动标签页标题（确认后写回会话来源，避免标签陈旧） */
+  currentTitle: string;
 }
+
+/** `send` 的结果：已发出 / 等待用户确认来源 / 未受理（空文本或在途） */
+export type SendStatus = 'sent' | 'pending-mismatch' | 'blocked';
 
 export interface ChatController {
   prefs: ChatPrefs | null;
@@ -66,16 +71,20 @@ export interface ChatController {
   mismatchConfirm: MismatchConfirm | null;
   setScope(scope: ChatContextScope): Promise<void>;
   refreshContext(): Promise<void>;
-  send(question: string): Promise<void>;
-  summarize(): Promise<void>;
+  /** 发送提问；返回是否已受理（`pending-mismatch` 时输入框应保留内容直到用户决定） */
+  send(question: string): Promise<SendStatus>;
+  summarize(): void;
   stop(): void;
   startNew(): void;
   openSession(id: string): Promise<void>;
   removeSession(id: string): Promise<void>;
   clearSessions(): Promise<void>;
-  /** 确认用当前页继续（发出挂起的提问） */
-  confirmMismatch(): void;
-  /** 取消本次发送 */
+  /**
+   * 确认用当前页继续：认下当前页为会话来源（消除陈旧标签）并发出挂起的提问。
+   * `remember` 为 true 时置 `allowCrossPage`，本会话不再提示。
+   */
+  confirmMismatch(options?: { remember?: boolean }): void;
+  /** 取消本次发送（调用方负责把提问还回输入框） */
   cancelMismatch(): void;
 }
 
@@ -304,50 +313,71 @@ export function useChat(options: UseChatOptions = {}): ChatController {
     ],
   );
 
-  /** 读取当前活动标签页地址（不触发内容脚本）；失败返回空串 */
-  const probeActivePageUrl = useCallback(async (): Promise<string> => {
+  /** 读取当前活动标签页的地址与标题（不触发内容脚本）；失败返回 null */
+  const probeActivePage = useCallback(async (): Promise<{
+    url: string;
+    title: string;
+  } | null> => {
     try {
       const info = await sendMessage('chat:page-info', undefined);
-      return info?.url ?? '';
+      return info ?? null;
     } catch {
-      return '';
+      return null;
     }
   }, []);
 
   /**
    * 发送入口：先做「会话来源页 vs 当前页」一致性判断。
    *
-   * 仅当会话**已记录了来源页且已有历史消息**（即重开旧会话追问）时探测，
-   * 新建会话或首轮提问不会多这一跳。
+   * 仅当会话**已记录了来源页、已有历史消息且未被标记 `allowCrossPage`** 时探测，
+   * 新建会话 / 首轮提问不会多这一跳。
    * 地址为空（chrome:// 等无 URL 的页）视为无法比较，直接放行。
+   *
+   * 流式部分交给 `sendNow` 自行进行，这里不 await —— 否则输入框要等整轮回答
+   * 结束才清空。
    */
   const send = useCallback(
-    async (question: string) => {
+    async (question: string): Promise<SendStatus> => {
       const text = question.trim();
-      if (!text || abortRef.current) return;
+      if (!text || abortRef.current) return 'blocked';
 
       const base = sessionRef.current;
-      if (base.pageUrl && base.turns.length > 0) {
-        const currentUrl = await probeActivePageUrl();
-        if (currentUrl && !isSamePageUrl(base.pageUrl, currentUrl)) {
+      if (base.pageUrl && base.turns.length > 0 && !base.allowCrossPage) {
+        const current = await probeActivePage();
+        if (current?.url && !isSamePageUrl(base.pageUrl, current.url)) {
           setMismatchConfirm({
             question: text,
             sessionUrl: base.pageUrl,
-            currentUrl,
+            currentUrl: current.url,
+            currentTitle: current.title,
           });
-          return;
+          return 'pending-mismatch';
         }
       }
-      await sendNow(text);
+      void sendNow(text);
+      return 'sent';
     },
-    [probeActivePageUrl, sendNow],
+    [probeActivePage, sendNow],
   );
 
-  const confirmMismatch = useCallback(() => {
-    if (!mismatchConfirm) return;
-    setMismatchConfirm(null);
-    void sendNow(mismatchConfirm.question);
-  }, [mismatchConfirm, sendNow]);
+  const confirmMismatch = useCallback(
+    (options?: { remember?: boolean }) => {
+      const pending = mismatchConfirm;
+      if (!pending) return;
+      setMismatchConfirm(null);
+      // 先认下当前页作为会话来源：即使随后读不到正文（activeContext 为 null），
+      // pageUrl 也已是新页，不会因为回退到旧来源而每次发送都弹确认。
+      const base = sessionRef.current;
+      commitSession({
+        ...base,
+        pageUrl: pending.currentUrl,
+        pageTitle: pending.currentTitle || base.pageTitle,
+        ...(options?.remember ? { allowCrossPage: true } : {}),
+      });
+      void sendNow(pending.question);
+    },
+    [commitSession, mismatchConfirm, sendNow],
+  );
 
   const cancelMismatch = useCallback(() => setMismatchConfirm(null), []);
 
@@ -355,7 +385,7 @@ export function useChat(options: UseChatOptions = {}): ChatController {
     abortRef.current?.abort();
   }, []);
 
-  const summarize = useCallback(() => send(SUMMARY_QUESTION), [send]);
+  const summarize = useCallback(() => void send(SUMMARY_QUESTION), [send]);
 
   const startNew = useCallback(() => {
     interrupt();

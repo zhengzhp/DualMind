@@ -351,15 +351,59 @@ test.describe('V2 网页摘要 / 问答', () => {
     await panel.getByPlaceholder(/就当前网页提问/).fill('这个会话还能继续吗？');
     await panel.getByRole('button', { name: '发送', exact: true }).click();
 
-    // ① 出现确认条，且此刻尚未发出（消息区仍是旧会话的 2 条）
+    // ① 出现确认条：并列显示两侧地址（增强点 2），且此刻尚未发出（仍是旧会话 2 条）
     const confirmBar = panel.getByTestId('chat-mismatch-confirm');
     await expect(confirmBar).toBeVisible();
+    await expect(confirmBar).toContainText('other.example.com');
+    await expect(confirmBar).toContainText('example.com');
     await expect(panel.getByTestId('chat-turn-user')).toHaveCount(1);
     await expect(panel.getByTestId('chat-turn-assistant')).toHaveCount(1);
 
-    // ② 取消 → 确认条消失，仍未新增消息
+    // ② 取消 → 确认条消失，仍未新增消息，且提问被还回输入框（增强点 1：不丢草稿）
     await panel.getByRole('button', { name: '取消' }).click();
     await expect(confirmBar).toBeHidden();
     await expect(panel.getByTestId('chat-turn-user')).toHaveCount(1);
+    await expect(panel.getByPlaceholder(/就当前网页提问/)).toHaveValue(
+      '这个会话还能继续吗？',
+    );
+  });
+
+  test('会话来源不一致：「本会话不再提示」记住选择并继续', async ({
+    context,
+    page,
+    serviceWorker,
+    extensionId,
+  }) => {
+    await seedSettings(serviceWorker, OLLAMA_SETTINGS);
+    await seedForeignSession(serviceWorker);
+
+    await page.goto('https://example.com');
+    await expect(page.locator('dualmind-immersive')).toHaveCount(1);
+
+    const panel = await context.newPage();
+    await panel.goto(`chrome-extension://${extensionId}/sidepanel.html`);
+    await panel.getByRole('button', { name: '聊天', exact: true }).click();
+    await panel.getByRole('button', { name: /^历史/ }).click();
+    await panel
+      .getByRole('button', { name: /^来自其他页面的旧会话/ })
+      .click();
+    await page.bringToFront();
+
+    await panel.getByPlaceholder(/就当前网页提问/).fill('继续这个会话。');
+    await panel.getByRole('button', { name: '发送', exact: true }).click();
+    await expect(panel.getByTestId('chat-mismatch-confirm')).toBeVisible();
+
+    // 点「本会话不再提示」→ 立刻发出：用户消息入列，且标记落盘
+    await panel
+      .getByRole('button', { name: '本会话不再提示' })
+      .click();
+    await expect(panel.getByTestId('chat-mismatch-confirm')).toBeHidden();
+    // 旧会话已有 1 条用户消息，新发出的那条是最后一条
+    await expect(panel.getByTestId('chat-turn-user').last()).toContainText(
+      '继续这个会话。',
+    );
+    await expect
+      .poll(async () => (await readChatSessions(serviceWorker))[0]?.allowCrossPage)
+      .toBe(true);
   });
 });
