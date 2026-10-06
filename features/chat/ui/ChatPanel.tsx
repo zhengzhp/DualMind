@@ -152,10 +152,13 @@ export function ChatPanel({
 
       {/* 会话来源页与当前页不一致：先确认再用当前页继续（见 docs/decisions.md） */}
       {chat.mismatchConfirm && (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+        <div
+          data-testid="chat-mismatch-confirm"
+          className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800"
+        >
           <p className="break-words leading-relaxed">
-            该会话来自其他页面（{chat.mismatchConfirm.sessionUrl}），当前页面不同。
-            仍要基于<strong>当前页</strong>继续提问吗？
+            该会话来自其他页面（{chat.mismatchConfirm.sessionUrl}
+            ），当前页面不同。仍要基于当前页继续提问吗？
           </p>
           <div className="mt-1.5 flex gap-1.5">
             <button

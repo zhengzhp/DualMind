@@ -303,7 +303,13 @@ test.describe('V2 网页摘要 / 问答', () => {
     // ② 信箱消费即清空（TTL 内只执行一次）
     expect(await readChatPending(serviceWorker)).toBeNull();
 
-    // ③ 重开面板：会话仍在「历史」里（按首条提问推导标题）
+    // ③ 等会话真正落盘后再重开面板（流式未结束时 reload 会打断 persist，
+    //    表现为「历史为空」——这是曾经的用例缺陷，不是产品问题）
+    await expect
+      .poll(async () => (await readChatSessions(serviceWorker)).length)
+      .toBe(1);
+
+    // ④ 重开面板：会话仍在「历史」里（按首条提问推导标题）
     await page.reload();
     await page.getByRole('button', { name: '聊天', exact: true }).click();
     await page.getByRole('button', { name: /^历史/ }).click();
@@ -313,35 +319,47 @@ test.describe('V2 网页摘要 / 问答', () => {
   });
 
   test('会话来源不一致：发送前确认，取消则不发送', async ({
+    context,
     page,
     serviceWorker,
     extensionId,
   }) => {
     await seedSettings(serviceWorker, OLLAMA_SETTINGS);
+    // 种一个「来自 other.example.com」的旧会话
     await seedForeignSession(serviceWorker);
 
-    await page.goto(`chrome-extension://${extensionId}/sidepanel.html`);
-    await page.getByRole('button', { name: '聊天', exact: true }).click();
+    // 关键：真实侧栏不是标签页，`chat:page-info` 取的是**活动标签页**。
+    // E2E 把 sidepanel.html 当标签页打开时，活动页会变成扩展页（chrome-extension://，
+    // 无 url 可读）→ 无法比较。故这里让一张真实网页占据活动位，面板开在另一张标签页，
+    // 与真实「sidebar + 网页」的形态一致。
+    await page.goto('https://example.com');
+    await expect(page.locator('dualmind-immersive')).toHaveCount(1);
 
-    // 打开旧会话：来源页 other.example.com，而当前活动页是扩展页，必然不一致
-    await page.getByRole('button', { name: /^历史/ }).click();
+    const panel = await context.newPage();
+    await panel.goto(`chrome-extension://${extensionId}/sidepanel.html`);
+    await panel.getByRole('button', { name: '聊天', exact: true }).click();
+
+    // 打开旧会话：来源页 other.example.com，当前活动页 example.com，必然不一致
+    await panel.getByRole('button', { name: /^历史/ }).click();
     // 限定以标题开头的按钮，避免命中「删除会话 …」（aria-label 也含标题）
-    await page
+    await panel
       .getByRole('button', { name: /^来自其他页面的旧会话/ })
       .click();
+    // 让 example.com 保持活动标签页
+    await page.bringToFront();
 
-    await page.getByPlaceholder(/就当前网页提问/).fill('这个会话还能继续吗？');
-    await page.getByRole('button', { name: '发送', exact: true }).click();
+    await panel.getByPlaceholder(/就当前网页提问/).fill('这个会话还能继续吗？');
+    await panel.getByRole('button', { name: '发送', exact: true }).click();
 
     // ① 出现确认条，且此刻尚未发出（消息区仍是旧会话的 2 条）
-    const confirmBar = page.getByText(/仍要基于/).first();
+    const confirmBar = panel.getByTestId('chat-mismatch-confirm');
     await expect(confirmBar).toBeVisible();
-    await expect(page.getByTestId('chat-turn-user')).toHaveCount(1);
-    await expect(page.getByTestId('chat-turn-assistant')).toHaveCount(1);
+    await expect(panel.getByTestId('chat-turn-user')).toHaveCount(1);
+    await expect(panel.getByTestId('chat-turn-assistant')).toHaveCount(1);
 
     // ② 取消 → 确认条消失，仍未新增消息
-    await page.getByRole('button', { name: '取消' }).click();
+    await panel.getByRole('button', { name: '取消' }).click();
     await expect(confirmBar).toBeHidden();
-    await expect(page.getByTestId('chat-turn-user')).toHaveCount(1);
+    await expect(panel.getByTestId('chat-turn-user')).toHaveCount(1);
   });
 });
