@@ -18,6 +18,13 @@ import type {
   ChatTurn,
 } from '@/shared/storage/types';
 import { streamChat } from '../client';
+import {
+  buildAllSessionsExportFilename,
+  buildSessionExportFilename,
+  downloadTextFile,
+  formatAllSessionsMarkdown,
+  formatSessionMarkdown,
+} from '../export';
 import { isSamePageUrl } from '../pageUrl';
 import { SUMMARY_QUESTION } from '../prompts';
 import type { ChatContextPayload } from '../types';
@@ -84,6 +91,10 @@ export interface ChatController {
   openSession(id: string): Promise<void>;
   removeSession(id: string): Promise<void>;
   clearSessions(): Promise<void>;
+  /** 导出单条会话为 Markdown 并触发本机下载 */
+  downloadSession(id: string): Promise<void>;
+  /** 导出全部历史为单个 Markdown 文件 */
+  downloadAllSessions(): Promise<void>;
   /**
    * 确认用当前页继续：认下当前页为会话来源（消除陈旧标签）并发出挂起的提问。
    * `remember` 为 true 时置 `allowCrossPage`，本会话不再提示。
@@ -467,6 +478,51 @@ export function useChat(options: UseChatOptions = {}): ChatController {
     }
   }, [commitSession, refreshSessions]);
 
+  /** 列表只有 summary，导出前必须 get 全量 turns */
+  const downloadSession = useCallback(async (id: string) => {
+    try {
+      const loaded = await sendMessage('chat:sessions:get', { id });
+      if (!loaded) {
+        setError('未找到该会话，无法下载');
+        return;
+      }
+      downloadTextFile(
+        buildSessionExportFilename(loaded),
+        formatSessionMarkdown(loaded),
+      );
+      setError('');
+    } catch (err) {
+      setError(formatErrorForUi(err));
+    }
+  }, []);
+
+  const downloadAllSessions = useCallback(async () => {
+    try {
+      const summaries = await sendMessage('chat:sessions:list', undefined);
+      if (summaries.length === 0) {
+        setError('暂无历史会话可下载');
+        return;
+      }
+      const full: ChatSession[] = [];
+      for (const item of summaries) {
+        const loaded = await sendMessage('chat:sessions:get', { id: item.id });
+        if (loaded) full.push(loaded);
+      }
+      if (full.length === 0) {
+        setError('未能读取会话内容，请稍后重试');
+        return;
+      }
+      downloadTextFile(
+        buildAllSessionsExportFilename(),
+        formatAllSessionsMarkdown(full),
+      );
+      // 部分 id 读失败时仍交付已取到的内容；不写红色错误条以免误以为整次失败
+      setError('');
+    } catch (err) {
+      setError(formatErrorForUi(err));
+    }
+  }, []);
+
   /* 右键菜单信箱：外层下发的待执行动作 → 自动发起「总结本页」。
      去重按 createdAt，避免外层重复下发导致重复提问。 */
   const sendRef = useRef(send);
@@ -509,6 +565,8 @@ export function useChat(options: UseChatOptions = {}): ChatController {
     openSession,
     removeSession,
     clearSessions,
+    downloadSession,
+    downloadAllSessions,
     confirmMismatch,
     cancelMismatch,
   };

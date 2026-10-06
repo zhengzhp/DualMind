@@ -42,6 +42,7 @@
 | 右键菜单与 disabledHosts | 三个右键菜单项（`dualmind-translate` / `-immersive` / `-chat-summarize`）在内容脚本被禁用的站点上**置灰**（`contextMenus.update({ enabled: false })`），由 Background 在 `tabs.onActivated` / `tabs.onUpdated` / `storage.onChanged` 时重算。理由：`documentUrlPatterns` 无法表达「除 disabledHosts 外的所有站点」，而无效点击只会得到空洞的失败提示；站点禁用能力不应被绕过 |
 | 右键菜单入口 | 「总结本页」由 Background 写入信箱 `local:chatPending`（消费即清空 + TTL 30s），**由常驻的 `WorkbenchApp` 消费**并切到网页助手 Tab 再下发给 `ChatPanel`。理由：`sidePanel.open()` 与面板挂载存在竞态，runtime 广播不可靠；且 `ChatPanel` 仅在网页助手 Tab 挂载，用户停在翻译 Tab 时会漏事件。仅 Side Panel 消费，避免全页工作台抢走动作 |
 | 正文不落 storage | 页面正文只在会话内保存已发送的上下文片段 / 引用，不作为独立快照持久化 |
+| 历史导出 | 网页助手历史支持**单条 / 全部**导出为 Markdown（`.md`）；全部合并为**单个文件**；UI 侧经 `chat:sessions:get` 取全量后 `Blob` 本机下载，**不扩** `downloads` 权限、不经 Background |
 | 权限 | **不扩大**：复用现有 `<all_urls>` content script，不引入 `scripting` / `activeTab` |
 | 入口 | Side Panel / 全页工作台「网页助手」Tab；右键菜单「总结本页」；（可选）快捷键 |
 | 与既有 Feature 关系 | 复用同一 BYOK Provider（`shared/llm`）与 Side Panel；**不新增模型接入**，不改动 `translate` / `immersive` 行为（`page-content` 抽取为等价重构） |

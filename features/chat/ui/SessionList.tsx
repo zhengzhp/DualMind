@@ -23,6 +23,10 @@ export interface SessionListProps {
   onOpen: (id: string) => void;
   onRemove: (id: string) => void;
   onClear: () => void;
+  /** 导出单条为 Markdown 并触发本机下载 */
+  onDownload: (id: string) => void;
+  /** 导出全部会话为单个 Markdown */
+  onDownloadAll: () => void;
 }
 
 export function SessionList({
@@ -31,21 +35,32 @@ export function SessionList({
   onOpen,
   onRemove,
   onClear,
+  onDownload,
+  onDownloadAll,
 }: SessionListProps) {
   return (
     <div className="rounded-xl border border-brand-100 bg-white/90 p-2">
-      <div className="flex items-center justify-between px-1 pb-2">
+      <div className="flex items-center justify-between gap-2 px-1 pb-2">
         <span className="text-xs font-semibold text-brand-900">
           历史会话（{sessions.length}）
         </span>
         {sessions.length > 0 && (
-          <button
-            type="button"
-            onClick={onClear}
-            className="rounded-md px-2 py-0.5 text-[11px] font-medium text-brand-600 hover:bg-brand-50"
-          >
-            清空全部
-          </button>
+          <div className="flex shrink-0 items-center gap-0.5">
+            <button
+              type="button"
+              onClick={onDownloadAll}
+              className="rounded-md px-2 py-0.5 text-[11px] font-medium text-brand-600 hover:bg-brand-50"
+            >
+              下载全部
+            </button>
+            <button
+              type="button"
+              onClick={onClear}
+              className="rounded-md px-2 py-0.5 text-[11px] font-medium text-brand-600 hover:bg-brand-50"
+            >
+              清空全部
+            </button>
+          </div>
         )}
       </div>
 
@@ -73,6 +88,14 @@ export function SessionList({
                   {item.pageTitle || '未记录页面'} · {item.turnCount} 条 ·{' '}
                   {formatTime(item.updatedAt)}
                 </span>
+              </button>
+              <button
+                type="button"
+                aria-label={`下载会话 ${item.title}`}
+                onClick={() => onDownload(item.id)}
+                className="shrink-0 rounded-md px-1.5 py-1 text-[11px] font-medium text-brand-600 hover:bg-brand-50"
+              >
+                下载
               </button>
               <button
                 type="button"

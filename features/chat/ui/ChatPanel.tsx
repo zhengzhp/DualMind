@@ -168,6 +168,8 @@ export function ChatPanel({
           }}
           onRemove={(id) => void chat.removeSession(id)}
           onClear={() => void chat.clearSessions()}
+          onDownload={(id) => void chat.downloadSession(id)}
+          onDownloadAll={() => void chat.downloadAllSessions()}
         />
       )}
 
