@@ -9,11 +9,13 @@ import {
 } from '@/shared/extensionPages';
 import { sendMessage } from '@/shared/messaging/client';
 import { streamTranslate } from '@/shared/messaging/stream';
+import { consumeChatPending } from '@/shared/storage/settings';
 import {
   PROVIDER_HINT,
   PROVIDER_OPTIONS,
   TARGET_LANGUAGES,
   type AppSettings,
+  type ChatPendingAction,
   type ProviderType,
 } from '@/shared/storage/types';
 import {
@@ -71,6 +73,52 @@ export function WorkbenchApp({ surface }: { surface: WorkbenchSurface }) {
   const [copied, setCopied] = useState(false);
   const copyTimerRef = useRef<number | undefined>(undefined);
   const abortRef = useRef<AbortController | null>(null);
+
+  /** 右键菜单信箱下发的待执行动作（消费后交给 ChatPanel 执行） */
+  const [pendingChatAction, setPendingChatAction] =
+    useState<ChatPendingAction | null>(null);
+  /** 已处理动作的时间戳：初始读取与 storage 监听可能同时命中，靠它去重 */
+  const handledPendingRef = useRef(0);
+
+  /**
+   * 右键菜单「总结本页」：信箱由**常驻的**工作台统一消费，再下发给 ChatPanel。
+   *
+   * 为什么不在 ChatPanel 里消费：面板只在「聊天」Tab 激活时挂载，用户停在
+   * 「翻译」Tab 点右键时会错过 storage 事件，动作就丢了。
+   * 为什么只有 Side Panel 消费：右键菜单打开的就是侧栏；否则全页工作台会把动作抢走。
+   */
+  useEffect(() => {
+    if (surface !== 'sidepanel') return;
+
+    const handle = async () => {
+      const action = await consumeChatPending();
+      if (!action) return;
+      if (handledPendingRef.current === action.createdAt) return;
+      handledPendingRef.current = action.createdAt;
+      // 必须先切到聊天 Tab，保证 ChatPanel 挂载，否则动作没人执行
+      setTab('chat');
+      setPendingChatAction(action);
+    };
+
+    // 面板刚打开（信箱先写入）：读一次
+    void handle();
+
+    // 面板已打开（信箱后写入）：靠 storage 变化即时响应
+    const listener = (
+      changes: Record<string, { newValue?: unknown }>,
+      area: string,
+    ) => {
+      if (area !== 'local') return;
+      if (!Object.keys(changes).some((key) => key.includes('chatPending'))) return;
+      void handle();
+    };
+    browser.storage.onChanged.addListener(listener);
+    return () => browser.storage.onChanged.removeListener(listener);
+  }, [surface]);
+
+  const clearPendingChatAction = useCallback(() => {
+    setPendingChatAction(null);
+  }, []);
 
   const refresh = useCallback(async () => {
     const [s, sess] = await Promise.all([
@@ -607,7 +655,13 @@ export function WorkbenchApp({ surface }: { surface: WorkbenchSurface }) {
           </>
         )}
 
-        {tab === 'chat' && <ChatPanel surface={surface} />}
+        {tab === 'chat' && (
+          <ChatPanel
+            surface={surface}
+            pendingAction={pendingChatAction}
+            onPendingHandled={clearPendingChatAction}
+          />
+        )}
         {tab === 'agent' && (
           <Placeholder
             title="Agent（即将推出）"

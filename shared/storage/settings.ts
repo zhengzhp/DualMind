@@ -6,10 +6,12 @@ import {
   toChatSessionSummaries,
 } from './chatSessions';
 import {
+  CHAT_PENDING_TTL_MS,
   DEFAULT_CHAT_PREFS,
   DEFAULT_IMMERSIVE_PREFS,
   DEFAULT_SETTINGS,
   type AppSettings,
+  type ChatPendingAction,
   type ChatPrefs,
   type ChatSession,
   type ChatSessionSummary,
@@ -176,4 +178,34 @@ export async function deleteChatSession(id: string): Promise<void> {
 /** 清空全部会话 */
 export async function clearChatSessions(): Promise<void> {
   await chatSessionsItem.setValue([]);
+}
+
+/**
+ * 待执行动作信箱（`local:chatPending`）。
+ * 独立键：与偏好 / 会话解耦，消费后立即置空，天然幂等。
+ */
+export const chatPendingItem = storage.defineItem<ChatPendingAction | null>(
+  'local:chatPending',
+  {
+    fallback: null,
+  },
+);
+
+/** 写入一条待执行动作（右键菜单触发） */
+export async function setChatPending(
+  kind: ChatPendingAction['kind'],
+): Promise<void> {
+  await chatPendingItem.setValue({ kind, createdAt: Date.now() });
+}
+
+/**
+ * 取出并清空待执行动作（取过即清，天然幂等）。
+ * 超过 TTL 的旧动作直接丢弃，避免面板很久之后打开时突然执行。
+ */
+export async function consumeChatPending(): Promise<ChatPendingAction | null> {
+  const action = await chatPendingItem.getValue();
+  if (!action) return null;
+  await chatPendingItem.setValue(null);
+  if (Date.now() - action.createdAt > CHAT_PENDING_TTL_MS) return null;
+  return action;
 }

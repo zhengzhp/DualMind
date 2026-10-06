@@ -173,3 +173,18 @@ export interface ChatSessionSummary {
   turnCount: number;
   updatedAt: number;
 }
+
+/**
+ * 待执行动作（mailbox）。
+ *
+ * 用途：右键菜单「总结本页」在 Background 里触发，而真正执行需要 Side Panel 的
+ * UI 上下文。`sidebarPanel.open()` 与面板 React 挂载存在竞态，靠 runtime 消息
+ * 广播不可靠，故改用 storage 当信箱：Background 写入，面板读取并消费。
+ */
+export interface ChatPendingAction {
+  kind: 'summarize';
+  createdAt: number;
+}
+
+/** 待执行动作的有效期：超过即视为过期，避免面板很久之后打开突然执行旧指令 */
+export const CHAT_PENDING_TTL_MS = 30_000;

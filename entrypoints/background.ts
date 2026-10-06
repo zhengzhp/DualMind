@@ -38,6 +38,7 @@ import {
   saveChatPrefs,
   saveImmersivePrefs,
   saveSettings,
+  setChatPending,
   translateSessionItem,
   upsertChatSession,
 } from '@/shared/storage/settings';
@@ -620,6 +621,11 @@ export default defineBackground(() => {
       title: '用 DualMind 翻译整页',
       contexts: ['page'],
     });
+    browser.contextMenus.create({
+      id: 'dualmind-chat-summarize',
+      title: '用 DualMind 总结本页',
+      contexts: ['page'],
+    });
   });
 
   browser.contextMenus?.onClicked.addListener(async (info, tab) => {
@@ -631,6 +637,17 @@ export default defineBackground(() => {
           command: 'start',
         });
       }
+      return;
+    }
+
+    // 总结本页：真正执行在 Side Panel 的 UI 上下文里，用 storage 当信箱。
+    if (info.menuItemId === 'dualmind-chat-summarize') {
+      // 与下面翻译同理：open() 必须在用户手势有效期内「同步」调用。
+      // 先开面板再写信箱，两种时序面板都能收到（见 useChat 的 storage 监听）。
+      if (sidePanelApi && tab?.windowId != null) {
+        void sidePanelApi.open({ windowId: tab.windowId }).catch(() => {});
+      }
+      await setChatPending('summarize');
       return;
     }
 

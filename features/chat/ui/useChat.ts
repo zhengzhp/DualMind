@@ -11,6 +11,7 @@ import { sendMessage } from '@/shared/messaging/client';
 import { deriveSessionTitle, updateTurn } from '@/shared/storage/chatSessions';
 import type {
   ChatContextScope,
+  ChatPendingAction,
   ChatPrefs,
   ChatSession,
   ChatSessionSummary,
@@ -61,7 +62,18 @@ export interface ChatController {
   clearSessions(): Promise<void>;
 }
 
-export function useChat(): ChatController {
+export interface UseChatOptions {
+  /**
+   * 由外层（常驻的 `WorkbenchApp`）消费信箱后下发的待执行动作。
+   * 之所以不在这里直接读 `local:chatPending`：面板只在「聊天」Tab 激活时挂载，
+   * 用户停在「翻译」Tab 时会错过 storage 事件。
+   */
+  pendingAction?: ChatPendingAction | null;
+  /** 动作已处理，外层可清空，避免重复下发 */
+  onPendingHandled?: () => void;
+}
+
+export function useChat(options: UseChatOptions = {}): ChatController {
   const [prefs, setPrefs] = useState<ChatPrefs | null>(null);
   const [session, setSession] = useState<ChatSession>(createSession);
   const [sessions, setSessions] = useState<ChatSessionSummary[]>([]);
@@ -331,6 +343,26 @@ export function useChat(): ChatController {
       setError(formatErrorForUi(err));
     }
   }, [commitSession, refreshSessions]);
+
+  /* 右键菜单信箱：外层下发的待执行动作 → 自动发起「总结本页」。
+     去重按 createdAt，避免外层重复下发导致重复提问。 */
+  const sendRef = useRef(send);
+  useEffect(() => {
+    sendRef.current = send;
+  }, [send]);
+
+  const handledPendingRef = useRef(0);
+  const { pendingAction, onPendingHandled } = options;
+
+  useEffect(() => {
+    if (!pendingAction) return;
+    if (handledPendingRef.current === pendingAction.createdAt) return;
+    handledPendingRef.current = pendingAction.createdAt;
+    onPendingHandled?.();
+    if (pendingAction.kind === 'summarize') {
+      void sendRef.current(SUMMARY_QUESTION);
+    }
+  }, [pendingAction, onPendingHandled]);
 
   return {
     prefs,

@@ -6,7 +6,11 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import { SegmentedControl } from '@/shared/ui';
-import type { ChatContextScope, ChatTurn } from '@/shared/storage/types';
+import type {
+  ChatContextScope,
+  ChatPendingAction,
+  ChatTurn,
+} from '@/shared/storage/types';
 import { SessionList } from './SessionList';
 import { useChat } from './useChat';
 
@@ -19,8 +23,17 @@ const SCOPE_OPTIONS: { value: ChatContextScope; label: string; title: string }[]
     { value: 'selection', label: '选区', title: '以当前选中的文字作为上下文' },
   ];
 
-export function ChatPanel({ surface }: { surface: ChatSurface }) {
-  const chat = useChat();
+export function ChatPanel({
+  surface,
+  pendingAction,
+  onPendingHandled,
+}: {
+  surface: ChatSurface;
+  /** 外层消费信箱后下发的待执行动作（目前仅「总结本页」） */
+  pendingAction?: ChatPendingAction | null;
+  onPendingHandled?: () => void;
+}) {
+  const chat = useChat({ pendingAction, onPendingHandled });
   const [draft, setDraft] = useState('');
   const [showHistory, setShowHistory] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
