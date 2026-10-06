@@ -43,7 +43,8 @@ Chrome 打开 `chrome://extensions` → 开启开发者模式 → 加载 `.outpu
 | `pnpm zip` | 打包 zip |
 | `pnpm compile` | TypeScript 类型检查 |
 | `pnpm test` | Vitest 单测（纯逻辑，无外部依赖） |
-| `pnpm test:e2e` | Playwright E2E（先 `wxt build`；需本机启动 Ollama 并拉取 `qwen-coder-8k:latest`） |
+| `pnpm test:e2e` | Playwright E2E（先 `wxt build`；需本机启动 Ollama 并拉取 `qwen-coder-8k:latest`）；**默认无头** |
+| `pnpm test:e2e:headed` | E2E 有头（`E2E_HEADED=1`）：需要观察界面 / 跑真实 Side Panel 用例时使用 |
 
 > CI（`.github/workflows/ci.yml`）只跑 `pnpm compile` + `pnpm test`；E2E 依赖真实本地模型，请在本地执行。
 

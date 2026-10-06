@@ -23,6 +23,12 @@ export const EXTENSION_PATH = path.resolve(here, '../.output/chrome-mv3');
 /** 独立的浏览器 profile，避免污染真实浏览器数据 */
 const USER_DATA_DIR = path.resolve(here, '../.e2e-profile');
 
+/**
+ * 是否使用有头窗口。默认**无头**（适合本地批量执行）；
+ * 需要观察界面、或运行依赖真实窗口 UI 的用例（如真实 Side Panel）时设 `E2E_HEADED=1`。
+ */
+export const E2E_HEADED = process.env.E2E_HEADED === '1';
+
 /** 本机 Ollama 配置（本套 E2E 依赖真实本地模型） */
 export const OLLAMA_HOST = 'http://127.0.0.1:11434';
 export const OLLAMA_MODEL = 'qwen-coder-8k:latest';
@@ -45,7 +51,10 @@ export const test = base.extend<ExtensionFixtures>({
     // 每个用例从干净 profile 起，避免 storage / service worker 互相污染
     fs.rmSync(USER_DATA_DIR, { recursive: true, force: true });
     const context = await chromium.launchPersistentContext(USER_DATA_DIR, {
-      headless: false,
+      // 默认无头；无头下必须走完整 Chromium 的新无头模式（channel: 'chromium'），
+      // 否则 Playwright 默认用的 headless shell 不支持 --load-extension，扩展不会加载。
+      headless: !E2E_HEADED,
+      ...(E2E_HEADED ? {} : { channel: 'chromium' as const }),
       args: [
         `--disable-extensions-except=${EXTENSION_PATH}`,
         `--load-extension=${EXTENSION_PATH}`,

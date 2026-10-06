@@ -30,4 +30,6 @@ alwaysApply: true
 - 不擅自杀用户正在运行的进程（如 `pnpm dev`）；需要时**给命令让用户执行**。
 - 验证优先用 prod 产物（`.output/chrome-mv3`），避免污染用户 dev 环境。
 - 临时脚本命名 `_tmp-*`，用完即删；收尾时确认 `git status` 无残留。
+- E2E 默认**无头**（`pnpm test:e2e`）；涉及**真实 Side Panel / 需肉眼观察界面**时，
+  **主动提醒用户**改用 `pnpm test:e2e:headed`（`E2E_HEADED=1`），详见 `AGENTS.md` 与 `docs/decisions.md`。
 - 需要访问外网（查文档 / 装包 / 下载）时走**本地代理服务器**转发；具体地址与端口按本机环境配置，不在仓库写死。直连失败或超时时先确认代理是否启用，不要反复重试直连。

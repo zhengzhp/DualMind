@@ -26,9 +26,20 @@
 | `pnpm build` | 生产构建 |
 | `pnpm compile` | `tsc --noEmit` |
 | `pnpm test` | Vitest 单测 |
+| `pnpm test:e2e` | E2E（默认**无头**；需 `wxt build` + 本地 Ollama） |
+| `pnpm test:e2e:headed` | E2E 有头（`E2E_HEADED=1`；真实 Side Panel / 肉眼观察用） |
 | `pnpm zip` | 打包 zip |
 
 **默认不执行** `dev` / `build` / `compile` / `zip`，除非用户明确要求。
+
+### E2E 有头 / 无头 —— 必须主动提醒用户
+
+- 默认 `pnpm test:e2e` 为**无头**。
+- 当任务涉及 **真实 Side Panel（`sidePanel.open()`）/ 需要肉眼观察界面 / 无头下扩展未加载** 时，
+  **主动提醒用户改用 `pnpm test:e2e:headed`**（`E2E_HEADED=1`）；无头下
+  `e2e/selection-panel-toggle.e2e.ts` 的真实侧栏用例会自动 skip，只有该模式才执行。
+- 无头依赖 `channel: 'chromium'` 走完整 Chromium 新无头模式（headless shell 不支持加载扩展）。
+- 细节见 `docs/decisions.md`「本地 E2E 运行须知」。
 
 ## 代理边界
 

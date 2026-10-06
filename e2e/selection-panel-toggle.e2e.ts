@@ -8,6 +8,7 @@
  * 使 open() 紧跟手势调用。详见 docs/decisions.md「已知缺陷」。
  */
 import {
+  E2E_HEADED,
   OLLAMA_SETTINGS,
   expect,
   readSession,
@@ -42,6 +43,10 @@ test.describe('划词浮层 · 侧边栏开关', () => {
     page,
     serviceWorker,
   }) => {
+    // 真实 Side Panel 是附着在窗口侧边的浏览器 UI 表面：无头下 open() 不产生
+    // SIDE_PANEL 上下文，断言必然失败。该用例只在有头模式（E2E_HEADED=1）下运行。
+    test.skip(!E2E_HEADED, '真实 Side Panel 需要有头窗口：请用 E2E_HEADED=1 运行');
+
     await seedSettings(serviceWorker, OLLAMA_SETTINGS);
     await page.goto('https://example.com');
     await expect(page.locator('dualmind-toolbar')).toHaveCount(1);

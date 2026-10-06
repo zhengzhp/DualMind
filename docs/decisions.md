@@ -144,5 +144,7 @@
 ### 本地 E2E 运行须知
 
 - E2E **不进 CI**，依赖真实本地 Ollama + `wxt build` 产物；**必须先重新构建**，否则跑的是旧产物。
+- **默认无头**（`pnpm test:e2e`）：无头下通过 `channel: 'chromium'` 走完整 Chromium 的新无头模式，否则默认的 headless shell 不支持 `--load-extension`。
+- **需要观察界面 / 真实 Side Panel** 时用 `pnpm test:e2e:headed`（即 `E2E_HEADED=1`）。真实 `sidePanel.open()` 依赖窗口侧边 UI，无头下不产生 SIDE_PANEL 上下文，故 `e2e/selection-panel-toggle.e2e.ts` 的首个用例仅在 `E2E_HEADED=1` 时执行，否则自动 skip。
 - 沙箱化 shell 需 `PLAYWRIGHT_HOST_PLATFORM_OVERRIDE=mac-arm64`（沙箱把 `os.arch()` 报成 x64，且 Chromium 因 `xattr` 受限会 SIGABRT）；用户自建终端不需要。
 
