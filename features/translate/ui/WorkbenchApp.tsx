@@ -23,6 +23,13 @@ import { Placeholder } from './Placeholder';
 
 type ModuleTab = 'translate' | 'chat' | 'agent';
 
+/**
+ * 字标（文字 logo）资源地址：`public/wordmark.svg` 是 `assets/wordmark.svg` 的 UI 副本，
+ * 路径与设计稿逐字节相同，仅裁掉上下空白 —— 因此图片底边≈字标基线，
+ * 在 `items-baseline` 行里能直接与副标题对齐，不需要负 margin 补偿。
+ */
+const WORDMARK_URL = browser.runtime.getURL('wordmark.svg');
+
 /** 复制成功提示的展示时长（毫秒） */
 const COPY_HINT_MS = 1500;
 
@@ -315,8 +322,14 @@ export function WorkbenchApp({ surface }: { surface: WorkbenchSurface }) {
           <div className="flex items-center justify-between gap-2">
             {/* 全页：标题与副标题同行，压缩头部高度、让 Tab 上移 */}
             <div className={isPage ? 'flex items-baseline gap-2.5' : ''}>
+              {/* 品牌名用字标呈现；`text-lg` 保留行盒高度，并作为图片加载失败时 alt 文字的兜底样式 */}
               <h1 className="text-lg font-semibold tracking-tight text-brand-900">
-                DualMind
+                <img
+                  src={WORDMARK_URL}
+                  alt="DualMind"
+                  draggable={false}
+                  className="h-[17px] w-auto"
+                />
               </h1>
               <p className="text-xs text-brand-700/70">
                 {isPage ? '全页工作台 · 翻译' : 'AI 助手 · 翻译工作台'}

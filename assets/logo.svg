@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="DualMind">
+  <title>DualMind</title>
+  <defs>
+    <linearGradient id="dmTile" gradientUnits="userSpaceOnUse" x1="44.98" y1="-6.98" x2="83.02" y2="134.98">
+      <stop offset="0" stop-color="#eef8ff"/>
+      <stop offset="1" stop-color="#d9eeff"/>
+    </linearGradient>
+  </defs>
+  <rect x="4" y="4" width="120" height="120" rx="28" fill="url(#dmTile)"/>
+  <path fill-rule="nonzero" fill="#0f2f4d" d="M50 30L50 30Q60 30 60 40L60 64L40 64L40 40Q40 30 50 30ZM54 30C72.78 30 88 45.22 88 64L71 64C71 54.61 63.39 47 54 47Z"/>
+  <path fill-rule="nonzero" fill="#1b7fd1" d="M40 64L60 64L60 88Q60 98 50 98L50 98Q40 98 40 88ZM88 64C88 82.78 72.78 98 54 98L54 81C63.39 81 71 73.39 71 64Z"/>
+</svg>

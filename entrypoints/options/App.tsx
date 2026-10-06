@@ -20,6 +20,12 @@ import {
   type SegmentedControlOption,
 } from '@/shared/ui';
 
+/**
+ * 与工作台相同的字标：`public/wordmark.svg` 底边≈基线，
+ * 在 `items-baseline` 行里可直接与「设置」对齐。
+ */
+const WORDMARK_URL = browser.runtime.getURL('wordmark.svg');
+
 /** 划词工具栏触发方式：只有两个互斥选项，用分段控件比下拉更直观 */
 const TOOLBAR_OPTIONS: SegmentedControlOption<ToolbarTrigger>[] = [
   { value: 'shortcut', label: '仅快捷键' },
@@ -168,8 +174,14 @@ export default function App() {
     <div className="min-h-screen bg-[radial-gradient(100%_80%_at_10%_0%,#d9eeff_0%,#f4f7fb_50%,#e8eef5_100%)] px-4 py-8">
       <div className="mx-auto max-w-2xl">
         <header className="mb-6">
-          <h1 className="text-2xl font-semibold tracking-tight text-brand-900">
-            DualMind 设置
+          <h1 className="flex items-baseline gap-2.5 text-2xl font-semibold tracking-tight text-brand-900">
+            <img
+              src={WORDMARK_URL}
+              alt="DualMind"
+              draggable={false}
+              className="h-[22px] w-auto"
+            />
+            <span>设置</span>
           </h1>
           <p className="mt-1 text-sm text-brand-700/70">
             V1 为 BYOK 模式：请求直连你配置的 API 或本机 Ollama，不经过 DualMind
