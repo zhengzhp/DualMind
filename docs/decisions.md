@@ -173,7 +173,15 @@
 | `features/immersive/ui/ImmersiveControl.tsx` | 本地 `error` 仅由 `runCommand` 清空；轮询 `refresh()` 只更新 status，不清本地 error | `refresh()` 成功取到状态后 `setError('')`，提示以权威的 `status.error` 为准 |
 | `features/translate/ui/WorkbenchApp.tsx` | `refresh()` 只在 `sess.error` 存在时 `setError`，从不清除 | 改为 `setError(sess.error ?? '')`，让 `translateSession` 成为错误态的唯一权威来源 |
 
-**残留观察（未改，待定夺）**：`features/immersive/controller.ts` 的 `processSegments` 在某一批失败时 `this.error = message` 后**继续处理后续批次**且不再清除；若后续批次成功、整页翻完，错误文案仍会留在面板与悬浮按钮上（属「部分失败」的真实信息，但无过期机制）。当前实现仅在下一次 `start()` / `stop()` 时清空。
+**「部分失败」提示已修（2026-10-06）**：`features/immersive/controller.ts` 原先在某一批失败时 `this.error = message` 后继续处理后续批次且不再清除 —— 后续批次成功、整页翻完，错误文案仍会永久留在面板与悬浮按钮上。现改为按**失败片段集合**（`failedIds`）记账，`error` 统一由 `refreshFailure()` 刷新：
+
+| 情形 | 行为 |
+|------|------|
+| 某批失败 | 「有 N 段翻译失败：原因」，如实保留，不被后续成功批次掩盖 |
+| 全部失败片段补译成功 | 自动清空（成功批次会把这些 id 从 `failedIds` 移除） |
+| 下一次 `start()` / `stop()` | 清空 |
+
+护栏：`features/immersive/controller.test.ts` 覆盖上述四条路径（部分失败如实计数、全成功为空、`stop()` 清除、补译成功后自动消失）。
 
 ### 本地 E2E 运行须知
 

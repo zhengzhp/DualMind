@@ -71,6 +71,14 @@ export class ImmersiveController {
   private total = 0;
   private untranslated = 0;
   private error = '';
+  /**
+   * 当前会话中「整批失败」的片段 id 集合。
+   * 后续若补译成功会从中移除，因此 `error` 能如实反映「还有几段没译出来」，
+   * 而不是把部分失败伪装成成功（见 docs/decisions.md 的残留观察）。
+   */
+  private readonly failedIds = new Set<string>();
+  /** 最近一次失败的用户可见原因，与 failedIds 拼成同一条提示 */
+  private failureReason = '';
 
   constructor(private readonly onStatus: StatusListener) {
     this.client = createImmersiveClient();
@@ -103,7 +111,7 @@ export class ImmersiveController {
       return;
     }
 
-    this.error = '';
+    this.resetFailure();
     try {
       const settings = await sendMessage('settings:get', undefined);
       this.targetLanguage = settings.targetLanguage;
@@ -178,7 +186,7 @@ export class ImmersiveController {
     this.done = 0;
     this.total = 0;
     this.untranslated = 0;
-    this.error = '';
+    this.resetFailure();
     this.emit();
   }
 
@@ -186,6 +194,28 @@ export class ImmersiveController {
   private syncProgress(): void {
     this.done = this.renderer.size();
     this.untranslated = this.renderer.untranslatedCount();
+  }
+
+  /**
+   * 依据失败片段集合刷新错误文案。
+   * - 无失败片段 → 清空（覆盖「上一轮的错误已过期」这种情况）
+   * - 有失败片段 → 「有 N 段翻译失败：原因」，保留到下一次 start / stop
+   */
+  private refreshFailure(): void {
+    if (this.failedIds.size === 0) {
+      this.resetFailure();
+      return;
+    }
+    this.error = this.failureReason
+      ? `有 ${this.failedIds.size} 段翻译失败：${this.failureReason}`
+      : `有 ${this.failedIds.size} 段翻译失败，可重试`;
+  }
+
+  /** 清空失败态（新一轮开始 / 停止 / 全部失败片段已补译成功） */
+  private resetFailure(): void {
+    this.error = '';
+    this.failedIds.clear();
+    this.failureReason = '';
   }
 
   async toggle(mode?: ImmersiveDisplayMode): Promise<void> {
@@ -238,13 +268,19 @@ export class ImmersiveController {
           );
           if (signal.aborted) return;
           this.renderer.apply(results, this.segments);
+          // 这些片段此前若失败过（本轮重试 / 后续补译成功），从失败集合中移除，
+          // 让提示能随真实进度消失，而不是永久挂在界面上
+          for (const result of results) this.failedIds.delete(result.id);
           this.syncProgress();
           this.emit();
         } catch (err) {
           if (signal.aborted) return;
           const message = formatErrorForUi(err);
           if (message === '已取消') return;
-          this.error = message;
+          // 整批失败：如实计入失败片段，不掩盖「部分失败」
+          for (const item of batch) this.failedIds.add(item.id);
+          this.failureReason = message;
+          this.refreshFailure();
           this.emit();
         }
       }
@@ -261,6 +297,9 @@ export class ImmersiveController {
 
     if (signal.aborted) return;
     this.running = false;
+    // 收口错误态：所有失败片段都被补译成功才清空，否则保留「N 段翻译失败」。
+    // 既不把部分失败伪装成成功，也不让旧提示永久挂着（下一次 start / stop 亦清空）。
+    this.refreshFailure();
     if (this.rescanQueued) {
       // 首轮翻译期间页面又长出新内容 → 再补扫一次
       this.rescanQueued = false;
