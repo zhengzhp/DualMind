@@ -15,7 +15,11 @@
 
 | Feature | 目录 | 入口消息 / Port | 写入 storage | UI 入口 | 状态 |
 |---------|------|-----------------|--------------|---------|------|
-| chat | `features/chat/` | `chat:*`：`chat:prefs:get/save`、`chat:sessions:list/get/upsert/delete/clear`、`chat:context`（BG 转发内容脚本提取正文 / 选区）、`chat:page-info`（BG 取活动页地址 / 标题，用于会话来源一致性确认）；Port `dualmind-chat`（`start` / `abort`，流式） | `local:chatSessions`（全局会话，上限 50 会话 / 200 条，超限淘汰最旧）、`local:chatPrefs`（`contextScope` / `maxContextChars`）、`local:chatPending`（右键菜单信箱，消费即清空，TTL 30s）；正文不落 storage | Side Panel / 全页工作台「网页助手」Tab（`ChatPanel` + `SessionList`）、「总结本页」按钮、右键菜单「用 DualMind 总结本页」（仅 `contexts: ['page']`，`disabledHosts` 站点置灰） | V2 可用 |
+| chat | `features/chat/` | `chat:*`：`chat:prefs:get/save`、`chat:sessions:list/get/upsert/delete/clear`、`chat:context`（BG 经 `resolveContentTab` 转发内容脚本提取正文 / 选区）、`chat:page-info`（同解析取内容页地址 / 标题，用于会话来源一致性确认；工作台前台可回退最近可读页）、`chat:summarize-page`（页面悬浮入口「总结本页」，BG 手势期内 `sidePanel.open()` + 写信箱）；Port `dualmind-chat`（`start` / `abort`，流式） | `local:chatSessions`（全局会话，上限 50 会话 / 200 条，超限淘汰最旧）、`local:chatPrefs`（`contextScope` / `maxContextChars`）、`local:chatPending`（右键菜单信箱，消费即清空，TTL 30s）；正文不落 storage | Side Panel / 全页工作台「网页助手」Tab（`ChatPanel` + `SessionList`，展示「绑定页」）、页面悬浮入口「总结本页」、右键菜单「用 DualMind 总结本页」（仅 `contexts: ['page']`，`disabledHosts` 站点置灰） | V2 可用 |
+
+> 页面悬浮入口 `features/page-fab/` **不是独立 Feature**：无消息前缀（动作要么直连本页 controller，要么复用既有 `chat:*` / `immersive:*`），只写 `local:pageFabPos`（落点，全局共享）；隐藏操作经 `settings:save` 写 `settings.pageFab*`。它是内容脚本侧的**共享 UI 壳**：沉浸译与网页总结在挂载时 `registerAction` 注册动作，新增能力不改入口壳。交互与架构决策见 [decisions.md](./decisions.md)「V2 页面悬浮入口」与「V2 悬浮入口 · 开关与粒度」。
+
+> **入口的显隐有两条互不等价的路径**（别混用）：`settings.disabledHosts` 命中 → 内容脚本**整体不注入**（划词 + 入口 + 整页翻译全无）；`settings.pageFabEnabled === false` 或 `settings.pageFabHiddenHosts` 命中 → **只不挂载入口壳**，划词 / 整页翻译 / 右键菜单照常。判定分别走 `isHostDisabled` / `shouldShowPageFab`（`shared/siteAccess.ts`）。注意 `mountImmersive` 除注册入口动作外还承担右键「翻译整页」与自动翻译的监听，因此入口隐藏时**仍须挂载**（`fab` 参数可选）。
 
 > 共享提取层 `features/page-content/` **不是独立 Feature**：无消息前缀、不写 storage，被 `chat` 与 `immersive` 共同引用（`segmenter` 语义采集 / `budget` 字符预算截断）。
 

@@ -17,11 +17,13 @@ import type {
  * 计算「草稿相对已保存值」的增量补丁。
  *
  * @param disabledHosts 站点禁用列表（由独立 textarea 维护，按最终解析结果比对）
+ * @param pageFabHiddenHosts 不显示悬浮入口的站点（同样由 textarea 维护）
  */
 export function diffSettings(
   baseline: AppSettings,
   draft: AppSettings,
   disabledHosts: string[],
+  pageFabHiddenHosts: string[],
 ): Partial<AppSettings> {
   const patch: Partial<AppSettings> = {};
 
@@ -34,8 +36,16 @@ export function diffSettings(
   if (draft.providerType !== baseline.providerType) {
     patch.providerType = draft.providerType;
   }
+  if (draft.pageFabEnabled !== baseline.pageFabEnabled) {
+    patch.pageFabEnabled = draft.pageFabEnabled;
+  }
   if (disabledHosts.join('\n') !== baseline.disabledHosts.join('\n')) {
     patch.disabledHosts = disabledHosts;
+  }
+  if (
+    pageFabHiddenHosts.join('\n') !== baseline.pageFabHiddenHosts.join('\n')
+  ) {
+    patch.pageFabHiddenHosts = pageFabHiddenHosts;
   }
 
   const openai: Partial<OpenAICompatibleConfig> = {};

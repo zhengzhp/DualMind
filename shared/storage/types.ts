@@ -22,6 +22,19 @@ export const DEFAULT_IMMERSIVE_PREFS: ImmersivePrefs = {
   autoTranslate: false,
 };
 
+/**
+ * 页面悬浮入口（`features/page-fab/`）的落点。
+ *
+ * 只记「贴哪一侧 + 顶边 y」而不记绝对 `x/y`：松手时吸附到最近的左/右边缘，
+ * 于是窄窗口、分辨率变化、浏览器缩放都不会把按钮留在视口外（x 由贴边推导）。
+ * 全局共享一份（不按站点区分），避免用户在每个站点都要重新摆一次。
+ */
+export interface PageFabPos {
+  side: 'left' | 'right';
+  /** 按钮顶边在视口中的 y 坐标（px），读取时会按当前视口高度夹取 */
+  y: number;
+}
+
 /** OpenAI 兼容接口配置 */
 export interface OpenAICompatibleConfig {
   baseUrl: string;
@@ -40,8 +53,22 @@ export interface OllamaConfig {
 export interface AppSettings {
   targetLanguage: string;
   toolbarTrigger: ToolbarTrigger;
-  /** hostname 黑名单，匹配则不注入划词工具栏 */
+  /** hostname 黑名单，匹配则**整个内容脚本不注入**（划词与悬浮入口一起关掉） */
   disabledHosts: string[];
+  /**
+   * 是否显示页面悬浮入口（`features/page-fab/`）。
+   *
+   * 与 `disabledHosts` 的区别：这里是**入口级**开关，关掉只影响悬浮入口，
+   * 划词翻译照常可用（用户「不想看见悬浮球」和「不想用这个站点的功能」是两件事）。
+   */
+  pageFabEnabled: boolean;
+  /**
+   * 不显示悬浮入口的站点（hostname，精确匹配）。
+   *
+   * 由入口菜单的「本站不再显示」写入，也在 Options 里编辑。
+   * **只隐藏入口**，不影响划词 —— 与 `disabledHosts` 不可混用。
+   */
+  pageFabHiddenHosts: string[];
   providerType: ProviderType;
   openai: OpenAICompatibleConfig;
   ollama: OllamaConfig;
@@ -52,6 +79,9 @@ export const DEFAULT_SETTINGS: AppSettings = {
   // 默认「仅快捷键」：避免选中即弹层打扰（用户可改为 auto）
   toolbarTrigger: 'shortcut',
   disabledHosts: [],
+  // 默认显示入口；用户主动关掉后才需要恢复路径（见 Options）
+  pageFabEnabled: true,
+  pageFabHiddenHosts: [],
   providerType: 'ollama',
   openai: {
     baseUrl: 'https://api.openai.com/v1',

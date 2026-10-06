@@ -16,7 +16,7 @@
 | `sidePanel` | 权限 | 打开侧边栏翻译工作台 | — |
 | `contextMenus` | 权限 | 提供右键菜单「用 DualMind 翻译」（选中文本）与「用 DualMind 翻译整页」 | — |
 | `commands`（Alt/Option+K） | 快捷键 | 对当前选中文本触发划词翻译（默认「仅快捷键」触发） | 不在页面内硬编码监听按键 |
-| `content_scripts.matches: <all_urls>` | 内容脚本 | 注入划词工具栏与「沉浸译」入口，支撑「选中后自动显示」与整页翻译 | 脚本仅读取**当前选区**与页面正文文本用于翻译，不采集其它信息、不外发 |
+| `content_scripts.matches: <all_urls>` | 内容脚本 | 注入划词工具栏与页面悬浮入口（含「沉浸译」「总结本页」），支撑「选中后自动显示」、整页翻译与一键摘要 | 脚本仅读取**当前选区**与页面正文文本用于翻译 / 摘要，不采集其它信息、不外发 |
 | `host_permissions: <all_urls>` | 主机权限 | 用户在设置中填入**任意** OpenAI 兼容 Base URL 后，由 Background 跨域 `fetch` 调用该端点 | 除用户显式配置的端点外，不外发任何数据 |
 | `host_permissions: 127.0.0.1 / localhost :11434` | 主机权限 | 访问用户本机运行的 Ollama 服务，实现本地模型翻译 | 请求仅发往本机回环地址 |
 

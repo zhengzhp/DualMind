@@ -16,6 +16,7 @@ import {
   type ChatSession,
   type ChatSessionSummary,
   type ImmersivePrefs,
+  type PageFabPos,
 } from './types';
 
 /** 设置项存储 key */
@@ -112,6 +113,28 @@ export async function saveSettings(
   };
   await settingsItem.setValue(next);
   return next;
+}
+
+/* ------------------------------------------------------------------ *
+ * 页面悬浮入口位置（`local:pageFabPos`）
+ *
+ * 独立键：用户拖动入口只是挪个位置，不应触发沉浸译 / 聊天等偏好监听回调。
+ * ------------------------------------------------------------------ */
+
+/** 悬浮入口位置；未拖动过时为 null（由 UI 走默认右下角） */
+export const pageFabPosItem = storage.defineItem<PageFabPos | null>(
+  'local:pageFabPos',
+  {
+    fallback: null,
+  },
+);
+
+export async function getPageFabPos(): Promise<PageFabPos | null> {
+  return pageFabPosItem.getValue();
+}
+
+export async function savePageFabPos(pos: PageFabPos): Promise<void> {
+  await pageFabPosItem.setValue(pos);
 }
 
 /* ------------------------------------------------------------------ *

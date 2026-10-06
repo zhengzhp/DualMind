@@ -10,8 +10,25 @@
 import type { Page } from '@playwright/test';
 import { OLLAMA_SETTINGS, expect, seedSettings, test } from './fixtures';
 
-/** 悬浮入口与注入到页面正文里的译文块 */
-const FAB = 'dualmind-immersive .dm-fab';
+/**
+ * 共享悬浮入口（V2 起替代沉浸译专属 FAB，见 docs/decisions.md「页面悬浮入口」）。
+ * 入口壳默认收起，指针移入停留 150ms 才展开动作面板。
+ */
+const FAB_HOST = 'dualmind-page-fab';
+const FAB_WRAP = `${FAB_HOST} .dm-pf`;
+const FAB_TRIGGER = `${FAB_HOST} .dm-pf-trigger`;
+const IMMERSIVE_ITEM = `${FAB_HOST} [data-action="immersive"]`;
+const IMMERSIVE_LABEL = `${IMMERSIVE_ITEM} .dm-pf-item-label`;
+
+/** 点击「沉浸译」动作：先移入展开面板，再点动作项 */
+async function clickImmersive(page: Page): Promise<void> {
+  await page.locator(FAB_TRIGGER).hover();
+  const item = page.locator(IMMERSIVE_ITEM);
+  await expect(item).toBeVisible();
+  await item.click();
+}
+
+/** 注入到页面正文里的译文块 */
 const BLOCK = '.dm-immersive-block';
 
 /** 可控 fixture：覆盖标题 / 段落 / 列表 / 引用 / 代码块 / 表格 / 链接 */
@@ -125,18 +142,21 @@ test.describe('沉浸式全文翻译', () => {
   }) => {
     await seedSettings(serviceWorker, OLLAMA_SETTINGS);
     await page.goto('https://example.com');
-    await expect(page.locator('dualmind-immersive')).toHaveCount(1);
+    await expect(page.locator(FAB_HOST)).toHaveCount(1);
 
-    const fab = page.locator(FAB);
-    await expect(fab).toHaveText('沉浸译');
+    // 收起态只显示主按钮，动作面板不可见（不打扰页面）
+    await expect(page.locator(IMMERSIVE_LABEL)).toHaveText('沉浸译');
+    await expect(page.locator(FAB_HOST + ' .dm-pf-menu')).toBeHidden();
 
     await installFixture(page);
     const before = await collectMetrics(page);
     expect(before.blockCount).toBe(0);
 
-    await fab.click();
-    // 等待整页翻译结束（运行中按钮是「翻译中 x/y」）
-    await expect(fab).toHaveText('显示原文', { timeout: 150_000 });
+    await clickImmersive(page);
+    // 等待整页翻译结束（进行中动作项显示「翻译中 x/y」）
+    await expect(page.locator(IMMERSIVE_LABEL)).toHaveText('显示原文', {
+      timeout: 150_000,
+    });
 
     const after = await collectMetrics(page);
 
@@ -147,7 +167,7 @@ test.describe('沉浸式全文翻译', () => {
       page.locator('#dm-p1 + .dm-immersive-block'),
     ).toContainText(/[\u4e00-\u9fff]/);
     expect(
-      await page.locator('dualmind-immersive .dm-fab[data-state="error"]').count(),
+      await page.locator(`${IMMERSIVE_ITEM}[data-tone="error"]`).count(),
     ).toBe(0);
 
     // ② 结构：每个译文块都紧跟其源元素；表格单元格插入到单元格内部
@@ -171,7 +191,7 @@ test.describe('沉浸式全文翻译', () => {
     );
 
     // ⑦ 还原：译文块清空、源标记移除、DOM 与翻译前一致
-    await fab.click();
+    await clickImmersive(page);
     await expect(page.locator(BLOCK)).toHaveCount(0);
     const restored = await collectMetrics(page);
     expect(restored.sourceMarkerCount).toBe(0);
@@ -180,7 +200,7 @@ test.describe('沉浸式全文翻译', () => {
     expect(restored.bodyHtml).toBe(before.bodyHtml);
   });
 
-  test('禁用站点不注入沉浸译入口', async ({ page, serviceWorker }) => {
+  test('禁用站点不注入悬浮入口', async ({ page, serviceWorker }) => {
     await seedSettings(serviceWorker, {
       ...OLLAMA_SETTINGS,
       disabledHosts: ['example.com'],
@@ -190,7 +210,95 @@ test.describe('沉浸式全文翻译', () => {
     // 给内容脚本异步读设置留出时间，确认它确实「没有」注入
     await page.waitForTimeout(1500);
 
-    await expect(page.locator('dualmind-immersive')).toHaveCount(0);
+    await expect(page.locator(FAB_HOST)).toHaveCount(0);
+  });
+
+  test('悬浮入口：可拖动、贴边吸附并全局记忆位置', async ({
+    page,
+    serviceWorker,
+  }) => {
+    await seedSettings(serviceWorker, OLLAMA_SETTINGS);
+    await page.goto('https://example.com');
+
+    const trigger = page.locator(FAB_TRIGGER);
+    await expect(trigger).toBeVisible();
+    const wrap = page.locator(FAB_WRAP);
+    // 未拖动过 → 默认贴右下角
+    await expect(wrap).toHaveAttribute('data-side', 'right');
+
+    const box = await trigger.boundingBox();
+    expect(box).not.toBeNull();
+    await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(60, 260, { steps: 12 });
+    await page.mouse.up();
+
+    // 松手就近吸附到左边缘
+    await expect(wrap).toHaveAttribute('data-side', 'left');
+
+    /*
+     * 静止形态（2026-10-07 改版）：把手**贴住**视口左边缘（`x = 0`，不再出界），
+     * 且只是一块「窄把手」（宽 < 高）—— 旧版是「藏进视口外 1/3、露出 2/3 的半圆」，
+     * 那种裁出来的弧在贴边处宽度趋近 0，读起来像图标坏了。
+     */
+    const parked = await trigger.boundingBox();
+    expect(parked).not.toBeNull();
+    expect(parked!.x).toBeCloseTo(0, 0);
+    expect(parked!.width).toBeLessThan(parked!.height);
+
+    // 落库（全局共享一份，换页面 / 刷新后仍生效）
+    await expect
+      .poll(async () =>
+        serviceWorker.evaluate(async () => {
+          const g = globalThis as unknown as {
+            chrome: {
+              storage: {
+                local: { get: (k: string) => Promise<Record<string, unknown>> };
+              };
+            };
+          };
+          return (await g.chrome.storage.local.get('pageFabPos')).pageFabPos ?? null;
+        }),
+      )
+      .toMatchObject({ side: 'left' });
+  });
+
+  test('悬浮入口：指针穿过按钮与菜单之间的空隙后，动作仍可点击', async ({
+    page,
+    serviceWorker,
+  }) => {
+    await seedSettings(serviceWorker, OLLAMA_SETTINGS);
+    await page.goto('https://example.com');
+
+    const trigger = page.locator(FAB_TRIGGER);
+    await expect(trigger).toBeVisible();
+    const t = (await trigger.boundingBox())!;
+    const item = page.locator(IMMERSIVE_ITEM);
+
+    // 移入按钮 → hover 意图（150ms）成立后菜单展开
+    await page.mouse.move(t.x + t.width / 2, t.y + t.height / 2);
+    await expect(item).toBeVisible();
+
+    /*
+     * 回归护栏（2026-10-07）：菜单在按钮上方，指针要到达动作项必须穿过两者之间
+     * 约 8px 的空隙。面板已是**粘性**的（移出不收起），因此穿过空隙本身是安全的；
+     * 这条用例守着这个前提 —— 若有人改回「移出即收」，指针在这里触发 pointerleave 后
+     * 菜单会立刻收起（收起后 pointer-events: none），表现为「移出图标就自动隐藏、
+     * 动作点不到」。这里用分步移动模拟真实鼠标轨迹。
+     */
+    const i = (await item.boundingBox())!;
+    await page.mouse.move(t.x + t.width / 2, t.y - 2, { steps: 6 });
+    await page.mouse.move(i.x + i.width / 2, i.y + i.height / 2, { steps: 6 });
+
+    await expect(item).toBeVisible();
+    // 命中测试：动作项中心必须落在入口宿主上；菜单若已收起会命中页面元素
+    expect(
+      await page.evaluate(
+        ({ x, y }: { x: number; y: number }) =>
+          document.elementFromPoint(x, y)?.tagName ?? '',
+        { x: i.x + i.width / 2, y: i.y + i.height / 2 },
+      ),
+    ).toBe('DUALMIND-PAGE-FAB');
   });
 
   test('偏好「仅译文」：翻译后隐藏原文、保留译文，偏好仍落 storage', async ({
@@ -213,12 +321,13 @@ test.describe('沉浸式全文翻译', () => {
     });
 
     await page.goto('https://example.com');
-    await expect(page.locator('dualmind-immersive')).toHaveCount(1);
+    await expect(page.locator(FAB_HOST)).toHaveCount(1);
     await installFixture(page);
 
-    const fab = page.locator(FAB);
-    await fab.click();
-    await expect(fab).toHaveText('显示原文', { timeout: 150_000 });
+    await clickImmersive(page);
+    await expect(page.locator(IMMERSIVE_LABEL)).toHaveText('显示原文', {
+      timeout: 150_000,
+    });
 
     // 「仅译文」：<html> 打类名，源元素被隐藏；译文块仍可见
     await expect
@@ -257,12 +366,13 @@ test.describe('沉浸式全文翻译', () => {
   }) => {
     await seedSettings(serviceWorker, OLLAMA_SETTINGS);
     await page.goto('https://example.com');
-    await expect(page.locator('dualmind-immersive')).toHaveCount(1);
+    await expect(page.locator(FAB_HOST)).toHaveCount(1);
 
     await installFixture(page);
-    const fab = page.locator(FAB);
-    await fab.click();
-    await expect(fab).toHaveText('显示原文', { timeout: 150_000 });
+    await clickImmersive(page);
+    await expect(page.locator(IMMERSIVE_LABEL)).toHaveText('显示原文', {
+      timeout: 150_000,
+    });
 
     const before = await page.locator(BLOCK).count();
 
@@ -294,7 +404,7 @@ test.describe('沉浸式全文翻译', () => {
     // 故这里从扩展页直接向内容页下发同款消息。
     await seedSettings(serviceWorker, OLLAMA_SETTINGS);
     await page.goto('https://example.com');
-    await expect(page.locator('dualmind-immersive')).toHaveCount(1);
+    await expect(page.locator(FAB_HOST)).toHaveCount(1);
     await installFixture(page);
 
     const panel = await context.newPage();
@@ -336,7 +446,7 @@ test.describe('沉浸式全文翻译', () => {
       contentTabId,
     );
 
-    await expect(page.locator(FAB)).toHaveText('显示原文', {
+    await expect(page.locator(IMMERSIVE_LABEL)).toHaveText('显示原文', {
       timeout: 150_000,
     });
   });

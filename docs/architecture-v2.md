@@ -23,6 +23,11 @@
 ```text
 features/
   page-content/       # 语义正文提取 / 分块 / 截断预算 / 选区上下文（chat 与 immersive 共用）
+  page-fab/           # 页面共享悬浮入口（贴边把手 peek → 滑出圆形 + 粘性卡片面板 + 拖动吸附）
+    types.ts          # 动作协议（PageFabAction / PageFabActionView / PageFabApi）
+    position.ts       # 落点计算纯函数（吸附 / 夹取 / 拖拽阈值）+ 单测
+    dom.ts            # 样式与渲染（原生 DOM，Shadow DOM 隔离）
+    mount.ts          # 挂载、hover 意图、粘性面板与关闭路径、拖拽、位置持久化
   chat/               # 网页摘要 + 网页问答（独立 chat:* 消息）
     types.ts          # 域内运行时类型 + 持久化形状转出
     prompts.ts        # 系统提示 / 上下文拼装 / 历史裁剪（Background 侧组装）
@@ -34,6 +39,7 @@ features/
 ```
 
 - `page-content/` 由 `immersive/segmenter.ts` **等价抽取**而来，immersive 改为引用它（既有单测作护栏）。
+- `page-fab/` 是**跨能力**的页面入口壳（不是独立 Feature）：沉浸译与网页总结各自 `registerAction` 注册动作，壳不反向依赖它们；沉浸译不再自建悬浮按钮（原 `features/immersive/dom.ts` 的 FAB 渲染改为 `features/immersive/fab.ts` 的状态映射）。
 - 其余目录（`entrypoints/` / `providers/` / `shared/`）沿用 V1 结构，见 [architecture-v1.md](./architecture-v1.md)。
 
 Feature 契约表见：[features.md](./features.md)
@@ -63,7 +69,7 @@ flowchart LR
     Extract["page-content 提取正文 / 选区上下文"]
   end
   ProviderEndpoint["Provider（SSE / HTTPS）"]
-  ChatUI -->|"chat:context（BG 转发到活动标签页）"| Extract
+  ChatUI -->|"chat:context（BG resolveContentTab → 内容页）"| Extract
   Extract -->|"正文 / 选区片段"| ChatUI
   ChatUI -->|"Port start（上下文 + 历史，可 abort）"| ChatPort
   ChatPort --> ChatSvc
@@ -73,9 +79,11 @@ flowchart LR
   ChatUI --> Sessions
 ```
 
-- 正文提取在页面（Content），模型请求只在 Background；Side Panel 无法直连页面 DOM，须经 Background 转发到活动标签页。
+- 正文提取在页面（Content），模型请求只在 Background；Side Panel / 工作台无法直连页面 DOM，须经 Background 转发到**解析后的内容页**（`resolveContentTab`：活动 http(s) → 最近可读 → `lastAccessed` 兜底；工作台本身是扩展标签，不能当活动页取正文）。
 - 会话消息持久化在 `local:chatSessions`（全局列表，带 `pageUrl`）；页面正文不落 storage，只随消息保存已发送的上下文片段。
 - 提取层 `features/page-content/` 为 `chat` 与 `immersive` 共用，无独立消息前缀。
+- 页面悬浮入口 `features/page-fab/` 是内容脚本侧的共享 UI 壳（非独立 Feature）：沉浸译动作直连本页 `ImmersiveController`（不走消息）；「总结本页」动作只发 `chat:summarize-page`，由 Background 开侧栏 + 写 `local:chatPending`，**不**在内容脚本里直接触达模型或侧栏。落点存 `local:pageFabPos`（全局共享）。
+- 入口的**显示逻辑**与能力解耦：静止收成 12px 贴边窄把手（品牌蓝实底 + 页面内侧 2px 实边 + 抓手点，见 [decisions.md](./decisions.md)「把手可辨识性」），指针移入 / 面板展开 / 拖拽中 / 有状态时滑出为完整圆形（`data-peek` / `data-reveal`，由 `attention.ts` 与不透明度**同源**算出）；壳有**显式尺寸**且贴边对齐，面板 / 提示因此天然整块在屏内；面板为卡片形态且**粘性**（关闭靠切换 / 点外 / 头部 `×` / `Esc` / 滚动）。改这里要盯住**两套坐标系**：拖拽全程跟的是**按钮**左边缘，落点写的是**壳**左边缘（相差 `size - peekWidth`，由 `mount.ts` 的 `shellLeftFor` 换算）。细节见 [decisions.md](./decisions.md)「V2 悬浮入口 · UI 显示逻辑改版」。
 - 右键菜单「总结本页」不走 runtime 广播：Background 写信箱 `local:chatPending`（消费即清空 + TTL 30s），由**常驻的** `WorkbenchApp` 消费并切到网页助手 Tab，再下发给 `ChatPanel` 执行 —— 因为 `sidePanel.open()` 与面板挂载存在竞态，且 `ChatPanel` 仅在网页助手 Tab 挂载。
 
 ## 里程碑状态（V2 / V3）

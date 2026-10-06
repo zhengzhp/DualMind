@@ -109,7 +109,9 @@ export type ProtocolMap = {
     return: { ok: true };
   };
   /**
-   * 提取「当前活动标签页」的上下文（Background 转发到内容脚本）。
+   * 提取「当前内容页」的上下文（Background 转发到内容脚本）。
+   * 解析规则与 `chat:page-info` 相同：活动页可读则用之，否则回退同窗口最近可读页
+   * （全页工作台本身是扩展标签页，不能当活动页直接取正文）。
    * 页面无可读内容 / 未注入内容脚本时返回 null。
    */
   'chat:context': {
@@ -117,12 +119,25 @@ export type ProtocolMap = {
     return: import('@/features/chat/types').ChatContextPayload | null;
   };
   /**
-   * 取「当前活动标签页」的地址 / 标题（**不触发内容脚本**，纯 tabs.query）。
-   * 用途：重开旧会话后判断来源页是否与当前页一致，不一致则让 UI 先确认。
+   * 取「当前内容页」的地址 / 标题（**不触发内容脚本**）。
+   * 与 `chat:context` 共用 `resolveContentTab`：工作台前台时回退最近可读 http(s) 页。
+   * 用途：重开旧会话后判断来源页是否与当前内容页一致，不一致则让 UI 先确认。
    */
   'chat:page-info': {
     data: undefined;
     return: { url: string; title: string } | null;
+  };
+  /**
+   * 页面悬浮入口「总结本页」：请求 Background 打开 Side Panel 并投递信箱。
+   *
+   * 与右键菜单「总结本页」共用同一条执行链路（写信箱 → 常驻 WorkbenchApp 消费），
+   * 但入口不同：内容脚本发出本消息，Background 必须**在手势有效期内**调用
+   * `sidePanel.open()`（见 docs/decisions-v1.md「侧边栏 open 的手势窗口」），
+   * 因此它在 onMessage 里被特判，而不是走通用 handler 表。
+   */
+  'chat:summarize-page': {
+    data: undefined;
+    return: { ok: true; open: boolean };
   };
 };
 

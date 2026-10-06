@@ -5,6 +5,7 @@
  * 布局用 `min-h-0 + flex-1 + overflow-y-auto` 让消息区可滚动、输入区常驻底部。
  */
 import { useEffect, useRef, useState } from 'react';
+import { hostnameFromUrl } from '@/shared/siteAccess';
 import { SegmentedControl } from '@/shared/ui';
 import type {
   ChatContextScope,
@@ -13,6 +14,13 @@ import type {
 } from '@/shared/storage/types';
 import { SessionList } from './SessionList';
 import { useChat } from './useChat';
+
+/** 绑定页展示文案：标题 · host */
+function formatBoundPageLabel(url: string, title: string): string {
+  const host = hostnameFromUrl(url);
+  if (title && host) return `${title} · ${host}`;
+  return title || host || url;
+}
 
 export type ChatSurface = 'sidepanel' | 'workspace';
 
@@ -105,6 +113,17 @@ export function ChatPanel({
             重新读取
           </button>
         </div>
+
+        {chat.boundPage?.url && (
+          <p
+            className="mt-1 truncate text-[11px] text-brand-700/50"
+            title={chat.boundPage.url}
+            data-testid="chat-bound-page"
+          >
+            绑定页：
+            {formatBoundPageLabel(chat.boundPage.url, chat.boundPage.title)}
+          </p>
+        )}
 
         {chat.session.pageTitle && (
           <p className="mt-1 truncate text-[11px] text-brand-700/50">

@@ -49,6 +49,8 @@ export default function App() {
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [disabledHostsText, setDisabledHostsText] = useState('');
+  /** 不显示悬浮入口的站点（独立于 settings，由 textarea 维护；语义与禁用站点不同） */
+  const [pageFabHiddenHostsText, setPageFabHiddenHostsText] = useState('');
   /**
    * 上次「已落盘」的设置快照。
    * Options 是「本地草稿 + 保存按钮」模式，草稿可能停留很久；保存时只提交
@@ -66,6 +68,7 @@ export default function App() {
       setSettings(s);
       baselineRef.current = s;
       setDisabledHostsText(s.disabledHosts.join('\n'));
+      setPageFabHiddenHostsText(s.pageFabHiddenHosts.join('\n'));
       setImmersivePrefs(prefs);
     })();
   }, []);
@@ -78,12 +81,18 @@ export default function App() {
 
   /**
    * 保存草稿：只把「相对上次已保存值有改动」的字段作为补丁提交。
-   * `disabledHosts` 独立于 `settings` 状态（由 textarea 维护），一并参与比对。
+   * `disabledHosts` / `pageFabHiddenHosts` 独立于 `settings` 状态（由 textarea 维护），
+   * 一并参与比对。
    */
   async function persistDraft(draft: AppSettings | null = settings) {
     const baseline = baselineRef.current;
     if (!baseline || !draft) return;
-    const patch = diffSettings(baseline, draft, parseHosts(disabledHostsText));
+    const patch = diffSettings(
+      baseline,
+      draft,
+      parseHosts(disabledHostsText),
+      parseHosts(pageFabHiddenHostsText),
+    );
 
     setSaving(true);
     setError('');
@@ -243,11 +252,38 @@ export default function App() {
 
           <Field
             label="禁用站点（每行一个 hostname）"
-            hint="例如：mail.google.com"
+            hint="例如：mail.google.com。命中后该站点**整个扩展功能都不注入**（含划词翻译）"
           >
             <textarea
               value={disabledHostsText}
               onChange={(e) => setDisabledHostsText(e.target.value)}
+              rows={3}
+              className={`${fieldClass} font-mono text-xs`}
+              placeholder={'example.com\nmail.google.com'}
+            />
+          </Field>
+
+          <hr className="border-brand-50" />
+
+          {/* 悬浮入口：与「禁用站点」区分开 —— 这里只关入口，不影响划词翻译 */}
+          <label className="flex items-center gap-2 text-sm text-brand-900">
+            <input
+              type="checkbox"
+              checked={settings.pageFabEnabled}
+              onChange={(e) =>
+                setSettings({ ...settings, pageFabEnabled: e.target.checked })
+              }
+            />
+            显示页面悬浮按钮
+          </label>
+
+          <Field
+            label="不显示悬浮按钮的站点（每行一个 hostname）"
+            hint="例如：mail.google.com。只隐藏悬浮按钮，划词翻译照常可用"
+          >
+            <textarea
+              value={pageFabHiddenHostsText}
+              onChange={(e) => setPageFabHiddenHostsText(e.target.value)}
               rows={3}
               className={`${fieldClass} font-mono text-xs`}
               placeholder={'example.com\nmail.google.com'}

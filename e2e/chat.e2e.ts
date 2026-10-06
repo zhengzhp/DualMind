@@ -165,7 +165,7 @@ test.describe('V2 网页摘要 / 问答', () => {
     await seedSettings(serviceWorker, OLLAMA_SETTINGS);
     await page.goto('https://example.com');
     // 扩展宿主出现 = 内容脚本已挂载（含 chat 上下文监听）
-    await expect(page.locator('dualmind-immersive')).toHaveCount(1);
+    await expect(page.locator('dualmind-page-fab')).toHaveCount(1);
 
     const panel = await context.newPage();
     await panel.goto(`chrome-extension://${extensionId}/workspace.html`);
@@ -225,15 +225,20 @@ test.describe('V2 网页摘要 / 问答', () => {
   }) => {
     await seedSettings(serviceWorker, OLLAMA_SETTINGS);
 
-    // 先开内容页（提供网页上下文），再开工作台；工作台点的「总结本页」取的是活动标签页
+    // 先开内容页，再开工作台并保持工作台前台：应回退到最近可读内容页（无需 bringToFront）
     await page.goto('https://example.com');
-    await expect(page.locator('dualmind-immersive')).toHaveCount(1);
+    await expect(page.locator('dualmind-page-fab')).toHaveCount(1);
 
     const panel = await context.newPage();
     await openChatWorkspace(panel, extensionId);
+    await panel.bringToFront();
 
-    // 把内容页切回前台，chat:context 才会取到它（而不是扩展页自身）
-    await page.bringToFront();
+    // 绑定页应指向 example.com（工作台自身是扩展页）
+    await expect(panel.getByTestId('chat-bound-page')).toContainText(
+      'example.com',
+      { timeout: 10_000 },
+    );
+
     await panel.getByRole('button', { name: '总结本页' }).click();
 
     // ① 上下文状态行：整页 + 段落数
@@ -328,25 +333,21 @@ test.describe('V2 网页摘要 / 问答', () => {
     // 种一个「来自 other.example.com」的旧会话
     await seedForeignSession(serviceWorker);
 
-    // 关键：真实侧栏不是标签页，`chat:page-info` 取的是**活动标签页**。
-    // E2E 把 sidepanel.html 当标签页打开时，活动页会变成扩展页（chrome-extension://，
-    // 无 url 可读）→ 无法比较。故这里让一张真实网页占据活动位，面板开在另一张标签页，
-    // 与真实「sidebar + 网页」的形态一致。
+    // E2E 把 sidepanel.html 当标签页打开时活动页是扩展页；`resolveContentTab`
+    // 会回退到同窗口最近可读内容页（example.com），与真实侧栏 + 网页形态一致。
     await page.goto('https://example.com');
-    await expect(page.locator('dualmind-immersive')).toHaveCount(1);
+    await expect(page.locator('dualmind-page-fab')).toHaveCount(1);
 
     const panel = await context.newPage();
     await panel.goto(`chrome-extension://${extensionId}/sidepanel.html`);
     await panel.getByRole('button', { name: '网页助手', exact: true }).click();
 
-    // 打开旧会话：来源页 other.example.com，当前活动页 example.com，必然不一致
+    // 打开旧会话：来源页 other.example.com，内容页回退到 example.com → 不一致
     await panel.getByRole('button', { name: /^历史/ }).click();
     // 限定以标题开头的按钮，避免命中「删除会话 …」（aria-label 也含标题）
     await panel
       .getByRole('button', { name: /^来自其他页面的旧会话/ })
       .click();
-    // 让 example.com 保持活动标签页
-    await page.bringToFront();
 
     await panel.getByPlaceholder(/就当前网页提问/).fill('这个会话还能继续吗？');
     await panel.getByRole('button', { name: '发送', exact: true }).click();
@@ -378,7 +379,7 @@ test.describe('V2 网页摘要 / 问答', () => {
     await seedForeignSession(serviceWorker);
 
     await page.goto('https://example.com');
-    await expect(page.locator('dualmind-immersive')).toHaveCount(1);
+    await expect(page.locator('dualmind-page-fab')).toHaveCount(1);
 
     const panel = await context.newPage();
     await panel.goto(`chrome-extension://${extensionId}/sidepanel.html`);

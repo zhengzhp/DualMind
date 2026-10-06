@@ -8,6 +8,12 @@ import {
   IDLE_IMMERSIVE_STATUS,
   type ImmersiveStatus,
 } from '@/features/immersive/types';
+import {
+  ContentTabTracker,
+  isReadableContentUrl,
+  pickContentTab,
+  type ContentTabLite,
+} from '@/features/chat/resolveContentTab';
 import { answerQuestion } from '@/features/chat/service';
 import { createProviderFromSettings } from '@/providers/registry';
 import { softenDevTabReloads } from '@/shared/dev/softenTabReload';
@@ -63,6 +69,48 @@ const sidePanelPorts = new Set<{
   postMessage: (msg: unknown) => void;
   onDisconnect: { addListener: (cb: () => void) => void };
 }>();
+
+/**
+ * 按窗口记住最近可读内容页。全页工作台占着活动标签时，
+ * `chat:context` / `chat:page-info` 回退到此记录（见 docs/decisions.md）。
+ */
+const contentTabTracker = new ContentTabTracker();
+
+/**
+ * 解析网页助手应操作的内容标签页。
+ * 活动页可读 → 用之；否则最近可读缓存 → 同窗口 lastAccessed 兜底。
+ */
+async function resolveContentTab(): Promise<browser.tabs.Tab | null> {
+  const [active] = await browser.tabs.query({
+    active: true,
+    currentWindow: true,
+  });
+  if (active?.id != null && isReadableContentUrl(active.url)) {
+    contentTabTracker.remember(active);
+    return active;
+  }
+
+  const windowId =
+    active?.windowId ?? (await browser.windows.getCurrent()).id;
+  if (windowId == null) return null;
+
+  const candidates = await browser.tabs.query({ windowId });
+  const picked = pickContentTab(
+    active,
+    contentTabTracker.lastTabId(windowId),
+    candidates,
+  );
+  if (!picked || picked.id == null) return null;
+
+  // pick 可能来自 lastAccessed 兜底：写回追踪器，后续同窗口命中更稳
+  contentTabTracker.remember(picked);
+  try {
+    return await browser.tabs.get(picked.id);
+  } catch {
+    contentTabTracker.forgetTab(picked.id);
+    return null;
+  }
+}
 
 function isSidePanelConnected(): boolean {
   return sidePanelPorts.size > 0;
@@ -153,7 +201,7 @@ async function queryImmersiveStatus(): Promise<ImmersiveStatus> {
 }
 
 /**
- * 提取当前活动标签页的页面上下文。
+ * 提取目标内容页的上下文（经 `resolveContentTab`，工作台前台可回退）。
  * 范围与字符预算以 `chatPrefs` 为准（调用方可不传 scope，走用户偏好）。
  * 页面未注入内容脚本时返回 null，由 UI 提示「无可用上下文」。
  */
@@ -161,10 +209,7 @@ async function forwardChatContext(
   scope?: ChatContextScope,
 ): Promise<ProtocolMap['chat:context']['return']> {
   const prefs = await getChatPrefs();
-  const [tab] = await browser.tabs.query({
-    active: true,
-    currentWindow: true,
-  });
+  const tab = await resolveContentTab();
   if (tab?.id == null) return null;
   try {
     const payload = (await browser.tabs.sendMessage(tab.id, {
@@ -195,8 +240,41 @@ async function toggleSidePanel(windowId: number): Promise<boolean> {
   return true;
 }
 
+/**
+ * 「总结本页」的送达链路：打开 Side Panel + 投递信箱（`local:chatPending`）。
+ *
+ * 右键菜单与页面悬浮入口共用同一条链路（真正生成摘要的仍是 Side Panel 内的
+ * `ChatPanel`，见 docs/decisions.md「右键菜单入口」与「V2 页面悬浮入口」）。
+ *
+ * 关键：调用方必须在**用户手势有效期内同步**调用本函数 —— `open()` 是函数体内
+ * 第一个 await 之前的**同步调用**（且刻意不 await 它，避免面板打开变慢时拖住
+ * 信箱写入），因此手势不会失效（见 docs/decisions-v1.md「侧边栏 open 的手势窗口」）。
+ *
+ * @returns 是否已发起打开侧栏；未发起（无 Side Panel API / 拿不到 windowId）时
+ * 仍会写信箱，全页工作台下次打开时照样能消费到这个动作。
+ */
+async function deliverSummarizeAction(
+  tab: ContentTabLite | undefined,
+): Promise<boolean> {
+  // 记下来源页：随后焦点会落到侧栏，不记住就会拿错「总结哪一页」
+  if (tab) contentTabTracker.remember(tab);
+
+  const windowId = tab?.windowId;
+  const canOpen = sidePanelApi != null && windowId != null;
+  if (sidePanelApi && windowId != null) {
+    void sidePanelApi.open({ windowId }).catch(() => {
+      /* 打开失败不阻塞：信箱仍会写入，由工作台兜底消费 */
+    });
+  }
+  await setChatPending('summarize');
+  return canOpen;
+}
+
 /** 需要瞬时用户手势的侧边栏开关：在 onMessage 中特判（见下），故不进通用表 */
-type SidePanelGestureType = 'sidepanel:open' | 'sidepanel:toggle';
+type SidePanelGestureType =
+  | 'sidepanel:open'
+  | 'sidepanel:toggle'
+  | 'chat:summarize-page';
 
 type HandlerMap = {
   [K in Exclude<MessageType, SidePanelGestureType>]: (
@@ -282,11 +360,8 @@ const handlers: HandlerMap = {
   'chat:context': async (data) => forwardChatContext(data.scope),
 
   'chat:page-info': async () => {
-    // 不触发内容脚本：仅取活动标签页的地址 / 标题，用于会话来源一致性判断
-    const [tab] = await browser.tabs.query({
-      active: true,
-      currentWindow: true,
-    });
+    // 与 chat:context 同一解析：工作台前台时回退到最近可读内容页
+    const tab = await resolveContentTab();
     if (!tab) return null;
     return { url: tab.url ?? '', title: tab.title ?? '' };
   },
@@ -585,13 +660,28 @@ export default defineBackground(() => {
 
   browser.runtime.onMessage.addListener(((
     message: unknown,
-    sender: { tab?: { windowId?: number } },
+    sender: { tab?: browser.tabs.Tab },
     sendResponse: (response: unknown) => void,
   ) => {
     const type = (message as { type?: MessageType })?.type;
     if (!type) return false;
 
     const data = (message as { data: unknown }).data;
+
+    // 页面悬浮入口「总结本页」：与侧边栏开关同理，open() 依赖瞬时用户手势。
+    // sender.tab 同步可得（?? 会短路，不会插入 await），且 open() 是
+    // deliverSummarizeAction 内第一个 await 之前的同步调用，因此手势不会失效。
+    if (type === 'chat:summarize-page') {
+      void (async () => {
+        try {
+          const opened = await deliverSummarizeAction(sender.tab);
+          sendResponse(ok({ ok: true as const, open: opened }));
+        } catch (err) {
+          sendResponse(fail(err));
+        }
+      })();
+      return true;
+    }
 
     // 侧边栏开关特判：open() 依赖瞬时用户手势，必须在任何多余 await 之前调用。
     // 来自网页的 sender.tab.windowId 是同步可得的，不会破坏手势窗口。
@@ -680,14 +770,37 @@ export default defineBackground(() => {
     void refreshContextMenuEnabled();
   });
 
-  // 右键菜单按站点置灰：切标签页 / 地址变化 / 设置变更时重算
-  browser.tabs?.onActivated.addListener(() => {
-    void refreshContextMenuEnabled();
+  // 右键菜单置灰 + 最近可读内容页：切标签页 / 地址变化 / 设置变更时重算
+  browser.tabs?.onActivated.addListener((activeInfo) => {
+    void (async () => {
+      try {
+        const tab = await browser.tabs.get(activeInfo.tabId);
+        contentTabTracker.remember({
+          id: tab.id,
+          windowId: tab.windowId ?? activeInfo.windowId,
+          url: tab.url,
+        });
+      } catch {
+        /* 标签已关 */
+      }
+      void refreshContextMenuEnabled();
+    })();
   });
-  browser.tabs?.onUpdated.addListener((_tabId, changeInfo) => {
+  browser.tabs?.onUpdated.addListener((tabId, changeInfo, tab) => {
     if (changeInfo.url || changeInfo.status === 'complete') {
+      // 仅活动标签推进「最近可读」，避免后台页加载完成抢占缓存
+      if (tab.active) {
+        contentTabTracker.remember({
+          id: tab.id ?? tabId,
+          windowId: tab.windowId,
+          url: tab.url,
+        });
+      }
       void refreshContextMenuEnabled();
     }
+  });
+  browser.tabs?.onRemoved.addListener((tabId) => {
+    contentTabTracker.forgetTab(tabId);
   });
   browser.storage.onChanged.addListener((changes, area) => {
     if (area !== 'local') return;
@@ -711,10 +824,7 @@ export default defineBackground(() => {
     if (info.menuItemId === 'dualmind-chat-summarize') {
       // 与下面翻译同理：open() 必须在用户手势有效期内「同步」调用。
       // 先开面板再写信箱，两种时序面板都能收到（见 useChat 的 storage 监听）。
-      if (sidePanelApi && tab?.windowId != null) {
-        void sidePanelApi.open({ windowId: tab.windowId }).catch(() => {});
-      }
-      await setChatPending('summarize');
+      await deliverSummarizeAction(tab);
       return;
     }
 

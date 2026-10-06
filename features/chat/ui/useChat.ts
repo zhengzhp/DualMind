@@ -49,9 +49,9 @@ export interface MismatchConfirm {
   question: string;
   /** 会话记录的来源页 */
   sessionUrl: string;
-  /** 当前活动标签页地址 */
+  /** 当前内容页地址（与 chat:page-info 同一解析） */
   currentUrl: string;
-  /** 当前活动标签页标题（确认后写回会话来源，避免标签陈旧） */
+  /** 当前内容页标题（确认后写回会话来源，避免标签陈旧） */
   currentTitle: string;
 }
 
@@ -65,6 +65,11 @@ export interface ChatController {
   context: ChatContextPayload | null;
   contextLoading: boolean;
   contextError: string;
+  /**
+   * 当前将读取 / 已绑定的内容页（经 BG `resolveContentTab`）。
+   * 工作台前台时也可能指向同窗口最近可读网页，而非扩展页自身。
+   */
+  boundPage: { url: string; title: string } | null;
   streaming: boolean;
   error: string;
   /** 非空时 UI 需弹「会话来自其他页面，仍要继续？」确认条 */
@@ -106,6 +111,10 @@ export function useChat(options: UseChatOptions = {}): ChatController {
   const [context, setContext] = useState<ChatContextPayload | null>(null);
   const [contextLoading, setContextLoading] = useState(false);
   const [contextError, setContextError] = useState('');
+  const [boundPage, setBoundPage] = useState<{
+    url: string;
+    title: string;
+  } | null>(null);
   const [streaming, setStreaming] = useState(false);
   const [error, setError] = useState('');
   /** 会话来源页与当前页不一致时的待确认状态（见 docs/decisions.md） */
@@ -155,8 +164,13 @@ export function useChat(options: UseChatOptions = {}): ChatController {
           scope ? { scope } : {},
         );
         setContext(payload);
-        if (!payload) {
-          setContextError('未能读取页面内容（页面未加载完成，或不在可读取范围内）');
+        if (payload) {
+          setBoundPage({ url: payload.url, title: payload.title });
+          setContextError('');
+        } else {
+          setContextError(
+            '未能读取页面内容（当前窗口没有可读取的网页，请先打开目标页后再试）',
+          );
         }
         return payload;
       } catch (err) {
@@ -175,6 +189,13 @@ export function useChat(options: UseChatOptions = {}): ChatController {
         setPrefs(await sendMessage('chat:prefs:get', undefined));
       } catch (err) {
         setError(formatErrorForUi(err));
+      }
+      // 预览将绑定的内容页（工作台前台时也会回退到最近可读网页）
+      try {
+        const info = await sendMessage('chat:page-info', undefined);
+        if (info?.url) setBoundPage(info);
+      } catch {
+        /* 预览失败不阻塞 */
       }
       await refreshSessions();
     })();
@@ -313,13 +334,14 @@ export function useChat(options: UseChatOptions = {}): ChatController {
     ],
   );
 
-  /** 读取当前活动标签页的地址与标题（不触发内容脚本）；失败返回 null */
+  /** 读取当前内容页地址与标题（不触发内容脚本）；失败返回 null */
   const probeActivePage = useCallback(async (): Promise<{
     url: string;
     title: string;
   } | null> => {
     try {
       const info = await sendMessage('chat:page-info', undefined);
+      if (info?.url) setBoundPage(info);
       return info ?? null;
     } catch {
       return null;
@@ -327,11 +349,11 @@ export function useChat(options: UseChatOptions = {}): ChatController {
   }, []);
 
   /**
-   * 发送入口：先做「会话来源页 vs 当前页」一致性判断。
+   * 发送入口：先做「会话来源页 vs 当前内容页」一致性判断。
    *
    * 仅当会话**已记录了来源页、已有历史消息且未被标记 `allowCrossPage`** 时探测，
    * 新建会话 / 首轮提问不会多这一跳。
-   * 地址为空（chrome:// 等无 URL 的页）视为无法比较，直接放行。
+   * 地址为空（无可读内容页）视为无法比较，直接放行。
    *
    * 流式部分交给 `sendNow` 自行进行，这里不 await —— 否则输入框要等整轮回答
    * 结束才清空。
@@ -472,6 +494,7 @@ export function useChat(options: UseChatOptions = {}): ChatController {
     context,
     contextLoading,
     contextError,
+    boundPage,
     streaming,
     error,
     mismatchConfirm,

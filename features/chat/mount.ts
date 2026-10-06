@@ -5,6 +5,8 @@
  * 提取是纯同步 DOM 操作，无需保持异步响应通道。
  */
 import { browser } from 'wxt/browser';
+import { sendMessage } from '@/shared/messaging/client';
+import type { PageFabApi } from '../page-fab/types';
 import { extractChatContext } from './extract';
 import type { ChatContextScope } from './types';
 
@@ -13,6 +15,9 @@ interface ChatExtractMessage {
   scope: ChatContextScope;
   maxChars: number;
 }
+
+/** 悬浮入口上的「总结本页」动作 id（同时是 E2E 选择器锚点） */
+export const CHAT_SUMMARIZE_ACTION_ID = 'chat-summarize';
 
 export function mountChatContext(): void {
   browser.runtime.onMessage.addListener((message, _sender, sendResponse) => {
@@ -27,5 +32,24 @@ export function mountChatContext(): void {
       sendResponse(null);
     }
     return undefined;
+  });
+}
+
+/**
+ * 把「总结本页」注册到共享悬浮入口。
+ *
+ * 内容脚本只发指令：开侧栏 + 投递信箱都由 Background 完成
+ * （`sidePanel.open()` 必须在用户手势有效期内调用，而手势经 sendMessage 同步可达）。
+ * 未注入内容脚本的页面（chrome:// 等）本身就没有入口，无需额外降级。
+ */
+export function mountChatFabAction(fab: PageFabApi): void {
+  fab.registerAction({
+    id: CHAT_SUMMARIZE_ACTION_ID,
+    label: '总结本页',
+    title: '用 AI 概括当前网页要点，并在侧栏展开对话',
+    icon: 'summarize',
+    onClick: async () => {
+      await sendMessage('chat:summarize-page', undefined);
+    },
   });
 }
