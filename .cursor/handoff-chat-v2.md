@@ -5,8 +5,8 @@
 > 上一会话完整记录：`agent-transcripts/65765c36-a4d0-4614-a93c-a0e4e0c215f1.jsonl`（可按关键词检索回溯）。
 
 > **当前进度**：V2 主链路（摘要 + 问答 + 会话持久化 + 右键入口）代码全部落地，`tsc` / 单测双绿。
-> 第 5 节两个未决产品问题已拍板并实现（见第 3 节与 `docs/decisions.md`）；chat E2E 已编写（**未跑**）。
-> **未做**：实机验收、E2E 实跑、`wxt build`。**3 个提交尚未 push**（见第 1 节），另有本轮「决策落地」改动未提交。
+> 第 5 节两个未决产品问题已拍板并实现（见第 3 节与 `docs/decisions.md`）；chat E2E 已编写并**实跑通过**。
+> **未做**：实机人工验收（见第 6 节）。**7 个提交已 push**（见第 1 节）。
 > 权威契约以 `docs/features.md` 为准，决策以 `docs/decisions.md` 为准；本文件只是导航 + 坑位。
 
 ## 1. 当前状态
@@ -15,24 +15,27 @@
 |------|------|
 | `tsc --noEmit` | ✅ 0 错误 |
 | Vitest | ✅ **21 文件 / 182 用例**（chat 相关：`chatSessions` 18 / `prompts` 7 / `budget` 7 / `pageUrl` 8 / `siteAccess` 5） |
-| `pnpm build`（wxt build） | ⬜ **未跑**（按 `docs/decisions.md` 后置到 V3 后） |
-| E2E | ⬜ **未跑**，且 chat 用例**尚未编写**（第 6 步） |
+| `wxt build` | ✅ 已跑（2026-10-07），产物 `.output/chrome-mv3` 已更新 |
+| E2E | ✅ **chat 6/6、workspace 2/2 通过**；selection-toolbar + immersive **15/16**（1 条既有 flake，见第 7 节） |
 | 实机（Chrome）验收 | ⬜ **未做** —— 见第 6 节「请用户验证」 |
-| git | `main` **领先 `origin/main` 4 个提交，未 push**；另有本轮「决策落地 + chat E2E」改动**未提交** |
+| git | 工作区**干净**；`main` 与 `origin/main` **已同步**（本轮 3 个提交已 push） |
 
 ### 提交清单（本轮，最新在上）
 
 | commit | 内容 | push |
 |--------|------|------|
-| `c0b952a` | docs(handoff): 新增 V2 摘要/聊天交接文档 | ❌ 未 push |
-| `e4b9e61` | feat(chat): 右键菜单「总结本页」，经 storage 信箱交给侧栏执行 | ❌ 未 push |
-| `baecbac` | feat(chat): 接入 Chat 面板，聊天 Tab 由占位替换为可用 UI | ❌ 未 push |
-| `2cce185` | feat(chat): 落地 V2 摘要/聊天契约、会话存储与流式 Port | ❌ 未 push |
+| `d6bae26` | docs(handoff): 同步 V2 交接（决策已落地、chat E2E 已编写） | ✅ 已 push |
+| `7289b8d` | test(e2e): 新增 V2 chat E2E，修正 workspace 占位断言 | ✅ 已 push |
+| `cdb16cc` | feat(chat): 会话来源不一致先确认、右键菜单按站点置灰 | ✅ 已 push |
+| `c0b952a` | docs(handoff): 新增 V2 摘要/聊天交接文档 | ✅ 已 push |
+| `e4b9e61` | feat(chat): 右键菜单「总结本页」，经 storage 信箱交给侧栏执行 | ✅ 已 push |
+| `baecbac` | feat(chat): 接入 Chat 面板，聊天 Tab 由占位替换为可用 UI | ✅ 已 push |
+| `2cce185` | feat(chat): 落地 V2 摘要/聊天契约、会话存储与流式 Port | ✅ 已 push |
 | `83f4452` | docs(plans): 新增文档版本化切换 SOP | ✅ 已 push |
 | `06fa9be` | refactor(page-content): 抽出沉浸译与聊天共用的正文采集层 | ✅ 已 push |
 | `e426850` | docs: 按版本拆分 V1/V2 文档并登记 V2 契约 | ✅ 已 push |
 
-> 3 个 chat 提交共 **23 文件 / +2101 行**。要 push 前建议先在 Chrome 里过一遍第 6 节流程。
+> 3 个 chat 提交共 **23 文件 / +2101 行**，均已 push；后续 3 个提交（决策落地 / chat E2E / 交接同步）也已 push。
 
 ## 2. V2 计划进度（6 步）
 
@@ -44,7 +47,7 @@
 | 第 4 步 | `features/chat/prompts.ts` + `service.ts`（消息组装 + `runChatStream`） | ✅ 已并入 `2cce185` |
 | 第 5 步 | UI：`ChatPanel` + `SessionList` + `useChat`，接入「聊天」Tab | ✅ `baecbac` |
 | 附加（计划外） | 右键菜单「总结本页」+ `local:chatPending` 信箱 | ✅ `e4b9e61` |
-| 第 6 步 | 测试：单测 ✅ / **E2E ⬜ 未写** | ⏳ 部分完成 |
+| 第 6 步 | 测试：单测 ✅ / E2E ✅（`e2e/chat.e2e.ts` 6 条，已实跑通过） | ✅ 完成 |
 
 > 原 V2 计划**没有落成文件**（只存在于上一会话与 `docs/decisions.md` 的决策表里）；本节的步骤表就是它的落地快照。
 
@@ -127,9 +130,18 @@ export PATH="$HOME/.nvm/versions/node/v22.23.3/bin:$PATH"   # 本机默认 node 
 **踩坑（沿用 V1.5 交接，仍有效）**：
 
 - E2E **不进 CI**，依赖真实本地 Ollama（`http://127.0.0.1:11434`）。
+- **`PLAYWRIGHT_BROWSERS_PATH` 会被沙箱指向一个空缓存目录**（`…/cursor-sandbox-cache/…/playwright`），表现为 `Executable doesn't exist at …/chromium-1243/…`。真实浏览器在 `~/Library/Caches/ms-playwright`。修法：跑 E2E 前
+  `export PLAYWRIGHT_BROWSERS_PATH="$HOME/Library/Caches/ms-playwright"`，并**用非沙箱终端执行**（沙箱会重新覆盖该变量）。2026-10-07 踩过。
 - `PLAYWRIGHT_HOST_PLATFORM_OVERRIDE=mac-arm64` 只在**沙箱化 terminal** 里需要：沙箱把 `os.arch()` 报成 x64，Playwright 会去找不存在的 `chrome-mac-x64`。**自己的终端不需要**。
 - `.output/` 与用户正在跑的 `pnpm dev`（写 `chrome-mv3-dev`）互不冲突，可放心 `wxt build`。
 - 直接 `curl` Ollama 的 `/v1/chat/completions` 是排查模型行为的快通道，比开浏览器快得多。
+- **`pnpm test:e2e` 全量未跑**：本次只跑了 `chat` / `workspace` / `selection-toolbar` / `immersive`；`sidepanel` / `options` / `sidepanel-language` / `selection-panel-toggle`（有头专属）未跑。全量按 `docs/decisions.md` 仍是 V3 闸门。
+- **既有 flake**：`selection-toolbar.e2e.ts › 流式翻译中按 Esc 收起` 在套件内偶发 `element is not visible`（浮层未出现），单独重跑必过 —— 初判是 `selectEnglishText` 可能在内容脚本挂载监听前就派发 `mouseup` 的竞态，**与 chat 改动无关**，暂未修。
+
+**chat E2E 的两个设计坑（已修，写下来免得重犯）**：
+
+1. **不要在流式未结束时 `page.reload()`**：reload 会打断 `persist()`，表现为「历史为空」。应先 `expect.poll(readChatSessions.length).toBe(1)` 再重开。
+2. **`chat:page-info` / `chat:context` 取的是「活动标签页」**：把 `sidepanel.html` 当**标签页**打开时，活动页会变成扩展页（`chrome-extension://`，`tab.url` 读不到 → 视为无法比较、守卫放行）。要复现真实「sidebar + 网页」形态，必须让一张真实网页占活动位（`page.goto` 网页 + `panel = context.newPage()` 开面板 + `page.bringToFront()`），与 `immersive.e2e.ts` 的做法一致。
 
 ## 8. 文件地图与已知缺口
 
@@ -168,8 +180,6 @@ export PATH="$HOME/.nvm/versions/node/v22.23.3/bin:$PATH"   # 本机默认 node 
 
 ## 9. 下一步（按优先级）
 
-1. **实机验收**（第 6 节，另加右键菜单在 `disabledHosts` 站点置灰）—— 「未验证」清单里唯一必须人工做的。
-2. **跑 chat E2E**：`wxt build` → `playwright test e2e/chat.e2e.ts`（6 条；依赖本地 Ollama）。已文件化在 `e2e/chat.e2e.ts`。
-3. **push 提交**（验收通过后）。
-4. ~~拍板第 5 节两个未决产品问题~~ ✅ 已完成（见第 5 节 + `docs/decisions.md`）。
-5. V2 封板时：按 [dualmind-docs-versioning.plan.md](./plans/dualmind-docs-versioning.plan.md) 走文档版本化 SOP（届时归档 `-v2`）。
+1. **实机人工验收**（第 6 节，含右键菜单在 `disabledHosts` 站点置灰）—— 唯一剩下的必做项。
+2. V2 封板时：按 [dualmind-docs-versioning.plan.md](./plans/dualmind-docs-versioning.plan.md) 走文档版本化 SOP（届时归档 `-v2`）。
+3. 可选：修 `selection-toolbar` 的既有 flake（加等待内容脚本挂载的锚点）。
