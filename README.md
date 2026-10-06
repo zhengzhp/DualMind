@@ -40,6 +40,10 @@ Chrome 打开 `chrome://extensions` → 开启开发者模式 → 加载 `.outpu
 | `pnpm build` | 生产构建 |
 | `pnpm zip` | 打包 zip |
 | `pnpm compile` | TypeScript 类型检查 |
+| `pnpm test` | Vitest 单测（纯逻辑，无外部依赖） |
+| `pnpm test:e2e` | Playwright E2E（先 `wxt build`；需本机启动 Ollama 并拉取 `qwen-coder-8k:latest`） |
+
+> CI（`.github/workflows/ci.yml`）只跑 `pnpm compile` + `pnpm test`；E2E 依赖真实本地模型，请在本地执行。
 
 ## 使用
 

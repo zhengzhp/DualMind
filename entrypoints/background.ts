@@ -3,10 +3,7 @@ import {
   translateText,
   translateTextStream,
 } from '@/features/translate/service';
-import {
-  createProviderFromSettings,
-  resolveModel,
-} from '@/providers/registry';
+import { createProviderFromSettings } from '@/providers/registry';
 import { softenDevTabReloads } from '@/shared/dev/softenTabReload';
 import { formatErrorForUi, normalizeError } from '@/shared/errors';
 import { fail, ok } from '@/shared/messaging/client';
@@ -104,8 +101,11 @@ async function toggleSidePanel(windowId: number): Promise<boolean> {
   return true;
 }
 
+/** 需要瞬时用户手势的侧边栏开关：在 onMessage 中特判（见下），故不进通用表 */
+type SidePanelGestureType = 'sidepanel:open' | 'sidepanel:toggle';
+
 type HandlerMap = {
-  [K in MessageType]: (
+  [K in Exclude<MessageType, SidePanelGestureType>]: (
     data: ProtocolMap[K]['data'],
   ) => Promise<ProtocolMap[K]['return']>;
 };
@@ -140,15 +140,6 @@ const handlers: HandlerMap = {
   'settings:save': async (data) => saveSettings(data),
 
   'session:get': async () => translateSessionItem.getValue(),
-
-  'sidepanel:open': async () => {
-    return { ok: true as const };
-  },
-
-  'sidepanel:toggle': async () => {
-    // 实际开/关在 onMessage 里处理（需用户手势 + windowId）
-    return { ok: true as const, open: isSidePanelConnected() };
-  },
 
   'sidepanel:status': async () => ({ open: await isSidePanelOpen() }),
 
@@ -270,41 +261,51 @@ export default defineBackground(() => {
     sendResponse: (response: unknown) => void,
   ) => {
     const type = (message as { type?: MessageType })?.type;
-    if (!type || !(type in handlers)) {
-      return false;
-    }
+    if (!type) return false;
 
     const data = (message as { data: unknown }).data;
-    void (async () => {
-      try {
-        if (type === 'sidepanel:open' && sidePanelApi) {
-          const windowId =
-            sender.tab?.windowId ?? (await browser.windows.getCurrent()).id;
-          if (windowId != null) {
-            await sidePanelApi.open({ windowId });
-          }
-          sendResponse(ok({ ok: true as const }));
-          return;
-        }
 
-        if (type === 'sidepanel:toggle' && sidePanelApi) {
+    // 侧边栏开关特判：open() 依赖瞬时用户手势，必须在任何多余 await 之前调用。
+    // 来自网页的 sender.tab.windowId 是同步可得的，不会破坏手势窗口。
+    if (
+      (type === 'sidepanel:open' || type === 'sidepanel:toggle') &&
+      sidePanelApi
+    ) {
+      void (async () => {
+        try {
           const windowId =
             sender.tab?.windowId ?? (await browser.windows.getCurrent()).id;
+          if (type === 'sidepanel:open') {
+            if (windowId != null) {
+              await sidePanelApi.open({ windowId });
+            }
+            sendResponse(ok({ ok: true as const }));
+            return;
+          }
           if (windowId == null) {
             sendResponse(ok({ ok: true as const, open: false }));
             return;
           }
           const open = await toggleSidePanel(windowId);
           sendResponse(ok({ ok: true as const, open }));
-          return;
+        } catch (err) {
+          sendResponse(fail(err));
         }
-
-      const handler = handlers[type] as (d: unknown) => Promise<unknown>;
-      const result = await handler(data);
-      sendResponse(ok(result));
-    } catch (err) {
-      sendResponse(fail(err));
+      })();
+      return true;
     }
+
+    if (!(type in handlers)) return false;
+
+    void (async () => {
+      try {
+        const handler = handlers[type as keyof HandlerMap] as (
+          d: unknown,
+        ) => Promise<unknown>;
+        sendResponse(ok(await handler(data)));
+      } catch (err) {
+        sendResponse(fail(err));
+      }
     })();
 
     return true;
@@ -356,16 +357,4 @@ export default defineBackground(() => {
       });
     }
   });
-
-  getSettings()
-    .then((s) => {
-      try {
-        if (s.providerType === 'openai-compatible' && s.openai.apiKey) {
-          resolveModel(s);
-        }
-      } catch {
-        /* ignore */
-      }
-    })
-    .catch(() => {});
 });

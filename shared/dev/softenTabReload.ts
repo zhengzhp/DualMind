@@ -25,7 +25,12 @@ export function softenDevTabReloads(): void {
   const mode = resolveMode();
   if (mode === 'all') return;
 
-  const original = browser.tabs.reload.bind(browser.tabs);
+  // tabs.reload 是重载函数，bind 后 Parameters<> 会取到不相关的重载，
+  // 这里显式收敛为一个明确的内部签名，避免调用处重载匹配失败。
+  type ReloadFn = (tabId?: number, reloadProperties?: unknown) => Promise<void>;
+  const original = browser.tabs.reload.bind(
+    browser.tabs,
+  ) as unknown as ReloadFn;
 
   // WXT 热更新路径会批量调用 tabs.reload；在此拦截
   browser.tabs.reload = (async (tabId?: number, reloadProperties?: unknown) => {
@@ -42,9 +47,6 @@ export function softenDevTabReloads(): void {
       console.debug('[dualmind] skip inactive tab reload', tabId);
       return;
     }
-    return original(
-      tabId as Parameters<typeof original>[0],
-      reloadProperties as Parameters<typeof original>[1],
-    );
+    return original(tabId, reloadProperties);
   }) as typeof browser.tabs.reload;
 }
