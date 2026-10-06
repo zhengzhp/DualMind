@@ -4,7 +4,7 @@
  * 依赖 `wxt build` 产物与真实本地 Ollama（见 fixtures.ts）；不进 CI，本地手动执行。
  *
  * 覆盖分层（对齐 docs/features.md 的 chat 契约）：
- * - UI：聊天 Tab 空态、总结本页、停止中断、会话持久化与历史恢复、右键信箱自动执行
+ * - UI：网页助手 Tab 空态、总结本页、停止中断、会话持久化与历史恢复、右键信箱自动执行
  * - 内容脚本：`content:chat-extract` 整页 / 选区提取（直接发消息，绕开「活动标签页」的不确定性）
  *
  * 说明：真实右键菜单无法在 Playwright 中点击，右键入口改为「直接写 storage 信箱」再打开侧栏，
@@ -125,19 +125,19 @@ async function findContentTabId(page: Page, urlPart: string): Promise<number> {
   }, urlPart);
 }
 
-/** 打开全页工作台并切到「聊天」Tab */
+/** 打开全页工作台并切到「网页助手」Tab */
 async function openChatWorkspace(
   page: Page,
   extensionId: string,
 ): Promise<void> {
   await page.goto(`chrome-extension://${extensionId}/workspace.html`);
-  await page.getByRole('button', { name: '聊天', exact: true }).click();
+  await page.getByRole('button', { name: '网页助手', exact: true }).click();
   // `.first()`：副标题 <p> 与其父容器文本相同，避免严格模式命中多个
-  await expect(page.getByText('全页工作台 · 网页问答').first()).toBeVisible();
+  await expect(page.getByText('全页工作台 · 摘要与问答').first()).toBeVisible();
 }
 
 test.describe('V2 网页摘要 / 问答', () => {
-  test('聊天 Tab 为空态引导，占位文案已移除', async ({
+  test('网页助手 Tab 为空态引导，占位文案已移除', async ({
     page,
     serviceWorker,
     extensionId,
@@ -290,8 +290,8 @@ test.describe('V2 网页摘要 / 问答', () => {
 
     await page.goto(`chrome-extension://${extensionId}/sidepanel.html`);
 
-    // ① 自动切到聊天 Tab（副标题随之变化）并自动发起提问
-    await expect(page.getByText('AI 助手 · 网页问答').first()).toBeVisible();
+    // ① 自动切到网页助手 Tab（副标题随之变化）并自动发起提问
+    await expect(page.getByText('AI 助手 · 摘要与问答').first()).toBeVisible();
     await expect(page.getByTestId('chat-turn-user')).toContainText(
       '请总结当前网页',
     );
@@ -311,7 +311,7 @@ test.describe('V2 网页摘要 / 问答', () => {
 
     // ④ 重开面板：会话仍在「历史」里（按首条提问推导标题）
     await page.reload();
-    await page.getByRole('button', { name: '聊天', exact: true }).click();
+    await page.getByRole('button', { name: '网页助手', exact: true }).click();
     await page.getByRole('button', { name: /^历史/ }).click();
     await expect(
       page.getByText('请总结当前网页的核心内容，说明主要观点与结论。'),
@@ -337,7 +337,7 @@ test.describe('V2 网页摘要 / 问答', () => {
 
     const panel = await context.newPage();
     await panel.goto(`chrome-extension://${extensionId}/sidepanel.html`);
-    await panel.getByRole('button', { name: '聊天', exact: true }).click();
+    await panel.getByRole('button', { name: '网页助手', exact: true }).click();
 
     // 打开旧会话：来源页 other.example.com，当前活动页 example.com，必然不一致
     await panel.getByRole('button', { name: /^历史/ }).click();
@@ -382,7 +382,7 @@ test.describe('V2 网页摘要 / 问答', () => {
 
     const panel = await context.newPage();
     await panel.goto(`chrome-extension://${extensionId}/sidepanel.html`);
-    await panel.getByRole('button', { name: '聊天', exact: true }).click();
+    await panel.getByRole('button', { name: '网页助手', exact: true }).click();
     await panel.getByRole('button', { name: /^历史/ }).click();
     await panel
       .getByRole('button', { name: /^来自其他页面的旧会话/ })

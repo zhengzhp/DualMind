@@ -64,9 +64,9 @@ test.describe('全页工作台', () => {
     await page.goto(`chrome-extension://${extensionId}/workspace.html`);
     await expect(page.getByText('全页工作台 · 翻译')).toBeVisible();
 
-    // V2：聊天 Tab 由占位替换为可用的 ChatPanel（副标题随之变化）
-    await page.getByRole('button', { name: '聊天', exact: true }).click();
-    await expect(page.getByText('全页工作台 · 网页问答')).toBeVisible();
+    // V2：网页助手 Tab 由占位替换为可用的 ChatPanel（副标题随之变化）
+    await page.getByRole('button', { name: '网页助手', exact: true }).click();
+    await expect(page.getByText('全页工作台 · 摘要与问答')).toBeVisible();
     await expect(page.getByRole('button', { name: '总结本页' })).toBeVisible();
     await expect(page.getByText('聊天（即将推出）')).toHaveCount(0);
 

@@ -76,7 +76,7 @@ flowchart LR
 - 正文提取在页面（Content），模型请求只在 Background；Side Panel 无法直连页面 DOM，须经 Background 转发到活动标签页。
 - 会话消息持久化在 `local:chatSessions`（全局列表，带 `pageUrl`）；页面正文不落 storage，只随消息保存已发送的上下文片段。
 - 提取层 `features/page-content/` 为 `chat` 与 `immersive` 共用，无独立消息前缀。
-- 右键菜单「总结本页」不走 runtime 广播：Background 写信箱 `local:chatPending`（消费即清空 + TTL 30s），由**常驻的** `WorkbenchApp` 消费并切到聊天 Tab，再下发给 `ChatPanel` 执行 —— 因为 `sidePanel.open()` 与面板挂载存在竞态，且 `ChatPanel` 仅在聊天 Tab 挂载。
+- 右键菜单「总结本页」不走 runtime 广播：Background 写信箱 `local:chatPending`（消费即清空 + TTL 30s），由**常驻的** `WorkbenchApp` 消费并切到网页助手 Tab，再下发给 `ChatPanel` 执行 —— 因为 `sidePanel.open()` 与面板挂载存在竞态，且 `ChatPanel` 仅在网页助手 Tab 挂载。
 
 ## 里程碑状态（V2 / V3）
 

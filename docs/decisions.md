@@ -39,8 +39,8 @@
 | 会话切换与在途流式 | 新建 / 切换会话**中断**在途流式；所有异步回写先比对会话 id，**迟到回包直接丢弃**（防止流式增量写进新会话） |
 | 会话与页面绑定 | 重开旧会话后追问，取的是**当前活动标签页**正文。若会话已记录 `pageUrl`、**已有历史消息**且未被标记 `allowCrossPage`，发送前比对当前页（新增 `chat:page-info`，仅 `tabs.query`、不触发内容脚本，比较时**忽略 hash**）：不一致则弹确认条，**并列显示会话来源页与当前页地址**，提供三个动作 —— 「仍要继续」（本次发出）/「本会话不再提示」（置 `session.allowCrossPage = true` 后发出，此后不再检查）/「取消」（不发且**把提问还回输入框**，不丢草稿）。确认任一路径都会**先把当前页写回会话来源**（`pageUrl` / `pageTitle`），避免随后上下文读取失败时回退到旧来源而反复弹确认。新建会话 / 首轮提问不做这次探测（零额外往返） |
 | 右键菜单与 disabledHosts | 三个右键菜单项（`dualmind-translate` / `-immersive` / `-chat-summarize`）在内容脚本被禁用的站点上**置灰**（`contextMenus.update({ enabled: false })`），由 Background 在 `tabs.onActivated` / `tabs.onUpdated` / `storage.onChanged` 时重算。理由：`documentUrlPatterns` 无法表达「除 disabledHosts 外的所有站点」，而无效点击只会得到空洞的失败提示；站点禁用能力不应被绕过 |
-| 右键菜单入口 | 「总结本页」由 Background 写入信箱 `local:chatPending`（消费即清空 + TTL 30s），**由常驻的 `WorkbenchApp` 消费**并切到聊天 Tab 再下发给 `ChatPanel`。理由：`sidePanel.open()` 与面板挂载存在竞态，runtime 广播不可靠；且 `ChatPanel` 仅在聊天 Tab 挂载，用户停在翻译 Tab 时会漏事件。仅 Side Panel 消费，避免全页工作台抢走动作 |
+| 右键菜单入口 | 「总结本页」由 Background 写入信箱 `local:chatPending`（消费即清空 + TTL 30s），**由常驻的 `WorkbenchApp` 消费**并切到网页助手 Tab 再下发给 `ChatPanel`。理由：`sidePanel.open()` 与面板挂载存在竞态，runtime 广播不可靠；且 `ChatPanel` 仅在网页助手 Tab 挂载，用户停在翻译 Tab 时会漏事件。仅 Side Panel 消费，避免全页工作台抢走动作 |
 | 正文不落 storage | 页面正文只在会话内保存已发送的上下文片段 / 引用，不作为独立快照持久化 |
 | 权限 | **不扩大**：复用现有 `<all_urls>` content script，不引入 `scripting` / `activeTab` |
-| 入口 | Side Panel / 全页工作台「聊天」Tab；右键菜单「总结本页」；（可选）快捷键 |
+| 入口 | Side Panel / 全页工作台「网页助手」Tab；右键菜单「总结本页」；（可选）快捷键 |
 | 与既有 Feature 关系 | 复用同一 BYOK Provider（`shared/llm`）与 Side Panel；**不新增模型接入**，不改动 `translate` / `immersive` 行为（`page-content` 抽取为等价重构） |

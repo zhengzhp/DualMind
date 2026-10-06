@@ -32,17 +32,17 @@ const WORDMARK_URL = browser.runtime.getURL('/wordmark.svg');
 /** 复制成功提示的展示时长（毫秒） */
 const COPY_HINT_MS = 1500;
 
-/** 顶部模块 Tab（翻译 / 聊天可用；Agent 仅占位） */
+/** 顶部模块 Tab（翻译 / 网页助手可用；Agent 仅占位） */
 const MODULE_TABS: readonly (readonly [ModuleTab, string])[] = [
   ['translate', '翻译'],
-  ['chat', '聊天'],
+  ['chat', '网页助手'],
   ['agent', 'Agent'],
 ];
 
-/** 副标题按当前 Tab 变化，避免在「聊天」页仍显示「翻译」 */
+/** 副标题按当前 Tab 变化，避免在「网页助手」页仍显示「翻译」 */
 const TAB_SUBTITLE: Record<ModuleTab, string> = {
   translate: '翻译',
-  chat: '网页问答',
+  chat: '摘要与问答',
   agent: 'Agent',
 };
 
@@ -79,7 +79,7 @@ export function WorkbenchApp({ surface }: { surface: WorkbenchSurface }) {
   /**
    * 右键菜单「总结本页」：信箱由**常驻的**工作台统一消费，再下发给 ChatPanel。
    *
-   * 为什么不在 ChatPanel 里消费：面板只在「聊天」Tab 激活时挂载，用户停在
+   * 为什么不在 ChatPanel 里消费：面板只在「网页助手」Tab 激活时挂载，用户停在
    * 「翻译」Tab 点右键时会错过 storage 事件，动作就丢了。
    * 为什么只有 Side Panel 消费：右键菜单打开的就是侧栏；否则全页工作台会把动作抢走。
    */
@@ -91,7 +91,7 @@ export function WorkbenchApp({ surface }: { surface: WorkbenchSurface }) {
       if (!action) return;
       if (handledPendingRef.current === action.createdAt) return;
       handledPendingRef.current = action.createdAt;
-      // 必须先切到聊天 Tab，保证 ChatPanel 挂载，否则动作没人执行
+      // 必须先切到网页助手 Tab，保证 ChatPanel 挂载，否则动作没人执行
       setTab('chat');
       setPendingChatAction(action);
     };
