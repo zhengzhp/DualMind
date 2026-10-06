@@ -77,6 +77,45 @@ export type ProtocolMap = {
     data: Partial<import('@/shared/storage/types').ImmersivePrefs>;
     return: import('@/shared/storage/types').ImmersivePrefs;
   };
+  /* ---------------- V2 聊天（摘要 / 问答）· 独立 `chat:*` 前缀 ---------------- */
+  'chat:prefs:get': {
+    data: undefined;
+    return: import('@/shared/storage/types').ChatPrefs;
+  };
+  'chat:prefs:save': {
+    data: Partial<import('@/shared/storage/types').ChatPrefs>;
+    return: import('@/shared/storage/types').ChatPrefs;
+  };
+  /** 会话列表（摘要，按更新时间倒序） */
+  'chat:sessions:list': {
+    data: undefined;
+    return: import('@/shared/storage/types').ChatSessionSummary[];
+  };
+  'chat:sessions:get': {
+    data: { id: string };
+    return: import('@/shared/storage/types').ChatSession | null;
+  };
+  /** 新增 / 更新会话（容量上限由 Background 侧统一裁剪） */
+  'chat:sessions:upsert': {
+    data: { session: import('@/shared/storage/types').ChatSession };
+    return: import('@/shared/storage/types').ChatSession;
+  };
+  'chat:sessions:delete': {
+    data: { id: string };
+    return: { ok: true };
+  };
+  'chat:sessions:clear': {
+    data: undefined;
+    return: { ok: true };
+  };
+  /**
+   * 提取「当前活动标签页」的上下文（Background 转发到内容脚本）。
+   * 页面无可读内容 / 未注入内容脚本时返回 null。
+   */
+  'chat:context': {
+    data: { scope?: import('@/shared/storage/types').ChatContextScope };
+    return: import('@/features/chat/types').ChatContextPayload | null;
+  };
 };
 
 /** Side Panel 生命周期 Port：用于判断是否已打开、以及请求自关闭 */
@@ -130,3 +169,26 @@ export type ImmersivePortServerMessage =
       results: import('@/features/immersive/types').ImmersiveSegmentResult[];
     }
   | { type: 'batch-error'; requestId: string; code: string; message: string };
+
+/** 网页摘要 / 问答 Port 名称（流式、可多请求并发、支持 abort） */
+export const CHAT_PORT = 'dualmind-chat';
+
+/** 聊天：Client（Side Panel / 工作台）→ Background */
+export type ChatPortClientMessage =
+  | {
+      type: 'start';
+      requestId: string;
+      /** 页面上下文；null 表示无可用上下文（仍可纯对话） */
+      context: import('@/features/chat/types').ChatContextPayload | null;
+      /** 历史消息（不含本次提问） */
+      history: import('@/shared/storage/types').ChatTurn[];
+      /** 本轮提问 */
+      question: string;
+    }
+  | { type: 'abort'; requestId: string };
+
+/** 聊天：Background → Client */
+export type ChatPortServerMessage =
+  | { type: 'chunk'; requestId: string; text: string; accumulated: string }
+  | { type: 'done'; requestId: string; content: string }
+  | { type: 'error'; requestId: string; code: string; message: string };

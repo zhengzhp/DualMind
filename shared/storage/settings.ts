@@ -1,9 +1,18 @@
 import { storage } from 'wxt/utils/storage';
 import { MIGRATION_IDS, shouldMigrateToolbarTrigger } from './migrations';
 import {
+  mergeChatSession,
+  removeSessionById,
+  toChatSessionSummaries,
+} from './chatSessions';
+import {
+  DEFAULT_CHAT_PREFS,
   DEFAULT_IMMERSIVE_PREFS,
   DEFAULT_SETTINGS,
   type AppSettings,
+  type ChatPrefs,
+  type ChatSession,
+  type ChatSessionSummary,
   type ImmersivePrefs,
 } from './types';
 
@@ -101,4 +110,70 @@ export async function saveSettings(
   };
   await settingsItem.setValue(next);
   return next;
+}
+
+/* ------------------------------------------------------------------ *
+ * V2 聊天（摘要 / 问答）
+ *
+ * 与沉浸译偏好同样使用独立 storage 键：改上下文范围不应触发会话监听。
+ * 纯逻辑（容量裁剪 / 摘要）在 `./chatSessions`，此处只做 IO 与合并。
+ * ------------------------------------------------------------------ */
+
+/** 聊天偏好 */
+export const chatPrefsItem = storage.defineItem<ChatPrefs>('local:chatPrefs', {
+  fallback: DEFAULT_CHAT_PREFS,
+});
+
+/** 全局聊天会话列表（写入时按上限淘汰最旧） */
+export const chatSessionsItem = storage.defineItem<ChatSession[]>(
+  'local:chatSessions',
+  {
+    fallback: [],
+  },
+);
+
+/** 读取聊天偏好（与默认值合并，容忍旧版本缺字段） */
+export async function getChatPrefs(): Promise<ChatPrefs> {
+  const stored = await chatPrefsItem.getValue();
+  return { ...DEFAULT_CHAT_PREFS, ...stored };
+}
+
+/** 合并写入聊天偏好 */
+export async function saveChatPrefs(
+  patch: Partial<ChatPrefs>,
+): Promise<ChatPrefs> {
+  const next = { ...(await getChatPrefs()), ...patch };
+  await chatPrefsItem.setValue(next);
+  return next;
+}
+
+/** 会话列表（摘要，按更新时间倒序） */
+export async function listChatSessions(): Promise<ChatSessionSummary[]> {
+  return toChatSessionSummaries(await chatSessionsItem.getValue());
+}
+
+/** 读取单个会话完整内容 */
+export async function getChatSession(id: string): Promise<ChatSession | null> {
+  const sessions = await chatSessionsItem.getValue();
+  return sessions.find((session) => session.id === id) ?? null;
+}
+
+/** 新增 / 更新会话（写入时裁剪消息数并按上限淘汰最旧） */
+export async function upsertChatSession(
+  session: ChatSession,
+): Promise<ChatSession> {
+  const next = mergeChatSession(await chatSessionsItem.getValue(), session);
+  await chatSessionsItem.setValue(next);
+  return next.find((item) => item.id === session.id) ?? session;
+}
+
+/** 删除单个会话 */
+export async function deleteChatSession(id: string): Promise<void> {
+  const next = removeSessionById(await chatSessionsItem.getValue(), id);
+  await chatSessionsItem.setValue(next);
+}
+
+/** 清空全部会话 */
+export async function clearChatSessions(): Promise<void> {
+  await chatSessionsItem.setValue([]);
 }

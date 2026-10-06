@@ -15,9 +15,9 @@
 
 | Feature | 目录 | 入口消息 / Port | 写入 storage | UI 入口 | 状态 |
 |---------|------|-----------------|--------------|---------|------|
-| chat | `features/chat/` | `chat:*`（摘要 / 问答）；Port `dualmind-chat`（流式 + abort） | `local:chatSessions`（全局会话）、`local:chatPrefs`（偏好）；正文不落 storage | Side Panel / 全页工作台「聊天」Tab、右键「总结本页」 | V2 可用 |
+| chat | `features/chat/` | `chat:*`：`chat:prefs:get/save`、`chat:sessions:list/get/upsert/delete/clear`、`chat:context`（BG 转发内容脚本提取正文 / 选区）；Port `dualmind-chat`（`start` / `abort`，流式） | `local:chatSessions`（全局会话，上限 50 会话 / 200 条，超限淘汰最旧）、`local:chatPrefs`（`contextScope` / `maxContextChars`）；正文不落 storage | Side Panel / 全页工作台「聊天」Tab、右键「总结本页」 | V2 契约就绪（UI 待接入） |
 
-> 共享提取层 `features/page-content/` **不是独立 Feature**：无消息前缀、不写 storage，被 `chat` 与 `immersive` 共同引用（语义正文提取 / 分块 / 截断预算 / 选区上下文）。
+> 共享提取层 `features/page-content/` **不是独立 Feature**：无消息前缀、不写 storage，被 `chat` 与 `immersive` 共同引用（`segmenter` 语义采集 / `budget` 字符预算截断）。
 
 V1 / V1.5 既有 Feature（`translate` / `selection-toolbar` / `immersive`）见 [features-v1.md](./features-v1.md)。
 全页工作台（`entrypoints/workspace/`）不是独立 Feature：无新消息前缀，UI 复用 `features/translate/ui`，与 Side Panel 共用 `translateSession`。

@@ -108,3 +108,68 @@ export const PROVIDER_OPTIONS = [
 /** Provider 选择项下方的说明文案（两处 UI 共用，保证口径一致） */
 export const PROVIDER_HINT =
   '本地 Ollama 走本机端口；OpenAI 兼容适用于 DeepSeek、Groq、各类中转或自建 /v1 服务等任意兼容端点。';
+
+/* ------------------------------------------------------------------ *
+ * V2 摘要 / 聊天 · 持久化形状
+ *
+ * 放在 `shared/storage/types.ts`（而非 `features/chat/types.ts`）的原因：
+ * 这些形状会被 `shared/storage/*` 直接读写，若定义在 feature 内会让
+ * shared 反向依赖 feature。域内「不入库」的运行时类型（如上下文载荷）
+ * 仍留在 `features/chat/types.ts`。与 `ImmersiveDisplayMode` 的处理一致。
+ * ------------------------------------------------------------------ */
+
+/** 聊天上下文范围：仅当前选区 / 当前页正文 */
+export type ChatContextScope = 'selection' | 'page';
+
+/**
+ * 聊天偏好。
+ * 独立 storage 键（`local:chatPrefs`）：切换上下文范围不应触发
+ * `chatSessions` 的监听回调。
+ */
+export interface ChatPrefs {
+  /** 送模型的上下文来源；默认整页正文 */
+  contextScope: ChatContextScope;
+  /** 页面上下文的最大字符预算，超出按段截断；避免长文撑爆上下文与费用 */
+  maxContextChars: number;
+}
+
+export const DEFAULT_CHAT_PREFS: ChatPrefs = {
+  contextScope: 'page',
+  maxContextChars: 12000,
+};
+
+/**
+ * 会话内的一条消息。
+ *
+ * 刻意不叫 `ChatMessage`：`providers/types.ts` 已有同名类型（入参形状
+ * `{ role, content }`），这里是**入库形状**，多出 id / 时间戳 / error。
+ */
+export interface ChatTurn {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  createdAt: number;
+  /** 该轮失败时的用户可读文案；如实展示，不伪装成成功（沿用沉浸译的教训） */
+  error?: string;
+}
+
+/** 一个聊天会话（全局列表，记录来源页面） */
+export interface ChatSession {
+  id: string;
+  title: string;
+  pageUrl: string;
+  pageTitle: string;
+  turns: ChatTurn[];
+  createdAt: number;
+  updatedAt: number;
+}
+
+/** 会话列表项：不含 `turns`，避免列表读取时搬运大数组 */
+export interface ChatSessionSummary {
+  id: string;
+  title: string;
+  pageUrl: string;
+  pageTitle: string;
+  turnCount: number;
+  updatedAt: number;
+}

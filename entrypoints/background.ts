@@ -8,14 +8,18 @@ import {
   IDLE_IMMERSIVE_STATUS,
   type ImmersiveStatus,
 } from '@/features/immersive/types';
+import { answerQuestion } from '@/features/chat/service';
 import { createProviderFromSettings } from '@/providers/registry';
 import { softenDevTabReloads } from '@/shared/dev/softenTabReload';
 import { formatErrorForUi, normalizeError } from '@/shared/errors';
 import { fail, ok } from '@/shared/messaging/client';
 import {
+  CHAT_PORT,
   IMMERSIVE_PORT,
   SIDEPANEL_PORT,
   TRANSLATE_PORT,
+  type ChatPortClientMessage,
+  type ChatPortServerMessage,
   type ImmersivePortClientMessage,
   type ImmersivePortServerMessage,
   type MessageType,
@@ -24,12 +28,20 @@ import {
   type TranslatePortServerMessage,
 } from '@/shared/messaging/protocol';
 import {
+  clearChatSessions,
+  deleteChatSession,
+  getChatPrefs,
+  getChatSession,
   getImmersivePrefs,
   getSettings,
+  listChatSessions,
+  saveChatPrefs,
   saveImmersivePrefs,
   saveSettings,
   translateSessionItem,
+  upsertChatSession,
 } from '@/shared/storage/settings';
+import type { ChatContextScope } from '@/shared/storage/types';
 
 /** Chrome Side Panel API（webextension-polyfill 类型可能未覆盖） */
 const sidePanelApi = (
@@ -138,6 +150,33 @@ async function queryImmersiveStatus(): Promise<ImmersiveStatus> {
   return sendImmersiveToTab(tab.id, { type: 'content:immersive-query' });
 }
 
+/**
+ * 提取当前活动标签页的页面上下文。
+ * 范围与字符预算以 `chatPrefs` 为准（调用方可不传 scope，走用户偏好）。
+ * 页面未注入内容脚本时返回 null，由 UI 提示「无可用上下文」。
+ */
+async function forwardChatContext(
+  scope?: ChatContextScope,
+): Promise<ProtocolMap['chat:context']['return']> {
+  const prefs = await getChatPrefs();
+  const [tab] = await browser.tabs.query({
+    active: true,
+    currentWindow: true,
+  });
+  if (tab?.id == null) return null;
+  try {
+    const payload = (await browser.tabs.sendMessage(tab.id, {
+      type: 'content:chat-extract',
+      scope: scope ?? prefs.contextScope,
+      maxChars: prefs.maxContextChars,
+    })) as ProtocolMap['chat:context']['return'];
+    return payload ?? null;
+  } catch {
+    // chrome:// 页、扩展更新后未刷新的旧标签页等：无内容脚本可响应
+    return null;
+  }
+}
+
 async function toggleSidePanel(windowId: number): Promise<boolean> {
   // 关键：`sidePanel.open()` 依赖瞬时用户激活（transient activation）。
   // 网页点击的激活能经 sendMessage 传到本 SW，但经不起 open() 前多一次异步往返：
@@ -215,6 +254,30 @@ const handlers: HandlerMap = {
   'immersive:prefs:get': async () => getImmersivePrefs(),
 
   'immersive:prefs:save': async (data) => saveImmersivePrefs(data),
+
+  /* ---------------- V2 聊天（摘要 / 问答） ---------------- */
+
+  'chat:prefs:get': async () => getChatPrefs(),
+
+  'chat:prefs:save': async (data) => saveChatPrefs(data),
+
+  'chat:sessions:list': async () => listChatSessions(),
+
+  'chat:sessions:get': async (data) => getChatSession(data.id),
+
+  'chat:sessions:upsert': async (data) => upsertChatSession(data.session),
+
+  'chat:sessions:delete': async (data) => {
+    await deleteChatSession(data.id);
+    return { ok: true as const };
+  },
+
+  'chat:sessions:clear': async () => {
+    await clearChatSessions();
+    return { ok: true as const };
+  },
+
+  'chat:context': async (data) => forwardChatContext(data.scope),
 };
 
 /** Port 流式翻译：支持 abort */
@@ -358,6 +421,86 @@ function attachImmersivePort(port: {
   });
 }
 
+/** Port 流式问答：一个 Port 上可并发多个 requestId，各自独立 abort */
+function attachChatPort(port: {
+  postMessage: (msg: unknown) => void;
+  onMessage: {
+    addListener: (cb: (msg: unknown) => void) => void;
+  };
+  onDisconnect: { addListener: (cb: () => void) => void };
+}) {
+  const controllers = new Map<string, AbortController>();
+
+  const post = (msg: ChatPortServerMessage) => {
+    try {
+      port.postMessage(msg);
+    } catch {
+      /* port 已断开 */
+    }
+  };
+
+  port.onMessage.addListener((raw: unknown) => {
+    const message = raw as ChatPortClientMessage;
+    if (!message || typeof message !== 'object') return;
+
+    if (message.type === 'abort') {
+      controllers.get(message.requestId)?.abort();
+      return;
+    }
+    if (message.type !== 'start') return;
+
+    // 同一 requestId 重复请求（如重试）时取消旧的
+    controllers.get(message.requestId)?.abort();
+    const controller = new AbortController();
+    controllers.set(message.requestId, controller);
+
+    void (async () => {
+      let accumulated = '';
+      try {
+        for await (const delta of answerQuestion({
+          context: message.context,
+          history: message.history,
+          question: message.question,
+          signal: controller.signal,
+        })) {
+          if (controller.signal.aborted) break;
+          accumulated += delta;
+          post({
+            type: 'chunk',
+            requestId: message.requestId,
+            text: delta,
+            accumulated,
+          });
+        }
+        if (!controller.signal.aborted) {
+          post({
+            type: 'done',
+            requestId: message.requestId,
+            content: accumulated,
+          });
+        }
+      } catch (err) {
+        // 主动取消由客户端自行 settle，不额外回错误（避免「已取消」被当成失败）
+        if (controller.signal.aborted) return;
+        const normalized = normalizeError(err);
+        post({
+          type: 'error',
+          requestId: message.requestId,
+          code: normalized.code,
+          message: formatErrorForUi(normalized),
+        });
+      } finally {
+        controllers.delete(message.requestId);
+      }
+    })();
+  });
+
+  port.onDisconnect.addListener(() => {
+    for (const controller of controllers.values()) controller.abort();
+    controllers.clear();
+  });
+}
+
 export default defineBackground(() => {
   // 必须尽早打补丁：WXT serve 会在 CS 变更时对所有匹配 tab 调 tabs.reload
   softenDevTabReloads();
@@ -375,6 +518,10 @@ export default defineBackground(() => {
     }
     if (port.name === IMMERSIVE_PORT) {
       attachImmersivePort(port);
+      return;
+    }
+    if (port.name === CHAT_PORT) {
+      attachChatPort(port);
       return;
     }
     if (port.name === SIDEPANEL_PORT) {

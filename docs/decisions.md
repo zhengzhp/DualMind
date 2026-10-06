@@ -33,7 +33,8 @@
 | Feature 隔离 | 新建 `features/chat/`；独立消息前缀 `chat:*` + Port `dualmind-chat`；**不复用** `translateSession` / `translate:*` |
 | 共享提取层 | 新建 `features/page-content/`，从 `immersive/segmenter.ts` 抽出「语义正文提取 + 标题/段落分块 + 截断预算 + 选区上下文」，沉浸译改为引用该模块（**先做等价重构，既有单测作护栏**） |
 | storage | 新增 `local:chatPrefs`（上下文范围等）与 `local:chatSessions`（**全局**会话列表，每条含 `pageUrl` / `pageTitle` / `messages` / `updatedAt`） |
-| 会话容量 | 上限 **50 会话 / 每会话 200 条消息**，超限**淘汰最旧**（`chrome.storage.local` 有配额，必须先定清理策略） |
+| 会话容量 | 上限 **50 会话 / 每会话 200 条消息**，超限**淘汰最旧**（`chrome.storage.local` 有配额，必须先定清理策略）；逻辑在 `shared/storage/chatSessions.ts`（纯函数 + 单测） |
+| 上下文预算 | `chatPrefs.maxContextChars`（默认 12000）按段累加截断，不切半段；首段即超预算时至少保留一段，避免空上下文 |
 | 正文不落 storage | 页面正文只在会话内保存已发送的上下文片段 / 引用，不作为独立快照持久化 |
 | 权限 | **不扩大**：复用现有 `<all_urls>` content script，不引入 `scripting` / `activeTab` |
 | 入口 | Side Panel / 全页工作台「聊天」Tab；右键菜单「总结本页」；（可选）快捷键 |
