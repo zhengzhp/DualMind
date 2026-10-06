@@ -55,7 +55,7 @@ test.describe('全页工作台', () => {
     await expect(page.locator('.text-red-700')).toHaveCount(0);
   });
 
-  test('Chat / Agent 仅占位，无实际能力', async ({
+  test('Chat 已接入、Agent 仍占位，切回翻译仍可用', async ({
     page,
     serviceWorker,
     extensionId,
@@ -64,9 +64,13 @@ test.describe('全页工作台', () => {
     await page.goto(`chrome-extension://${extensionId}/workspace.html`);
     await expect(page.getByText('全页工作台 · 翻译')).toBeVisible();
 
+    // V2：聊天 Tab 由占位替换为可用的 ChatPanel（副标题随之变化）
     await page.getByRole('button', { name: '聊天', exact: true }).click();
-    await expect(page.getByText('聊天（即将推出）')).toBeVisible();
+    await expect(page.getByText('全页工作台 · 网页问答')).toBeVisible();
+    await expect(page.getByRole('button', { name: '总结本页' })).toBeVisible();
+    await expect(page.getByText('聊天（即将推出）')).toHaveCount(0);
 
+    // Agent 仍为占位
     await page.getByRole('button', { name: 'Agent', exact: true }).click();
     await expect(page.getByText('Agent（即将推出）')).toBeVisible();
 
