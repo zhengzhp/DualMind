@@ -14,15 +14,20 @@ alwaysApply: false
 
 ## 翻译
 
-- 编排只在 `features/translate/service.ts`
+- 编排只在 `features/translate/service.ts`；经 `shared/llm` 调模型
+- 流式走 Port `dualmind-translate`，支持 abort；一次性可用 `translate:run`
 - Prompt 约束「只输出译文」
-- 结果写入 `translateSession`，供 Side Panel 承接
+- 结果（含流式中间态）写入 `translateSession`，供 Side Panel 承接
+- 错误用 `shared/errors` 的 ErrorCode / `formatErrorForUi`，勿把 Key 打进文案
 
 ## Content / UI
 
 - 划词 UI 在 `features/selection-toolbar/`
 - Side Panel / Options 用函数组件 + Hooks；核心逻辑加中文注释
 - 处理 loading / 空值 / 错误态
+- **改了 Content Script 后，Chrome 不会自动注入已打开的标签页**：验证前必须
+  「Reload 扩展 + 刷新页面」，否则页面在跑旧脚本，会把「新功能不生效 / 浮层关不掉」
+  误判成代码 bug（曾发生过）。排查此类问题先确认已刷新，再看代码。
 
 ## 权限
 

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { formatErrorForUi } from '@/shared/errors';
 import { sendMessage } from '@/shared/messaging/client';
 import {
   TARGET_LANGUAGES,
@@ -6,6 +7,24 @@ import {
   type ProviderType,
   type ToolbarTrigger,
 } from '@/shared/storage/types';
+import {
+  SearchableSelect,
+  SegmentedControl,
+  fieldClass,
+  type SegmentedControlOption,
+} from '@/shared/ui';
+
+/** 划词工具栏触发方式：只有两个互斥选项，用分段控件比下拉更直观 */
+const TOOLBAR_OPTIONS: SegmentedControlOption<ToolbarTrigger>[] = [
+  { value: 'shortcut', label: '仅快捷键' },
+  { value: 'auto', label: '选中后自动显示' },
+];
+
+/** Provider 同样二选一 → 分段控件 */
+const PROVIDER_OPTIONS: SegmentedControlOption<ProviderType>[] = [
+  { value: 'ollama', label: 'Ollama（本地）' },
+  { value: 'openai-compatible', label: 'OpenAI Compatible' },
+];
 
 export default function App() {
   const [settings, setSettings] = useState<AppSettings | null>(null);
@@ -38,7 +57,7 @@ export default function App() {
       setStatus('已保存');
       window.setTimeout(() => setStatus(''), 1500);
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      setError(formatErrorForUi(err));
     } finally {
       setSaving(false);
     }
@@ -62,7 +81,7 @@ export default function App() {
         setStatus('');
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      setError(formatErrorForUi(err));
       setStatus('');
     }
   }
@@ -95,7 +114,7 @@ export default function App() {
         setSettings(next);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      setError(formatErrorForUi(err));
       setStatus('');
     }
   }
@@ -120,35 +139,30 @@ export default function App() {
 
         <section className="space-y-5 rounded-2xl border border-brand-100 bg-white/80 p-5 shadow-sm backdrop-blur">
           <Field label="目标语言">
-            <select
+            <SearchableSelect
               value={settings.targetLanguage}
-              onChange={(e) =>
-                setSettings({ ...settings, targetLanguage: e.target.value })
+              options={TARGET_LANGUAGES}
+              onChange={(targetLanguage) =>
+                setSettings({ ...settings, targetLanguage })
               }
-              className="field"
-            >
-              {TARGET_LANGUAGES.map((lang) => (
-                <option key={lang.value} value={lang.value}>
-                  {lang.label}
-                </option>
-              ))}
-            </select>
+              // 固定短列表（10 项），滚动即可，不加搜索框更清爽
+              searchable={false}
+              testId="target-language"
+            />
           </Field>
 
-          <Field label="划词工具栏">
-            <select
+          <Field
+            label="划词工具栏"
+            hint="默认仅快捷键（Alt/Option+K）触发，避免选中即弹层打扰；快捷键可在 chrome://extensions/shortcuts 修改"
+          >
+            <SegmentedControl
               value={settings.toolbarTrigger}
-              onChange={(e) =>
-                setSettings({
-                  ...settings,
-                  toolbarTrigger: e.target.value as ToolbarTrigger,
-                })
+              options={TOOLBAR_OPTIONS}
+              onChange={(toolbarTrigger) =>
+                setSettings({ ...settings, toolbarTrigger })
               }
-              className="field"
-            >
-              <option value="auto">选中后自动显示</option>
-              <option value="shortcut">仅快捷键（Alt+T）显示并翻译</option>
-            </select>
+              ariaLabel="划词工具栏"
+            />
           </Field>
 
           <Field
@@ -159,7 +173,7 @@ export default function App() {
               value={disabledHostsText}
               onChange={(e) => setDisabledHostsText(e.target.value)}
               rows={3}
-              className="field font-mono text-xs"
+              className={`${fieldClass} font-mono text-xs`}
               placeholder={'example.com\nmail.google.com'}
             />
           </Field>
@@ -167,27 +181,12 @@ export default function App() {
           <hr className="border-brand-50" />
 
           <Field label="AI Provider">
-            <div className="flex gap-2">
-              {(
-                [
-                  ['ollama', 'Ollama（本地）'],
-                  ['openai-compatible', 'OpenAI Compatible'],
-                ] as const
-              ).map(([id, label]) => (
-                <button
-                  key={id}
-                  type="button"
-                  onClick={() => updateProviderType(id)}
-                  className={`rounded-xl px-3 py-2 text-sm font-semibold ${
-                    settings.providerType === id
-                      ? 'bg-brand-500 text-white'
-                      : 'border border-brand-100 bg-white text-brand-700'
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
+            <SegmentedControl
+              value={settings.providerType}
+              options={PROVIDER_OPTIONS}
+              onChange={updateProviderType}
+              ariaLabel="AI Provider"
+            />
           </Field>
 
           {settings.providerType === 'ollama' ? (
@@ -204,34 +203,31 @@ export default function App() {
                       ollama: { ...settings.ollama, host: e.target.value },
                     })
                   }
-                  className="field"
+                  className={fieldClass}
                   placeholder="http://127.0.0.1:11434"
                 />
               </Field>
               <Field label="模型">
                 <div className="flex gap-2">
-                  <select
+                  <SearchableSelect
                     value={settings.ollama.model}
-                    onChange={(e) =>
-                      setSettings({
-                        ...settings,
-                        ollama: { ...settings.ollama, model: e.target.value },
-                      })
-                    }
-                    className="field flex-1"
-                  >
-                    <option value="">请选择模型</option>
-                    {/* 合并当前已选与列表，避免刷新前丢失 */}
-                    {Array.from(
+                    // 合并当前已选与列表，避免刷新前丢失已选值
+                    options={Array.from(
                       new Set(
                         [settings.ollama.model, ...models].filter(Boolean),
                       ),
-                    ).map((m) => (
-                      <option key={m} value={m}>
-                        {m}
-                      </option>
-                    ))}
-                  </select>
+                    )}
+                    onChange={(model) =>
+                      setSettings({
+                        ...settings,
+                        ollama: { ...settings.ollama, model },
+                      })
+                    }
+                    placeholder="请选择模型"
+                    emptyText="模型列表为空，点右侧「刷新列表」拉取"
+                    testId="ollama-model-select"
+                    className="min-w-0 flex-1"
+                  />
                   <button
                     type="button"
                     onClick={() => void handleRefreshModels()}
@@ -253,7 +249,7 @@ export default function App() {
                       openai: { ...settings.openai, baseUrl: e.target.value },
                     })
                   }
-                  className="field"
+                  className={fieldClass}
                 />
               </Field>
               <Field label="API Key">
@@ -267,29 +263,27 @@ export default function App() {
                       openai: { ...settings.openai, apiKey: e.target.value },
                     })
                   }
-                  className="field"
+                  className={fieldClass}
                   placeholder="sk-..."
                 />
               </Field>
               <Field label="模型">
                 <div className="flex gap-2">
-                  <input
+                  <SearchableSelect
+                    editable
                     value={settings.openai.model}
-                    onChange={(e) =>
+                    options={models}
+                    onChange={(model) =>
                       setSettings({
                         ...settings,
-                        openai: { ...settings.openai, model: e.target.value },
+                        openai: { ...settings.openai, model },
                       })
                     }
-                    className="field flex-1"
-                    list="openai-models"
                     placeholder="gpt-4o-mini"
+                    emptyText="暂无候选模型，点右侧「拉取模型」"
+                    testId="openai-model-input"
+                    className="min-w-0 flex-1"
                   />
-                  <datalist id="openai-models">
-                    {models.map((m) => (
-                      <option key={m} value={m} />
-                    ))}
-                  </datalist>
                   <button
                     type="button"
                     onClick={() => void handleRefreshModels()}
@@ -335,19 +329,6 @@ export default function App() {
           )}
         </section>
       </div>
-
-      <style>{`
-        .field {
-          width: 100%;
-          border-radius: 0.75rem;
-          border: 1px solid #d9eeff;
-          background: white;
-          padding: 0.5rem 0.75rem;
-          font-size: 0.875rem;
-          outline: none;
-        }
-        .field:focus { border-color: #1b7fd1; }
-      `}</style>
     </div>
   );
 }

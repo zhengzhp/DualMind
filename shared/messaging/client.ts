@@ -1,3 +1,9 @@
+import {
+  AppError,
+  formatErrorForUi,
+  normalizeError,
+  type ErrorCode,
+} from '@/shared/errors';
 import type { MessageType, ProtocolMap } from './protocol';
 
 interface Envelope<T extends MessageType> {
@@ -13,6 +19,7 @@ interface SuccessResponse<T> {
 interface ErrorResponse {
   ok: false;
   error: string;
+  code?: ErrorCode;
 }
 
 type ResponseBody<T extends MessageType> =
@@ -33,10 +40,13 @@ export async function sendMessage<T extends MessageType>(
   } satisfies Envelope<T>)) as ResponseBody<T> | undefined;
 
   if (!response) {
-    throw new Error('扩展后台无响应，请刷新页面后重试');
+    throw new AppError('扩展后台无响应，请刷新页面后重试', 'UNKNOWN');
   }
   if (!response.ok) {
-    throw new Error(response.error || '请求失败');
+    throw new AppError(
+      response.error || formatErrorForUi(new AppError('', 'UNKNOWN')),
+      (response.code as ErrorCode) || 'UNKNOWN',
+    );
   }
   return response.data;
 }
@@ -47,8 +57,10 @@ export function ok<T>(data: T): SuccessResponse<T> {
 }
 
 export function fail(error: unknown): ErrorResponse {
+  const normalized = normalizeError(error);
   return {
     ok: false,
-    error: error instanceof Error ? error.message : String(error),
+    error: formatErrorForUi(normalized),
+    code: normalized.code,
   };
 }

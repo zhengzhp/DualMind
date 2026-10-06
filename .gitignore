@@ -6,3 +6,13 @@ dist
 .DS_Store
 *.log
 web-ext-artifacts
+.e2e-profile
+test-results
+playwright-report
+blob-report
+
+# 本地环境变量（参考 .env.example）
+.env
+.env.local
+# 个人编辑器调试配置
+.vscode/
