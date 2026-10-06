@@ -245,14 +245,13 @@ export default function App() {
             </h1>
             <p className="text-xs text-brand-700/70">AI 助手 · 翻译工作台</p>
           </div>
-          <a
-            href={browser.runtime.getURL('/options.html')}
-            target="_blank"
-            rel="noreferrer"
+          <button
+            type="button"
+            onClick={() => void openOptionsAndClosePanel()}
             className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-brand-600 hover:bg-brand-50"
           >
             设置
-          </a>
+          </button>
         </div>
 
         <nav className="mt-3 flex gap-1">
@@ -470,6 +469,36 @@ export default function App() {
       </main>
     </div>
   );
+}
+
+/**
+ * 收起当前侧栏：优先用 sidePanel.close（更可靠），
+ * 旧版本无 close 时回退 window.close（main.tsx 的 close-self 路径同款）。
+ */
+async function closeSelf(): Promise<void> {
+  const api = (
+    browser as typeof browser & {
+      sidePanel?: { close?: (o: { windowId: number }) => Promise<void> };
+    }
+  ).sidePanel;
+  try {
+    if (api?.close) {
+      await api.close({ windowId: browser.windows.WINDOW_ID_CURRENT });
+      return;
+    }
+  } catch {
+    /* 旧版本不支持 close：走 window.close 回退 */
+  }
+  window.close();
+}
+
+/**
+ * 打开设置页并收起侧栏。
+ * 顺序不能反：关掉面板后本页上下文即销毁，后续代码不会再执行。
+ */
+async function openOptionsAndClosePanel(): Promise<void> {
+  await browser.tabs.create({ url: browser.runtime.getURL('/options.html') });
+  await closeSelf();
 }
 
 function Placeholder({ title, desc }: { title: string; desc: string }) {
