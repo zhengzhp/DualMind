@@ -74,5 +74,9 @@ Chrome 打开 `chrome://extensions` → 开启开发者模式 → 加载 `.outpu
 
 - `storage`：保存设置与翻译会话
 - `sidePanel`：侧边栏工作台
-- `scripting` / `<all_urls>`：划词工具栏注入
-- `http://127.0.0.1:11434/*`：本地 Ollama
+- `contextMenus`：右键菜单「用 DualMind 翻译」
+- `content_scripts.matches: <all_urls>`：注入划词工具栏（支撑「选中即自动显示」）
+- `host_permissions: <all_urls>`：BYOK 直连用户自填的 OpenAI 兼容端点（Background 跨域 `fetch` 必需）
+- `http://127.0.0.1:11434/*`、`http://localhost:11434/*`：本地 Ollama
+
+> 因划词常驻 + BYOK 任意端点，安装时会出现「读取并更改您在所有网站上的数据」警告，属预期行为；完整理由与替代方案对比见 [docs/decisions.md](docs/decisions.md)。

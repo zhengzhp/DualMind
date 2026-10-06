@@ -53,6 +53,15 @@
 | 侧边栏 open 的手势窗口 | `open()` 前**不得插入额外 await**：网页点击的激活能经 `sendMessage` 传到 SW，但经不起第二次异步往返（如 `getContexts`）。浮层 toggle 因此用**同步** Port 连接态判断开关（`entrypoints/background.ts` `toggleSidePanel`），确保 `open()` 紧跟手势；否则抛 `may only be called in response to a user gesture`（回归见 `e2e/selection-panel-toggle.e2e.ts`） |
 | 开发热更新 | WXT CS 变更默认会刷所有匹配 tab；DualMind 用 `softenDevTabReloads` 默认只刷活动标签（`WXT_DEV_RELOAD_TABS`） |
 
+## 权限决策（2026-10-06）
+
+- **`<all_urls>` 为有意保留**，且必须**同时**出现在两处，缺一不可：
+  - `content_scripts.matches`：划词常驻注入，支撑「选中即自动显示」（`toolbarTrigger: 'auto'`）。去掉就得改 `activeTab` 按需注入，每页首次使用都需手势唤起，**丢失 auto 模式**。
+  - `host_permissions`：BYOK 的 `OpenAICompatibleProvider` 请求用户自填的任意 Base URL；Background SW 跨域 `fetch` 必须持有该域 `host_permissions`，否则 `Failed to fetch`。**它不是冗余**。
+- **代价**：安装时用户可见「读取并更改您在所有网站上的数据」。这是划词类扩展的品类固有成本，上架需在商店后台备好权限用途说明。
+- **不采用的替代**：仅把 host `<all_urls>` 改为 `optional_host_permissions` 运行时申请 —— 因 `content_scripts.matches` 仍是 `<all_urls>`，**安装警告不变**，只多一处运行时失败点，收益极低。
+- **权限收敛**：删除未使用的 `activeTab` / `scripting` 声明（代码中无 `executeScript` 等调用）。核对依据：`tabs.sendMessage` 只需目标页已有 content script，不需要 host 权限或 activeTab。
+
 ## 明确不做的事（避免范围膨胀）
 
 - 不要在 V1 把翻译服务改成万能 God Object
