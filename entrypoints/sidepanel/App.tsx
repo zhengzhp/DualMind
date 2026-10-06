@@ -430,7 +430,7 @@ export default function App() {
                 type="button"
                 disabled={!translatedText}
                 onClick={() => void handleCopy()}
-                className="rounded-xl border border-brand-100 bg-white px-3 py-2 text-sm font-medium text-brand-700 hover:bg-brand-50 disabled:opacity-50"
+                className="min-w-[5.5rem] whitespace-nowrap rounded-xl border border-brand-100 bg-white px-3 py-2 text-center text-sm font-medium text-brand-700 hover:bg-brand-50 disabled:opacity-50"
               >
                 {copied ? '已复制' : '复制译文'}
               </button>

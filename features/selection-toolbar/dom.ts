@@ -36,6 +36,10 @@ export function createToolbarStyles(): string {
       padding: 6px 10px;
       border-radius: 8px;
       cursor: pointer;
+      /* 固定最小宽度：容纳最宽文案（收起侧栏 / 已复制），
+         避免「复制→已复制」「侧边栏→收起侧栏」切换时按钮宽度跳动引起整行重排 */
+      min-width: 76px;
+      text-align: center;
     }
     .dm-btn:hover { background: #e8f2fc; }
     .dm-btn:disabled { opacity: 0.5; cursor: default; }
