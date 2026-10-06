@@ -6,6 +6,8 @@ export interface ToolbarViewState {
   error: string;
   /** Side Panel 是否已打开（按钮文案切换） */
   panelOpen: boolean;
+  /** 刚刚复制成功（复制按钮短暂切换文案，给出反馈） */
+  copied: boolean;
 }
 
 export interface ToolbarView {
@@ -65,6 +67,9 @@ export function createToolbarView(root: HTMLElement): ToolbarView {
       primary.textContent = state.loading ? '停止' : '翻译';
       primary.dataset.action = state.loading ? 'stop' : 'translate';
       copy.disabled = !state.translatedText;
+      // 复制成功反馈：文案 + 高亮，由 mount 侧定时复位
+      copy.textContent = state.copied ? '已复制' : '复制';
+      copy.classList.toggle('active', state.copied);
 
       // 侧边栏开关：打开时显示「收起」并高亮
       panel.textContent = state.panelOpen ? '收起侧栏' : '侧边栏';

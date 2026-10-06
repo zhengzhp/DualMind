@@ -23,6 +23,9 @@ interface ToolbarState extends ToolbarViewState {
   sourceText: string;
 }
 
+/** 复制成功提示的展示时长（毫秒） */
+const COPY_HINT_MS = 1500;
+
 /**
  * 在页面上挂载划词工具栏（Shadow DOM）
  * 翻译请求一律走 Background（Port 流式）
@@ -38,9 +41,12 @@ export async function mountSelectionToolbar(
     error: '',
     visible: false,
     panelOpen: false,
+    copied: false,
   };
 
   let abortController: AbortController | null = null;
+  /** 「已复制」文案的复位定时器 */
+  let copyResetTimer: number | undefined;
   /** 会话代际：关闭后使在途 chunk / 结果失效 */
   let sessionId = 0;
   let tracker: SelectionTracker | null = null;
@@ -80,12 +86,14 @@ export async function mountSelectionToolbar(
     abortController = null;
     tracker?.stop();
     tracker = null;
+    window.clearTimeout(copyResetTimer); // 收起时同步清掉「已复制」复位定时器
 
     state.visible = false;
     state.loading = false;
     state.error = '';
     state.translatedText = '';
     state.sourceText = '';
+    state.copied = false;
     render();
 
     // 选区未变化前，禁止 mouseup 把浮层重新弹出
@@ -116,7 +124,25 @@ export async function mountSelectionToolbar(
       return;
     }
     if (action === 'copy' && state.translatedText) {
-      await navigator.clipboard.writeText(state.translatedText).catch(() => {});
+      // 会话代际：复制期间浮层被收起 / 重开时，丢弃过期的提示回落
+      const mySession = sessionId;
+      try {
+        await navigator.clipboard.writeText(state.translatedText);
+        if (mySession !== sessionId) return;
+        state.copied = true;
+        // 先清旧定时器，避免连点复制时提示提前消失
+        window.clearTimeout(copyResetTimer);
+        copyResetTimer = window.setTimeout(() => {
+          if (mySession !== sessionId) return;
+          state.copied = false;
+          render();
+        }, COPY_HINT_MS);
+        render();
+      } catch {
+        if (mySession !== sessionId) return;
+        state.error = '复制失败，请手动选择译文后复制';
+        render();
+      }
       return;
     }
     if (action === 'panel') {
@@ -329,5 +355,6 @@ export async function mountSelectionToolbar(
     tracker = null;
     abortController?.abort();
     abortController = null;
+    window.clearTimeout(copyResetTimer);
   });
 }

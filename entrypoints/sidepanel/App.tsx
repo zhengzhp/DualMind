@@ -11,6 +11,9 @@ import {
 
 type ModuleTab = 'translate' | 'chat' | 'agent';
 
+/** 复制成功提示的展示时长（毫秒） */
+const COPY_HINT_MS = 1500;
+
 const PROVIDER_OPTIONS: { id: ProviderType; label: string }[] = [
   { id: 'ollama', label: 'Ollama' },
   { id: 'openai-compatible', label: 'OpenAI Compatible' },
@@ -30,6 +33,9 @@ export default function App() {
   const [modelsError, setModelsError] = useState('');
   /** OpenAI 模型手填草稿，失焦时再持久化 */
   const [openaiModelDraft, setOpenaiModelDraft] = useState('');
+  /** 刚刚复制成功（复制按钮短暂切换文案） */
+  const [copied, setCopied] = useState(false);
+  const copyTimerRef = useRef<number | undefined>(undefined);
   const abortRef = useRef<AbortController | null>(null);
 
   const refresh = useCallback(async () => {
@@ -87,6 +93,7 @@ export default function App() {
     return () => {
       unwatch();
       abortRef.current?.abort();
+      window.clearTimeout(copyTimerRef.current);
     };
   }, [refresh, refreshModels]);
 
@@ -120,6 +127,7 @@ export default function App() {
     setLoading(true);
     setError('');
     setTranslatedText('');
+    setCopied(false); // 新一轮翻译，清掉上一轮的「已复制」提示
 
     try {
       const result = await streamTranslate({
@@ -153,7 +161,18 @@ export default function App() {
 
   async function handleCopy() {
     if (!translatedText) return;
-    await navigator.clipboard.writeText(translatedText).catch(() => {});
+    try {
+      await navigator.clipboard.writeText(translatedText);
+      setCopied(true);
+      // 连点复制时重置计时，避免「已复制」提前消失
+      window.clearTimeout(copyTimerRef.current);
+      copyTimerRef.current = window.setTimeout(
+        () => setCopied(false),
+        COPY_HINT_MS,
+      );
+    } catch {
+      setError('复制失败，请手动选择译文后复制');
+    }
   }
 
   async function handleTargetChange(next: string) {
@@ -413,7 +432,7 @@ export default function App() {
                 onClick={() => void handleCopy()}
                 className="rounded-xl border border-brand-100 bg-white px-3 py-2 text-sm font-medium text-brand-700 hover:bg-brand-50 disabled:opacity-50"
               >
-                复制译文
+                {copied ? '已复制' : '复制译文'}
               </button>
             </div>
 
