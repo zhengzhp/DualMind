@@ -136,6 +136,8 @@ export PATH="$HOME/.nvm/versions/node/v22.23.3/bin:$PATH"   # 本机默认 node 
 **踩坑（沿用 V1.5 交接，仍有效）**：
 
 - E2E **不进 CI**，依赖真实本地 Ollama（`http://127.0.0.1:11434`）。
+- **`git push` 经代理时 HTTP/2 会失败**：报 `Error in the HTTP2 framing layer` 或 `CONNECT tunnel failed, response 502`。改用
+  `git -c http.version=HTTP/1.1 push origin main` 即可成功。2026-10-07 踩过。
 - **`PLAYWRIGHT_BROWSERS_PATH` 会被沙箱指向一个空缓存目录**（`…/cursor-sandbox-cache/…/playwright`），表现为 `Executable doesn't exist at …/chromium-1243/…`。真实浏览器在 `~/Library/Caches/ms-playwright`。修法：跑 E2E 前
   `export PLAYWRIGHT_BROWSERS_PATH="$HOME/Library/Caches/ms-playwright"`，并**用非沙箱终端执行**（沙箱会重新覆盖该变量）。2026-10-07 踩过。
 - `PLAYWRIGHT_HOST_PLATFORM_OVERRIDE=mac-arm64` 只在**沙箱化 terminal** 里需要：沙箱把 `os.arch()` 报成 x64，Playwright 会去找不存在的 `chrome-mac-x64`。**自己的终端不需要**。
