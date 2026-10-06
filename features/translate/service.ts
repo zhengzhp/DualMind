@@ -1,10 +1,11 @@
 /**
- * 翻译用例编排：读设置 → shared/llm → 写 session（供 Side Panel）
+ * 翻译用例编排：解析目标语 → shared/llm → 写 session（供 Side Panel）
  * 仅在 Background 中调用
  */
 import { AppError, toUserMessage } from '@/shared/errors';
 import { runChat, runChatStream } from '@/shared/llm/run';
-import { getSettings, translateSessionItem } from '@/shared/storage/settings';
+import { translateSessionItem } from '@/shared/storage/settings';
+import { resolveAutoTargetLanguage } from './detectLang';
 import {
   buildTranslateSystemPrompt,
   buildTranslateUserPrompt,
@@ -25,8 +26,9 @@ async function prepare(
   if (!text) {
     throw new AppError(toUserMessage('EMPTY_TEXT'), 'EMPTY_TEXT');
   }
-  const settings = await getSettings();
-  const targetLanguage = request.targetLanguage ?? settings.targetLanguage;
+  // 未显式指定时走划词中英互切；Side Panel 会传入用户选择的目标语
+  const targetLanguage =
+    request.targetLanguage ?? resolveAutoTargetLanguage(text);
   return { text, targetLanguage };
 }
 

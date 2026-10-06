@@ -39,6 +39,7 @@ export function createToolbarStyles(): string {
     }
     .dm-btn:hover { background: #e8f2fc; }
     .dm-btn:disabled { opacity: 0.5; cursor: default; }
+    .dm-btn.active { background: #e8f2fc; box-shadow: inset 0 0 0 1px #9dbfe0; }
     .dm-btn.primary {
       background: #1b7fd1;
       color: #fff;

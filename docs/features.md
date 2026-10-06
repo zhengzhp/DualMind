@@ -12,8 +12,8 @@
 
 | Feature | 目录 | 入口消息 / Port | 写入 storage | UI 入口 | 状态 |
 |---------|------|-----------------|--------------|---------|------|
-| translate | `features/translate/` | `translate:run`（一次性）；Port `dualmind-translate`（流式 + abort） | `local:translateSession`；Side Panel 快速切换经 `settings:save` / `provider:listModels` | 划词浮层、Side Panel 翻译页（可切换 Provider/模型）、右键菜单 | V1 可用 |
-| selection-toolbar | `features/selection-toolbar/` | 经上述 translate Port / `selection:push` / `sidepanel:open` | 不直接写 Key；经 BG 更新 session | Content Shadow DOM 浮层（稳定骨架 + floating-ui 定位；外部点击 / Esc / 关闭按钮收起） | V1 可用 |
+| translate | `features/translate/` | `translate:run`（一次性）；Port `dualmind-translate`（流式 + abort） | `local:translateSession`；Side Panel 快速切换经 `settings:save` / `provider:listModels` | 划词浮层、Side Panel 翻译页（可切换 Provider/模型）、右键菜单；未传 `targetLanguage` 时中英互切（`detectLang`） | V1 可用 |
+| selection-toolbar | `features/selection-toolbar/` | 经上述 translate Port / `selection:push` / `sidepanel:toggle` | 不直接写 Key；经 BG 更新 session | Content Shadow DOM 浮层（稳定骨架 + floating-ui 定位；外部点击 / Esc / 关闭按钮收起；侧边栏开关） | V1 可用 |
 | chat | （未建） | 待定，须独立消息前缀 `chat:*` | 待定，禁止复用 translateSession 语义 | Side Panel 占位 | V1 不做 |
 | agent | （未建） | 待定，须独立权限与强确认 | 待定 | Side Panel 占位 | V1 不做 |
 

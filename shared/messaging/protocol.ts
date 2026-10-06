@@ -43,11 +43,23 @@ export type ProtocolMap = {
     data: undefined;
     return: { ok: true };
   };
+  /** 划词浮层：打开 / 收起 Side Panel */
+  'sidepanel:toggle': {
+    data: undefined;
+    return: { ok: true; open: boolean };
+  };
+  'sidepanel:status': {
+    data: undefined;
+    return: { open: boolean };
+  };
   'selection:push': {
     data: { text: string };
     return: { ok: true };
   };
 };
+
+/** Side Panel 生命周期 Port：用于判断是否已打开、以及请求自关闭 */
+export const SIDEPANEL_PORT = 'dualmind-sidepanel';
 
 export type MessageType = keyof ProtocolMap;
 

@@ -15,20 +15,22 @@ Chrome 打开 `chrome://extensions` → 开启开发者模式 → 加载 `.outpu
 
 ### 开发注意事项（踩坑记录）
 
-**改了 Content Script 后，必须「Reload 扩展 + 刷新页面」。**
+**WXT 默认会在 Content Script 变更时 reload 所有匹配标签页**（本项目为 `<all_urls>`）。已在 Background 拦截该行为：默认只刷新**当前活动标签**（见 `.env` 的 `WXT_DEV_RELOAD_TABS`）。改完后请 **重启一次 `pnpm dev`** 使 Background 补丁生效。
 
-- 扩展重新加载后，Chrome **不会**把新的 Content Script 自动注入到**已打开**的标签页，旧收藏的页面会继续跑旧逻辑。
-- 症状极具迷惑性：表现为「新功能不生效」或「浮层关不掉」，但代码其实是对的。曾据此误判为浮层关闭逻辑有 bug（实际是页面在跑旧脚本）。
-- 排查顺序：先确认页面已刷新 / 扩展已 Reload，再看代码。
+**改了 Content Script 后，后台标签页不会自动更新。**
+
+- 需要验证的页面请置于前台，或手动刷新；扩展 Reload 后旧标签仍可能跑旧脚本。
+- 症状极具迷惑性：表现为「新功能不生效」或「浮层关不掉」，但代码其实是对的。
 - 另注意：同时存在 `.output/chrome-mv3` 与 `.output/chrome-mv3-dev` 时，确认加载的是当前 dev 产物。
+- 若仍觉得刷太勤：`.env` 设 `WXT_DEV_RELOAD_TABS=none`（完全不自动刷页）。
 
 改动对应关系（便于判断要不要刷新）：
 
 | 改动位置 | 生效方式 |
 |----------|----------|
-| `features/selection-toolbar/`、`entrypoints/content.ts` | **Reload 扩展 + 刷新页面** |
-| `entrypoints/background.ts` | Reload 扩展 |
-| `entrypoints/sidepanel`、`entrypoints/options`、`shared/` | 刷新对应页面即可 |
+| `features/selection-toolbar/`、`entrypoints/content.ts` | 前台页自动刷 / 或手动刷新 |
+| `entrypoints/background.ts` | Reload 扩展（可能短暂打断 SW） |
+| `entrypoints/sidepanel`、`entrypoints/options` | 刷新对应扩展页即可 |
 
 ## 脚本
 

@@ -4,6 +4,8 @@ export interface ToolbarViewState {
   loading: boolean;
   translatedText: string;
   error: string;
+  /** Side Panel 是否已打开（按钮文案切换） */
+  panelOpen: boolean;
 }
 
 export interface ToolbarView {
@@ -26,7 +28,7 @@ export function createToolbarView(root: HTMLElement): ToolbarView {
         <div class="dm-actions">
           <button class="dm-btn primary" data-action="translate">翻译</button>
           <button class="dm-btn" data-action="copy">复制</button>
-          <button class="dm-btn" data-action="panel">侧边栏</button>
+          <button class="dm-btn" data-action="panel" aria-pressed="false">侧边栏</button>
           <button class="dm-btn" data-action="close">关闭</button>
         </div>
         <div class="dm-body">
@@ -44,6 +46,7 @@ export function createToolbarView(root: HTMLElement): ToolbarView {
     '[data-action="translate"]',
   )!;
   const copy = root.querySelector<HTMLButtonElement>('[data-action="copy"]')!;
+  const panel = root.querySelector<HTMLButtonElement>('[data-action="panel"]')!;
   const statusEl = root.querySelector<HTMLElement>('.dm-status')!;
   const loader = root.querySelector<HTMLElement>('.dm-loader')!;
   const statusText = root.querySelector<HTMLElement>('.dm-status-text')!;
@@ -62,6 +65,11 @@ export function createToolbarView(root: HTMLElement): ToolbarView {
       primary.textContent = state.loading ? '停止' : '翻译';
       primary.dataset.action = state.loading ? 'stop' : 'translate';
       copy.disabled = !state.translatedText;
+
+      // 侧边栏开关：打开时显示「收起」并高亮
+      panel.textContent = state.panelOpen ? '收起侧栏' : '侧边栏';
+      panel.setAttribute('aria-pressed', state.panelOpen ? 'true' : 'false');
+      panel.classList.toggle('active', state.panelOpen);
 
       // 状态行：loading 或 error 时展示，其余情况整行隐藏
       const isError = Boolean(state.error) && !state.loading;

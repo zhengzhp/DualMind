@@ -342,6 +342,7 @@ export default function App() {
                 <select
                   value={targetLanguage}
                   disabled={controlsDisabled}
+                  data-testid="target-language"
                   onChange={(e) => void handleTargetChange(e.target.value)}
                   className="flex-1 rounded-lg border border-brand-100 bg-white px-2 py-1.5 text-sm outline-none focus:border-brand-500 disabled:opacity-50"
                 >

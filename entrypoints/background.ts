@@ -1,3 +1,4 @@
+import { resolveAutoTargetLanguage } from '@/features/translate/detectLang';
 import {
   translateText,
   translateTextStream,
@@ -6,9 +7,11 @@ import {
   createProviderFromSettings,
   resolveModel,
 } from '@/providers/registry';
+import { softenDevTabReloads } from '@/shared/dev/softenTabReload';
 import { formatErrorForUi, normalizeError } from '@/shared/errors';
 import { fail, ok } from '@/shared/messaging/client';
 import {
+  SIDEPANEL_PORT,
   TRANSLATE_PORT,
   type MessageType,
   type ProtocolMap,
@@ -29,9 +32,77 @@ const sidePanelApi = (
         openPanelOnActionClick: boolean;
       }) => Promise<void>;
       open: (o: { windowId?: number; tabId?: number }) => Promise<void>;
+      close?: (o: { windowId?: number; tabId?: number }) => Promise<void>;
     };
   }
 ).sidePanel;
+
+/** 已连接的 Side Panel Port（用于开关态与自关闭回退） */
+const sidePanelPorts = new Set<{
+  postMessage: (msg: unknown) => void;
+  onDisconnect: { addListener: (cb: () => void) => void };
+}>();
+
+function isSidePanelConnected(): boolean {
+  return sidePanelPorts.size > 0;
+}
+
+async function isSidePanelOpen(): Promise<boolean> {
+  if (isSidePanelConnected()) return true;
+  const getContexts = (
+    browser.runtime as typeof browser.runtime & {
+      getContexts?: (filter: {
+        contextTypes: string[];
+      }) => Promise<Array<{ contextType?: string }>>;
+    }
+  ).getContexts;
+  if (!getContexts) return false;
+  try {
+    const contexts = await getContexts({ contextTypes: ['SIDE_PANEL'] });
+    return contexts.length > 0;
+  } catch {
+    return false;
+  }
+}
+
+async function closeSidePanel(windowId: number): Promise<void> {
+  if (sidePanelApi?.close) {
+    try {
+      await sidePanelApi.close({ windowId });
+      return;
+    } catch {
+      /* 旧版或全局面板场景失败时走 Port / 广播回退 */
+    }
+  }
+  for (const port of sidePanelPorts) {
+    try {
+      port.postMessage({ type: 'sidepanel:close-self' });
+    } catch {
+      /* ignore */
+    }
+  }
+  try {
+    await browser.runtime.sendMessage({ type: 'sidepanel:close-self' });
+  } catch {
+    /* 无接收方时忽略 */
+  }
+}
+
+async function toggleSidePanel(windowId: number): Promise<boolean> {
+  // 关键：`sidePanel.open()` 依赖瞬时用户激活（transient activation）。
+  // 网页点击的激活能经 sendMessage 传到本 SW，但经不起 open() 前多一次异步往返：
+  // 旧实现先 `await isSidePanelOpen()`（内含 getContexts 往返），等它返回时激活已过期，
+  // open() 会抛 "may only be called in response to a user gesture"。
+  // 因此这里改用「同步」的 Port 连接态判断是否已开，确保 open() 紧跟手势调用。
+  if (isSidePanelConnected()) {
+    await closeSidePanel(windowId);
+    return false;
+  }
+  // 若面板其实已开但 Port 尚未连上（刚打开的竞态），open() 是幂等 no-op，
+  // 返回 true 也与真实状态一致（面板确实开着）。
+  await sidePanelApi?.open({ windowId });
+  return true;
+}
 
 type HandlerMap = {
   [K in MessageType]: (
@@ -74,14 +145,20 @@ const handlers: HandlerMap = {
     return { ok: true as const };
   },
 
+  'sidepanel:toggle': async () => {
+    // 实际开/关在 onMessage 里处理（需用户手势 + windowId）
+    return { ok: true as const, open: isSidePanelConnected() };
+  },
+
+  'sidepanel:status': async () => ({ open: await isSidePanelOpen() }),
+
   'selection:push': async (data) => {
     const text = data.text.trim();
     if (!text) return { ok: true as const };
-    const settings = await getSettings();
     await translateSessionItem.setValue({
       sourceText: text,
       translatedText: '',
-      targetLanguage: settings.targetLanguage,
+      targetLanguage: resolveAutoTargetLanguage(text),
       updatedAt: Date.now(),
     });
     return { ok: true as const };
@@ -165,6 +242,9 @@ function attachTranslatePort(port: {
 }
 
 export default defineBackground(() => {
+  // 必须尽早打补丁：WXT serve 会在 CS 变更时对所有匹配 tab 调 tabs.reload
+  softenDevTabReloads();
+
   sidePanelApi
     ?.setPanelBehavior({ openPanelOnActionClick: true })
     .catch(() => {
@@ -174,6 +254,13 @@ export default defineBackground(() => {
   browser.runtime.onConnect.addListener((port) => {
     if (port.name === TRANSLATE_PORT) {
       attachTranslatePort(port);
+      return;
+    }
+    if (port.name === SIDEPANEL_PORT) {
+      sidePanelPorts.add(port);
+      port.onDisconnect.addListener(() => {
+        sidePanelPorts.delete(port);
+      });
     }
   });
 
@@ -200,12 +287,24 @@ export default defineBackground(() => {
           return;
         }
 
-        const handler = handlers[type] as (d: unknown) => Promise<unknown>;
-        const result = await handler(data);
-        sendResponse(ok(result));
-      } catch (err) {
-        sendResponse(fail(err));
-      }
+        if (type === 'sidepanel:toggle' && sidePanelApi) {
+          const windowId =
+            sender.tab?.windowId ?? (await browser.windows.getCurrent()).id;
+          if (windowId == null) {
+            sendResponse(ok({ ok: true as const, open: false }));
+            return;
+          }
+          const open = await toggleSidePanel(windowId);
+          sendResponse(ok({ ok: true as const, open }));
+          return;
+        }
+
+      const handler = handlers[type] as (d: unknown) => Promise<unknown>;
+      const result = await handler(data);
+      sendResponse(ok(result));
+    } catch (err) {
+      sendResponse(fail(err));
+    }
     })();
 
     return true;
@@ -248,11 +347,10 @@ export default defineBackground(() => {
       await translateText({ text });
     } catch (err) {
       // 仅翻译失败才写错误会话；开侧边栏失败不应影响译文结果
-      const settings = await getSettings();
       await translateSessionItem.setValue({
         sourceText: text,
         translatedText: '',
-        targetLanguage: settings.targetLanguage,
+        targetLanguage: resolveAutoTargetLanguage(text),
         updatedAt: Date.now(),
         error: formatErrorForUi(err),
       });

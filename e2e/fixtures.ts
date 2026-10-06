@@ -106,6 +106,16 @@ export async function readSettings(
   });
 }
 
+/** 从 service worker 回读最近一次划词翻译会话（translateSession） */
+export async function readSession(
+  worker: Worker,
+): Promise<Record<string, unknown> | null> {
+  return worker.evaluate(async () => {
+    const stored = await chrome.storage.local.get('translateSession');
+    return (stored.translateSession ?? null) as Record<string, unknown> | null;
+  });
+}
+
 /** 一份可用的 Ollama 基础设置 */
 export const OLLAMA_SETTINGS: Record<string, unknown> = {
   providerType: 'ollama',
@@ -130,10 +140,11 @@ const LONG_ENGLISH_TEXT =
   'who care about where their data goes.';
 
 /**
- * 在页面里造一段英文、选中它，并派发 capture 阶段的 mouseup，
+ * 在页面里造一段文本、选中它，并派发 capture 阶段的 mouseup，
  * 触发内容脚本的划词逻辑（见 features/selection-toolbar/mount.ts）。
+ * 支持任意语言文本（英文 / 中文 / 混排）。
  */
-export async function selectEnglishText(page: Page, text = LONG_ENGLISH_TEXT) {
+export async function selectText(page: Page, text: string) {
   await page.evaluate((content) => {
     let el = document.getElementById('dm-e2e-source') as HTMLParagraphElement | null;
     if (!el) {
@@ -152,4 +163,9 @@ export async function selectEnglishText(page: Page, text = LONG_ENGLISH_TEXT) {
     // 内容脚本在 document 的捕获阶段监听 mouseup
     el.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, composed: true }));
   }, text);
+}
+
+/** 兼容旧用法：默认选中一段较长英文（保证流式分多次到达） */
+export async function selectEnglishText(page: Page, text = LONG_ENGLISH_TEXT) {
+  await selectText(page, text);
 }

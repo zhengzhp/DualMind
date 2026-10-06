@@ -38,6 +38,8 @@
 | 设置 | 目标语言、Provider、API Key、Ollama Host/模型、站点禁用列表 |
 | Side Panel 模块 | Translate 可用；Chat / Agent 仅占位 |
 | Side Panel 模型 | 翻译页顶部可切换 Provider + 当前模型；Key/Host 仍在 Options |
+| 划词浮层侧边栏 | 按钮为 **toggle**（开/收起）；扩展图标行为不改 |
+| 划词目标语 | 未显式指定时中英互切：英→中、中→英、**混排→中**；Side Panel 手选语言仍优先 |
 
 ## 运行时补充（2026-10-06）
 
@@ -48,6 +50,8 @@
 | LLM 入口 | Feature 经 `shared/llm/run.ts`；契约表见 `docs/features.md` |
 | 会话边界 | V1 仅 `translateSession` 当前会话；不做跨页历史 / 云同步 |
 | 侧边栏打开 | `sidePanel.open()` 需用户手势：右键菜单必须**先同步开面板、再执行翻译**；面板打开失败不得覆盖译文结果 |
+| 侧边栏 open 的手势窗口 | `open()` 前**不得插入额外 await**：网页点击的激活能经 `sendMessage` 传到 SW，但经不起第二次异步往返（如 `getContexts`）。浮层 toggle 因此用**同步** Port 连接态判断开关（`entrypoints/background.ts` `toggleSidePanel`），确保 `open()` 紧跟手势；否则抛 `may only be called in response to a user gesture`（回归见 `e2e/selection-panel-toggle.e2e.ts`） |
+| 开发热更新 | WXT CS 变更默认会刷所有匹配 tab；DualMind 用 `softenDevTabReloads` 默认只刷活动标签（`WXT_DEV_RELOAD_TABS`） |
 
 ## 明确不做的事（避免范围膨胀）
 

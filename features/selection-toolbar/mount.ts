@@ -37,6 +37,7 @@ export async function mountSelectionToolbar(
     loading: false,
     error: '',
     visible: false,
+    panelOpen: false,
   };
 
   let abortController: AbortController | null = null;
@@ -119,12 +120,19 @@ export async function mountSelectionToolbar(
       return;
     }
     if (action === 'panel') {
-      if (state.sourceText) {
-        await sendMessage('selection:push', { text: state.sourceText }).catch(
-          () => {},
-        );
+      // 先 toggle（需用户手势），打开成功后再推送选区
+      try {
+        const result = await sendMessage('sidepanel:toggle', undefined);
+        state.panelOpen = result.open;
+        render();
+        if (result.open && state.sourceText) {
+          await sendMessage('selection:push', {
+            text: state.sourceText,
+          }).catch(() => {});
+        }
+      } catch {
+        /* ignore */
       }
-      await sendMessage('sidepanel:open', undefined).catch(() => {});
       return;
     }
     if (action === 'translate') {
@@ -182,6 +190,15 @@ export async function mountSelectionToolbar(
     }
   }
 
+  async function refreshPanelOpen() {
+    try {
+      const status = await sendMessage('sidepanel:status', undefined);
+      state.panelOpen = status.open;
+    } catch {
+      /* ignore */
+    }
+  }
+
   function showNearSelection(text: string, autoTranslate = false) {
     const rect = getSelectionRect();
     if (!rect) return;
@@ -199,6 +216,10 @@ export async function mountSelectionToolbar(
     } else {
       tracker = trackSelection(view.el, getSelectionRect);
     }
+
+    void refreshPanelOpen().then(() => {
+      if (state.visible) render();
+    });
 
     if (autoTranslate) {
       void runTranslate();
