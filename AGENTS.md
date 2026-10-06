@@ -1,12 +1,12 @@
 # DualMind 代理入口
 
-本仓库是 **DualMind** 浏览器扩展（WXT + React + MV3）。当前阶段：**V1 + V1.5 已完成并封板**（V1：划词 / Side Panel / 全页工作台 / BYOK-Ollama；V1.5：沉浸式全文双语翻译），**只修 bug、不加功能**；Chat / Agent 仅占位。新能力进入 V2+，须先更新 `docs/decisions.md`。
+本仓库是 **DualMind** 浏览器扩展（WXT + React + MV3）。当前阶段：**V1 + V1.5 已封板**（V1：划词 / Side Panel / 全页工作台 / BYOK-Ollama；V1.5：沉浸式全文双语翻译）；**V2 进行中**（网页摘要 / 网页问答，`features/chat/`），Agent 仅占位。新能力须先更新 `docs/decisions.md` 与对应版本的架构 / 契约文档。
 
 ## 规则优先级
 
 1. 用户明确指令
 2. 本文件（`AGENTS.md`）与 `.cursor/rules/`
-3. [docs/decisions.md](docs/decisions.md)、[docs/architecture-v1.md](docs/architecture-v1.md)
+3. [docs/decisions.md](docs/decisions.md)、[docs/architecture-v2.md](docs/architecture-v2.md)（当前版本 V2；V1 / V1.5 归档见 [docs/architecture-v1.md](docs/architecture-v1.md)）
 4. 训练数据（可能过期，不得覆盖上述任意一层）
 
 写代码前先读 decisions / architecture；自动生效细则见 `.cursor/rules/`。
@@ -39,7 +39,7 @@
   **主动提醒用户改用 `pnpm test:e2e:headed`**（`E2E_HEADED=1`）；无头下
   `e2e/selection-panel-toggle.e2e.ts` 的真实侧栏用例会自动 skip，只有该模式才执行。
 - 无头依赖 `channel: 'chromium'` 走完整 Chromium 新无头模式（headless shell 不支持加载扩展）。
-- 细节见 `docs/decisions.md`「本地 E2E 运行须知」。
+- 细节见 `docs/decisions-v1.md`「本地 E2E 运行须知」。
 
 ## 代理边界
 
@@ -50,7 +50,7 @@
 - Feature 经 `shared/llm` 调模型；错误经 `shared/errors` 映射文案；契约见 `docs/features.md`
 - Provider（`providers/`）永不碰 DOM；新能力放 `features/<name>/`，勿塞进 `TranslateService`
 - Side Panel：Translate 可用；Chat / Agent 仅占位，除非用户明确要求实现
-- 改架构或产品边界前先读并更新 `docs/decisions.md` 与 `docs/architecture-v1.md`
+- 改架构或产品边界前先读并更新 `docs/decisions.md` 与 `docs/architecture-v2.md`（V1 / V1.5 归档见 `docs/architecture-v1.md`）
 - 处理空值、loading、错误态
 
 ### Ask first
@@ -72,9 +72,12 @@
 
 | 文档 | 用途 |
 |------|------|
-| [docs/decisions.md](docs/decisions.md) | 已拍板产品 / 技术决策 |
-| [docs/architecture-v1.md](docs/architecture-v1.md) | V1 架构摘要与数据流 |
-| [docs/features.md](docs/features.md) | Feature 契约表（消息 / storage / UI） |
+| [docs/decisions.md](docs/decisions.md) | 当前版本（V2）已拍板决策 |
+| [docs/architecture-v2.md](docs/architecture-v2.md) | 当前版本（V2）架构摘要与数据流 |
+| [docs/features.md](docs/features.md) | 当前版本（V2）Feature 契约表（消息 / storage / UI） |
+| [docs/decisions-v1.md](docs/decisions-v1.md) | V1 / V1.5 决策归档（已封板） |
+| [docs/architecture-v1.md](docs/architecture-v1.md) | V1 / V1.5 架构归档（已封板） |
+| [docs/features-v1.md](docs/features-v1.md) | V1 / V1.5 契约归档（已封板） |
 | [docs/cursor-cheatsheet.md](docs/cursor-cheatsheet.md) | Cursor 快捷键与 `/` 命令 |
 | `.cursor/rules/` | 始终 / 按 glob 生效的代码约束 |
 | `.cursor/commands/` | 项目自定义斜杠命令（`/review`、`/arch-check` 等） |

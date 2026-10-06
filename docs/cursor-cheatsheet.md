@@ -133,7 +133,7 @@ Windows：多数将 `⌘` 换成 `Ctrl`。
 | 快捷键 | `⌘R` `⌘S` 或搜 Keyboard Shortcuts |
 | 项目规则 | `.cursor/rules/*.mdc`（始终 / 按 glob 注入） |
 | 代理入口 | `AGENTS.md`（优先级、Always / Ask first / Never、完成报告） |
-| 决策 / 架构 | `docs/decisions.md`、`docs/architecture-v1.md` |
+| 决策 / 架构 | `docs/decisions.md`、`docs/architecture-v2.md`（当前 V2）；`docs/decisions-v1.md`、`docs/architecture-v1.md`（V1 / V1.5 归档） |
 | 自定义 `/` 命令 | `.cursor/commands/*.md` |
 
 ---

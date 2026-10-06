@@ -5,7 +5,7 @@
  * （内含 getContexts 往返）而失败 —— 等它返回时瞬时用户激活已过期，open() 抛
  * `may only be called in response to a user gesture`。
  * 现已改为用同步的 Port 连接态判断开关（见 entrypoints/background.ts `toggleSidePanel`），
- * 使 open() 紧跟手势调用。详见 docs/decisions.md「已知缺陷」。
+ * 使 open() 紧跟手势调用。详见 docs/decisions-v1.md「已知缺陷」。
  */
 import {
   E2E_HEADED,

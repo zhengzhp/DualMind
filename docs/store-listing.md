@@ -1,7 +1,7 @@
 # DualMind 上架材料（Chrome / Edge）
 
 > 用于 Chrome Web Store / Edge Add-ons 提交表单中的「权限用途」「单一用途」「数据使用」等字段。
-> 与 [docs/decisions.md](./decisions.md) 的权限决策保持一致；改权限前先改本文件。
+> 与 [docs/decisions-v1.md](./decisions-v1.md)「权限决策」保持一致；改权限前先改本文件。
 > 注：商店后台多数字段要求英文，文末附英文版可直接粘贴。
 
 ## 单一用途（Single purpose）

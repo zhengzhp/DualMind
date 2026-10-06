@@ -20,7 +20,7 @@ export interface ImmersiveSegmentResult {
   text: string;
   /**
    * 模型多次输出回显（译文 == 原文）后仍无法翻译时置为 true。
-   * UI 据此加淡显 / 角标，避免把回显伪装成成功（见 docs/decisions.md P0）。
+   * UI 据此加淡显 / 角标，避免把回显伪装成成功（见 docs/decisions-v1.md P0）。
    */
   untranslated?: boolean;
 }

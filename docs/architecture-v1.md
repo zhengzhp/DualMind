@@ -1,8 +1,10 @@
-# DualMind 浏览器插件 · 技术架构（V1）
+# DualMind 浏览器插件 · 技术架构（V1 / V1.5 · 已封板）
 
-完整计划原稿见：[.cursor/plans/dualmind_插件架构_b3d3a25e.plan.md](../.cursor/plans/dualmind_插件架构_b3d3a25e.plan.md)  
-决策摘要见：[decisions.md](./decisions.md)  
-代理入口（边界与汇报约定）见：[AGENTS.md](../AGENTS.md)
+> 状态：**V1 与 V1.5 已封板（功能冻结）**；本文件为归档，不再随新版本更新。  
+> 当前版本（V2）架构见 [architecture-v2.md](./architecture-v2.md)。  
+> 完整计划原稿见：[.cursor/plans/dualmind_插件架构_b3d3a25e.plan.md](../.cursor/plans/dualmind_插件架构_b3d3a25e.plan.md)  
+> 决策摘要见：[decisions-v1.md](./decisions-v1.md)；契约表见 [features-v1.md](./features-v1.md)。  
+> 代理入口（边界与汇报约定）见 [AGENTS.md](../AGENTS.md)。
 
 ## 定位
 
@@ -15,7 +17,7 @@
 - BYOK：OpenAI Compatible + 本地 Ollama
 - Node.js >= 22
 
-## 目录结构
+## 目录结构（V1 / V1.5）
 
 ```text
 entrypoints/          # background / content / sidepanel / workspace / options
@@ -34,7 +36,7 @@ shared/
   dev/                # 开发期辅助（WXT 热更新标签页收敛）
 ```
 
-Feature 契约表见：[features.md](./features.md)
+Feature 契约表见：[features-v1.md](./features-v1.md)
 
 ## 核心原则
 
@@ -80,7 +82,7 @@ flowchart LR
 - 指令入口（悬浮按钮 / 右键 / 侧栏）最终都落到内容脚本的同一个控制器的 `start / stop / toggle`。
 - 偏好持久化在 `local:immersivePrefs`；页面译文不落 storage。
 
-## 里程碑状态
+## 里程碑状态（V1 / V1.5）
 
 - [x] 脚手架
 - [x] Provider（OpenAI Compatible + Ollama）
@@ -91,18 +93,8 @@ flowchart LR
 - [x] Options 设置页
 - [x] V1 收官（compile / 单测全绿；**功能冻结，仅修 bug**）
 - [x] V1.5 沉浸式全文双语翻译（`features/immersive/`；分段 / 分批并发 / 双语渲染 / 增量补译）—— 已封板 2026-10-07
-- [ ] V2 摘要 / 聊天（`features/chat/`，独立 `chat:*` 消息前缀）
-- [ ] V3 浏览器 Agent（独立 feature + 强确认 + 独立权限说明）
 
-### 发布闸门（V3 完成后统一执行）
-
-> 决定见 [decisions.md](./decisions.md)「发布与验证节奏」：提审发布、全量验证与 `compile` 均后置到 V3 完成后，此前只做改动所需的最小验证。
-
-- [ ] `pnpm compile`（tsc --noEmit）
-- [ ] `pnpm test`（Vitest 全量）
-- [ ] `pnpm build` → `pnpm test:e2e`（真实 Ollama；需观察界面时用 `pnpm test:e2e:headed`）
-- [ ] 复核 [store-listing.md](./store-listing.md) 与最终 `manifest` 的权限 / 单一用途 / 数据使用一致
-- [ ] 提审 Chrome Web Store / Edge Add-ons
+> V2 / V3 里程碑与发布闸门见 [architecture-v2.md](./architecture-v2.md)。
 
 > V1 已冻结：不再新增功能，仅接受 bug 修复。新能力（沉浸译 / Chat / Agent）进入 V1.5+，
-> 须先更新 [docs/decisions.md](./decisions.md) 与 [docs/features.md](./features.md)。
+> 须先更新 [decisions.md](./decisions.md) 与 [features.md](./features.md)。

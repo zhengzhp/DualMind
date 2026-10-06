@@ -1,7 +1,7 @@
 /**
  * Options 增量保存（diffSettings / parseHosts）的回归护栏。
  *
- * 回归背景（docs/decisions.md）：Options 曾整对象提交草稿，用加载时的旧快照
+ * 回归背景（docs/decisions-v1.md）：Options 曾整对象提交草稿，用加载时的旧快照
  * 覆盖用户在侧栏 / 沉浸译入口刚写入的设置（目标语被反复写回 `en`）。
  * 这里锁定「只提交相对基线有变化的字段，嵌套对象只带变化的子字段」这一契约。
  */

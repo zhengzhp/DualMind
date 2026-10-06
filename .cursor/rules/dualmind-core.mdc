@@ -30,7 +30,8 @@ alwaysApply: true
 
 ## 文档
 
-改架构或产品边界前先读并更新：
+改架构或产品边界前先读并更新（当前版本 = V2）：
 
-- `docs/decisions.md`
-- `docs/architecture-v1.md`
+- `docs/decisions.md`（V2 决策）
+- `docs/architecture-v2.md`（V2 架构）
+- V1 / V1.5 归档（已封板）：`docs/decisions-v1.md`、`docs/architecture-v1.md`

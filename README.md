@@ -62,14 +62,16 @@ Chrome 打开 `chrome://extensions` → 开启开发者模式 → 加载 `.outpu
 - 仅 **Background Service Worker** 发起 AI 请求（密钥不出 Content Script）。
 - Provider 适配层：`providers/openai-compatible.ts`、`providers/ollama.ts`。
 - 能力按 Feature 分包：`features/translate/`（划词 + 工作台）、`features/immersive/`（沉浸式全文翻译，独立消息前缀与 storage）。
-- 后续 Chat / Agent 在 Side Panel 占位，独立 feature 扩展。
+- V2 进行中：`features/chat/`（网页摘要 / 网页问答，独立 `chat:*` 消息）+ 共享提取层 `features/page-content/`；Agent 仍在 Side Panel 占位。
 
 ## 项目文档
 
 | 文档 | 说明 |
 |------|------|
-| [docs/decisions.md](docs/decisions.md) | 本次对话已拍板决策 |
-| [docs/architecture-v1.md](docs/architecture-v1.md) | V1 架构摘要 |
+| [docs/decisions.md](docs/decisions.md) | 当前版本（V2）已拍板决策 |
+| [docs/architecture-v2.md](docs/architecture-v2.md) | 当前版本（V2）架构摘要 |
+| [docs/features.md](docs/features.md) | 当前版本（V2）Feature 契约表 |
+| [docs/decisions-v1.md](docs/decisions-v1.md) · [docs/architecture-v1.md](docs/architecture-v1.md) · [docs/features-v1.md](docs/features-v1.md) | V1 / V1.5 归档（已封板） |
 | [docs/store-listing.md](docs/store-listing.md) | 上架权限用途 / 单一用途 / 数据使用说明 |
 | [docs/cursor-cheatsheet.md](docs/cursor-cheatsheet.md) | Cursor 快捷键与 `/` 命令速查 |
 | [AGENTS.md](AGENTS.md) | 给 AI / 协作者的入口说明 |
@@ -85,4 +87,4 @@ Chrome 打开 `chrome://extensions` → 开启开发者模式 → 加载 `.outpu
 - `host_permissions: <all_urls>`：BYOK 直连用户自填的 OpenAI 兼容端点（Background 跨域 `fetch` 必需）
 - `http://127.0.0.1:11434/*`、`http://localhost:11434/*`：本地 Ollama
 
-> 因划词常驻 + BYOK 任意端点，安装时会出现「读取并更改您在所有网站上的数据」警告，属预期行为；完整理由与替代方案对比见 [docs/decisions.md](docs/decisions.md)。
+> 因划词常驻 + BYOK 任意端点，安装时会出现「读取并更改您在所有网站上的数据」警告，属预期行为；完整理由与替代方案对比见 [docs/decisions-v1.md](docs/decisions-v1.md)「权限决策」。
