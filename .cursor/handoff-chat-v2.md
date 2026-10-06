@@ -5,7 +5,8 @@
 > 上一会话完整记录：`agent-transcripts/65765c36-a4d0-4614-a93c-a0e4e0c215f1.jsonl`（可按关键词检索回溯）。
 
 > **当前进度**：V2 主链路（摘要 + 问答 + 会话持久化 + 右键入口）代码全部落地，`tsc` / 单测双绿。
-> **未做**：实机验收、E2E、`wxt build`。**3 个提交尚未 push**（见第 1 节）。
+> 第 5 节两个未决产品问题已拍板并实现（见第 3 节与 `docs/decisions.md`）；chat E2E 已编写（**未跑**）。
+> **未做**：实机验收、E2E 实跑、`wxt build`。**3 个提交尚未 push**（见第 1 节），另有本轮「决策落地」改动未提交。
 > 权威契约以 `docs/features.md` 为准，决策以 `docs/decisions.md` 为准；本文件只是导航 + 坑位。
 
 ## 1. 当前状态
@@ -13,16 +14,17 @@
 | 项目 | 结果 |
 |------|------|
 | `tsc --noEmit` | ✅ 0 错误 |
-| Vitest | ✅ **19 文件 / 169 用例**（其中本轮新增 **32 条**：`chatSessions` 18 / `prompts` 7 / `budget` 7） |
+| Vitest | ✅ **21 文件 / 182 用例**（chat 相关：`chatSessions` 18 / `prompts` 7 / `budget` 7 / `pageUrl` 8 / `siteAccess` 5） |
 | `pnpm build`（wxt build） | ⬜ **未跑**（按 `docs/decisions.md` 后置到 V3 后） |
 | E2E | ⬜ **未跑**，且 chat 用例**尚未编写**（第 6 步） |
 | 实机（Chrome）验收 | ⬜ **未做** —— 见第 6 节「请用户验证」 |
-| git | 工作区**干净**；`main` **领先 `origin/main` 3 个提交，未 push** |
+| git | `main` **领先 `origin/main` 4 个提交，未 push**；另有本轮「决策落地 + chat E2E」改动**未提交** |
 
 ### 提交清单（本轮，最新在上）
 
 | commit | 内容 | push |
 |--------|------|------|
+| `c0b952a` | docs(handoff): 新增 V2 摘要/聊天交接文档 | ❌ 未 push |
 | `e4b9e61` | feat(chat): 右键菜单「总结本页」，经 storage 信箱交给侧栏执行 | ❌ 未 push |
 | `baecbac` | feat(chat): 接入 Chat 面板，聊天 Tab 由占位替换为可用 UI | ❌ 未 push |
 | `2cce185` | feat(chat): 落地 V2 摘要/聊天契约、会话存储与流式 Port | ❌ 未 push |
@@ -60,7 +62,7 @@
 - **会话切换与在途流式**：新建 / 切换会话**中断**在途流式；所有异步回写先比对会话 id，**迟到回包直接丢弃**。
 - **右键菜单入口**：Background 写信箱 `local:chatPending`（消费即清 + TTL 30s），由**常驻的 `WorkbenchApp`** 消费并切到聊天 Tab 再下发 —— `ChatPanel` 仅在聊天 Tab 挂载，用户停在「翻译」Tab 时会漏事件。
 
-> 新增了 3 条决策到 `docs/decisions.md`（上下文读取时机 / 会话切换与迟到回包 / 右键菜单信箱），改契约时同步更新。
+> 新增了 5 条决策到 `docs/decisions.md`（上下文读取时机 / 会话切换与迟到回包 / 右键菜单信箱 / 会话与页面绑定 / 右键菜单按站点置灰），改契约时同步更新。
 
 ## 4. 契约速查
 
@@ -70,6 +72,7 @@
 chat:prefs:get | chat:prefs:save
 chat:sessions:list | chat:sessions:get | chat:sessions:upsert | chat:sessions:delete | chat:sessions:clear
 chat:context            # BG → 活动标签页转发 content:chat-extract，取选区 / 整页正文
+chat:page-info          # BG → tabs.query 取活动页地址 / 标题（不触发内容脚本，用于来源一致性确认）
 content:chat-extract    # BG → Content（tabs.sendMessage），返回 ChatContextPayload | null
 ```
 
@@ -86,11 +89,11 @@ content:chat-extract    # BG → Content（tabs.sendMessage），返回 ChatCont
 
 > 命名坑：Provider 入参类型 `ChatMessage` 已存在于 `providers/types.ts`（`{role,content}`）；入库形状刻意叫 **`ChatTurn`**（多 id / 时间戳 / error）。别混用。
 
-## 5. 未决产品问题（等用户拍板，勿擅自选）
+## 5. 产品问题（已拍板并实现 · 2026-10-07）
 
-1. **会话与页面的语义未强绑定**：会话记录了 `pageUrl` / `pageTitle`，但重开旧会话后提问，上下文取的是**当前活动标签页**，未必是会话当初那页。现状只在面板显示「会话来源」提示，不拦不确认。
-   - 候选：按 `pageUrl` 不匹配就禁用发送 / 不匹配时提示「仍要继续？」/ 忽略（现状）。
-2. **右键菜单与 `disabledHosts`**：菜单项全站可见，在内容脚本被禁用的站点上点它只会得到「未能读取页面内容」。要不要按站点隐藏/禁用菜单项。
+1. **会话与页面绑定 → 发送前确认**：重开旧会话追问时，若会话已记录 `pageUrl` 且已有历史消息，先探测当前活动页（新增 `chat:page-info`，仅 `tabs.query`、不触发内容脚本，比较时**忽略 hash**）；不一致则在面板弹确认条「仍要基于当前页继续？」，点「仍要继续」才发，点「取消」不发。新建会话 / 首轮提问不做这次探测。纯逻辑 `features/chat/pageUrl.ts`（+ 单测）。
+2. **右键菜单与 disabledHosts → 按站点置灰**：三个菜单项在内容脚本被禁用的站点上 `contextMenus.update({ enabled: false })`，由 Background 在 `tabs.onActivated` / `onUpdated` / `storage.onChanged` 时重算。判定抽到 `shared/siteAccess.ts`（内容脚本与 Background 共用，避免语义漂移）。
+    - 注意：`contextMenus` 无查询 API，E2E 无法断言 enabled，只能实机右键验证。
 
 ## 6. 请用户验证（实机，我无法替代）
 
@@ -102,6 +105,8 @@ content:chat-extract    # BG → Content（tabs.sendMessage），返回 ChatCont
 4. **右键菜单**：右键「用 DualMind 总结本页」→ 侧栏是否**自动打开 + 自动切聊天 Tab + 自动提问**，且**只触发一次**。
 5. **布局**：侧栏消息区限高 `max-h-[46vh]` 是否合适（输入框未钉底，见第 8 节）。
 6. 全页工作台（`/workspace.html`）同路径走一遍，检查消息区是否撑满高度。
+7. **来源不一致确认**：先在一个页面（如 A 站）问一句生成会话 → 打开 B 站 → 重开该会话 → 发送 → 应弹「仍要基于当前页继续？」；「取消」不发出，「仍要继续」才发出。
+8. **右键菜单置灰**：把当前站点加入「禁用站点」→ 刷新后在页面右键，三个 DualMind 菜单项应**置灰**（不可点）；移出禁用列表后恢复。
 
 > 涉及**真实 Side Panel** 的验证，若要跑 E2E 请用 **`pnpm test:e2e:headed`**（`E2E_HEADED=1`）—— 无头下真实侧栏用例会自动 skip。
 
@@ -130,21 +135,24 @@ export PATH="$HOME/.nvm/versions/node/v22.23.3/bin:$PATH"   # 本机默认 node 
 
 **新增（chat）**
 
-- `features/chat/`：`types.ts`（运行时类型 + 持久化形状转出）、`prompts.ts`（系统提示 / 上下文拼装 / 历史裁剪）、`service.ts`（`answerQuestion`）、`client.ts`（Port 客户端）、`extract.ts`（内容脚本侧提取）、`mount.ts`（注册监听）、`ui/{ChatPanel.tsx,SessionList.tsx,useChat.ts}`，及 `prompts.test.ts`
+- `features/chat/`：`types.ts`（运行时类型 + 持久化形状转出）、`prompts.ts`（系统提示 / 上下文拼装 / 历史裁剪）、`service.ts`（`answerQuestion`）、`client.ts`（Port 客户端）、`extract.ts`（内容脚本侧提取）、`mount.ts`（注册监听）、`pageUrl.ts`（来源页一致性判定，+ `.test.ts`）、`ui/{ChatPanel.tsx,SessionList.tsx,useChat.ts}`，及 `prompts.test.ts`
 - `features/page-content/budget.ts`（+ `.test.ts`）：字符预算截断，chat 与 immersive 共用
 
 **新增（shared 侧）**
 
 - `shared/storage/chatSessions.ts`（+ `.test.ts`）：容量裁剪 / 摘要 / `updateTurn`（纯函数，18 条用例）
+- `shared/siteAccess.ts`（+ `.test.ts`）：`hostnameFromUrl` / `isHostDisabled`（站点禁用判定，内容脚本与 Background 共用）
+- `e2e/chat.e2e.ts`：6 条 chat E2E（空态 / 上下文提取 / 总结流式 / 停止 / 右键信箱 + 历史 / 来源不一致确认）
 - `shared/storage/types.ts`：`ChatPrefs` / `ChatTurn` / `ChatSession` / `ChatSessionSummary` / `ChatPendingAction`
 - `shared/storage/settings.ts`：`chatPrefsItem` / `chatSessionsItem` / `chatPendingItem` + 9 个异步封装
-- `shared/messaging/protocol.ts`：8 条 `chat:*` + `CHAT_PORT` + 两组 Port 消息类型
+- `shared/messaging/protocol.ts`：8 条 `chat:*` + `chat:page-info` + `CHAT_PORT` + 两组 Port 消息类型
 
 **修改**
 
-- `entrypoints/background.ts`：`forwardChatContext()` + 8 个 handler + `attachChatPort()`（多 `requestId` 并发、独立 abort、主动取消不回错误）+ 菜单项 `dualmind-chat-summarize`
-- `entrypoints/content.ts`：`mountChatContext()`
+- `entrypoints/background.ts`：`forwardChatContext()` + `chat:page-info` + 9 个 handler + `attachChatPort()`（多 `requestId` 并发、独立 abort、主动取消不回错误）+ 菜单项 `dualmind-chat-summarize` + `refreshContextMenuEnabled()`（按 disabledHosts 置灰）
+- `entrypoints/content.ts`：`mountChatContext()`；禁用判定改用 `isHostDisabled`
 - `features/translate/ui/WorkbenchApp.tsx`：chat Tab 接入面板；**副标题随 Tab 变化**（原先在聊天页仍显示「翻译」）；常驻消费右键信箱
+- `features/chat/ui/ChatPanel.tsx`：消息气泡加 `data-testid`；新增「会话来源不一致」确认条
 
 **已知覆盖缺口 / 技术债**
 
@@ -160,8 +168,8 @@ export PATH="$HOME/.nvm/versions/node/v22.23.3/bin:$PATH"   # 本机默认 node 
 
 ## 9. 下一步（按优先级）
 
-1. **实机验收**（第 6 节）—— 这是「未验证」清单里唯一必须人工做的。
-2. **push 3 个提交**（验收通过后）。
-3. **第 6 步 E2E**：写 chat 用例（`e2e/` 下）。注意 `e2e/fixtures.ts` 的 `seedSettings` 需一并写 `local:migrations`（否则产品迁移会改写种子的 `toolbarTrigger`，V1.5 踩过，9 条划词用例全挂）。
-4. **拍板第 5 节两个未决产品问题**，写进 `docs/decisions.md` 再实现。
+1. **实机验收**（第 6 节，另加右键菜单在 `disabledHosts` 站点置灰）—— 「未验证」清单里唯一必须人工做的。
+2. **跑 chat E2E**：`wxt build` → `playwright test e2e/chat.e2e.ts`（6 条；依赖本地 Ollama）。已文件化在 `e2e/chat.e2e.ts`。
+3. **push 提交**（验收通过后）。
+4. ~~拍板第 5 节两个未决产品问题~~ ✅ 已完成（见第 5 节 + `docs/decisions.md`）。
 5. V2 封板时：按 [dualmind-docs-versioning.plan.md](./plans/dualmind-docs-versioning.plan.md) 走文档版本化 SOP（届时归档 `-v2`）。
