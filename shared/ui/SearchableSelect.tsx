@@ -6,14 +6,17 @@ import {
   useState,
   type FocusEvent as ReactFocusEvent,
   type KeyboardEvent as ReactKeyboardEvent,
+  type ReactNode,
 } from 'react';
-import { fieldClass } from './field';
+import { fieldClass, fieldClassEmphasis } from './field';
 import { CheckIcon, ChevronDownIcon } from './icons';
 
 /** 候选选项：`value` 是落库的值，`label` 是展示文案（如 zh-CN → 简体中文） */
 export interface SearchableSelectOption {
   value: string;
   label: string;
+  /** 可选的展示图标（图片地址，如模型厂商 logo）；渲染在 label 之前 */
+  icon?: string;
 }
 
 /** 也接受纯字符串候选：此时 value 与 label 相同（模型名这类场景） */
@@ -37,6 +40,13 @@ export interface SearchableSelectProps {
   editable?: boolean;
   disabled?: boolean;
   loading?: boolean;
+  /** 强调态外观（加粗边框 + 品牌色浅底），用于「当前正在生效」的关键设置 */
+  emphasis?: boolean;
+  /**
+   * 当前值的图标（图片地址）。不依赖 `options` 是否包含该值，
+   * 因此「手动输入 / 合并了列表外的当前值」时也能稳定显示图标。
+   */
+  valueIcon?: string;
   /** 无值时的占位文案 */
   placeholder?: string;
   /** 候选为空时的提示 */
@@ -47,8 +57,45 @@ export interface SearchableSelectProps {
   searchThreshold?: number;
   /** 触发按钮 / 输入框的 data-testid，便于 E2E 精确定位（同页多个下拉时必须区分） */
   testId?: string;
+  /**
+   * 面板顶部插槽：随下拉一起展示的关联控制（如「Provider 切换」）。
+   * 放在这里而非组件外部，是为了让「换 Provider + 选模型」在同一面板内完成，
+   * 从而不必在窄侧栏里单独占用一整块横向空间。
+   */
+  panelHeader?: ReactNode;
+  /**
+   * 覆盖面板的定位 / 宽度类。默认 `left-0 right-0`（面板与触发器等宽）。
+   * 当触发器很宽（如占满整行）却希望面板保持正常下拉尺寸时，
+   * 传入如 `left-auto right-0 w-72` 即可右侧对齐并限宽。
+   */
+  panelClassName?: string;
   /** 作用于外层容器（宽度 / 布局写这里，如 `min-w-0 flex-1`） */
   className?: string;
+}
+
+/**
+ * 选项图标槽：统一尺寸的方形图标。
+ * 图标缺失 / 加载失败时静默隐藏，避免露出浏览器默认的「碎图」占位。
+ */
+function OptionIcon({
+  src,
+  className = '',
+}: {
+  src: string;
+  className?: string;
+}) {
+  return (
+    <img
+      src={src}
+      alt=""
+      aria-hidden="true"
+      draggable={false}
+      className={`h-4 w-4 shrink-0 object-contain ${className}`}
+      onError={(event) => {
+        event.currentTarget.style.visibility = 'hidden';
+      }}
+    />
+  );
 }
 
 /**
@@ -70,11 +117,15 @@ export function SearchableSelect({
   editable = false,
   disabled = false,
   loading = false,
+  emphasis = false,
+  valueIcon,
   placeholder = '请选择',
   emptyText = '暂无可选项',
   searchable,
   searchThreshold = 8,
   testId = 'searchable-select-trigger',
+  panelHeader,
+  panelClassName = 'left-0 right-0',
   className = '',
 }: SearchableSelectProps) {
   const [open, setOpen] = useState(false);
@@ -110,11 +161,15 @@ export function SearchableSelect({
 
   const listId = useId();
   const isDisabled = disabled || loading;
+  /** 触发器外观：默认态 / 强调态（强调态用于「当前生效」类关键设置） */
+  const fieldAppearance = emphasis ? fieldClassEmphasis : fieldClass;
   /** 选择模式才需要独立的搜索框（编辑模式的输入框本身就是搜索） */
   const showSearch =
     searchable ?? (!editable && normalized.length > searchThreshold);
   /** 当前值对应的候选（值合法但不在候选里时，回退显示原始值） */
   const selected = normalized.find((option) => option.value === value);
+  /** 当前值图标：优先用显式传入的 valueIcon，其次从候选项里取 */
+  const selectedIcon = valueIcon ?? selected?.icon;
 
   /** 关键词过滤：label 与 value 都参与匹配；空关键词保持原始顺序 */
   const filtered = useMemo(() => {
@@ -239,6 +294,13 @@ export function SearchableSelect({
     >
       {editable ? (
         <div className="relative">
+          {/* 编辑模式：当前值图标叠在输入框左侧，故输入框需要让出左内边距 */}
+          {selectedIcon && (
+            <OptionIcon
+              src={selectedIcon}
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2"
+            />
+          )}
           <input
             ref={inputRef}
             type="text"
@@ -277,7 +339,7 @@ export function SearchableSelect({
                 setOpen(false);
               }
             }}
-            className={`${fieldClass} pr-9`}
+            className={`${fieldAppearance} pr-9 ${selectedIcon ? 'pl-9' : ''}`}
           />
           <ChevronDownIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-500" />
         </div>
@@ -299,12 +361,15 @@ export function SearchableSelect({
               setOpen(false);
             }
           }}
-          className={`${fieldClass} flex cursor-pointer items-center justify-between gap-2 text-left`}
+          className={`${fieldAppearance} flex cursor-pointer items-center justify-between gap-2 text-left`}
         >
-          <span className={`truncate ${value ? '' : 'text-brand-700/40'}`}>
-            {loading
-              ? '拉取中…'
-              : (selected?.label ?? value) || placeholder}
+          <span className="flex min-w-0 items-center gap-2">
+            {selectedIcon && <OptionIcon src={selectedIcon} />}
+            <span className={`truncate ${value ? '' : 'text-brand-700/40'}`}>
+              {loading
+                ? '拉取中…'
+                : (selected?.label ?? value) || placeholder}
+            </span>
           </span>
           <ChevronDownIcon
             className={`h-4 w-4 shrink-0 text-brand-500 transition-transform ${
@@ -317,8 +382,21 @@ export function SearchableSelect({
       {open && (
         <div
           onKeyDown={handlePanelKeyDown}
-          className="absolute left-0 right-0 z-20 mt-1 overflow-hidden rounded-xl border border-brand-100 bg-white shadow-lg shadow-brand-900/10"
+          className={`absolute z-20 mt-1 overflow-hidden rounded-xl border border-brand-100 bg-white shadow-lg shadow-brand-900/10 ${panelClassName}`}
         >
+          {panelHeader && (
+            // 头部插槽：拦下非 Esc 按键，避免内层控件的 Enter / 方向键
+            // 冒泡到列表导航（否则按 Enter 会误选模型）；Esc 仍放行以关闭面板
+            <div
+              className="border-b border-brand-50 p-2"
+              onKeyDown={(event) => {
+                if (event.key !== 'Escape') event.stopPropagation();
+              }}
+            >
+              {panelHeader}
+            </div>
+          )}
+
           {showSearch && (
             <div className="border-b border-brand-50 p-1.5">
               <input
@@ -358,12 +436,18 @@ export function SearchableSelect({
                   className={`flex cursor-pointer items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-sm ${
                     index === activeIndex
                       ? 'bg-brand-50 text-brand-700'
-                      : 'text-brand-900'
+                      : // 已选中项常驻浅底 + 半粗，面板展开后一眼能定位当前生效值
+                        option.value === value
+                        ? 'bg-brand-50/60 font-semibold text-brand-700'
+                        : 'text-brand-900'
                   }`}
                 >
-                  <span className="truncate">{option.label}</span>
+                  <span className="flex min-w-0 items-center gap-2">
+                    {option.icon && <OptionIcon src={option.icon} />}
+                    <span className="truncate">{option.label}</span>
+                  </span>
                   {option.value === value && (
-                    <CheckIcon className="h-3.5 w-3.5 shrink-0 text-brand-500" />
+                    <CheckIcon className="h-3.5 w-3.5 shrink-0 text-brand-600" />
                   )}
                 </li>
               ))

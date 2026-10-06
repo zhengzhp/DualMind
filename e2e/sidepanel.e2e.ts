@@ -18,7 +18,7 @@ test.describe('Side Panel 翻译工作台', () => {
 
     await expect(page.getByRole('heading', { name: 'DualMind' })).toBeVisible();
 
-    // 初始化会调用 refreshModels；模型在自绘下拉里，需先展开面板才能看到选项
+    // 模型横栏常驻可见：直接展开自绘下拉
     await page.getByTestId('model-select').click();
     await expect(
       page.getByRole('option', { name: OLLAMA_MODEL, exact: true }),
@@ -51,7 +51,8 @@ test.describe('Side Panel 翻译工作台', () => {
     await page.goto(`chrome-extension://${extensionId}/sidepanel.html`);
     await expect(page.getByRole('heading', { name: 'DualMind' })).toBeVisible();
 
-    // Provider 改为分段控件（原生 select 已移除）→ 直接点选「OpenAI 兼容」分段
+    // Provider 收在模型下拉面板顶部：先展开下拉，再点选「OpenAI 兼容」分段
+    await page.getByTestId('model-select').click();
     await page
       .getByRole('radio', { name: 'OpenAI 兼容', exact: true })
       .click();

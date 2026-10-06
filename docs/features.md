@@ -21,6 +21,9 @@
 
 V1 / V1.5 既有 Feature（`translate` / `selection-toolbar` / `immersive`）见 [features-v1.md](./features-v1.md)。
 全页工作台（`entrypoints/workspace/`）不是独立 Feature：无新消息前缀，UI 复用 `features/translate/ui`，与 Side Panel 共用 `translateSession`。
+Provider / 模型选择器（`features/translate/ui/ModelSelector.tsx`）为 header 之下、模块 Tab 之上的**常驻单行醒目横栏**（独立品牌色色带 + 图标刷新），翻译 / 聊天 / Agent 各 Tab 共享；横栏以「当前使用」品牌色胶囊提示正在生效的模型，模型触发器用 `SearchableSelect` 的 `emphasis` 强调态（加粗品牌色边框 + 浅底 + 半粗字重），只放「模型 + 刷新」以把宽度让给模型名，**Provider 切换收在模型下拉面板顶部**（低频操作，经 `SearchableSelect` 的 `panelHeader` 插槽注入）；切换即时持久化到同一 BYOK 设置。
+
+模型名会按厂商识别并加品牌图标：解析逻辑在 `shared/ui/modelIcons.ts`（`detectModelVendorId` / `getModelIconUrl` / `toModelOptions`，纯函数 + 单测），图标资源在 `public/model-icons/*.svg`，来源为开源图标集 [`@lobehub/icons-static-svg`](https://github.com/lobehub/lobe-icons)（有 `-color` 变体时优先取品牌色版本）。当前选中值与下拉候选都会显示图标；识别不出厂商时不显示（不猜）。工作台横栏与 Options 页的模型下拉共用同一逻辑。
 
 ## LLM 调用约定
 

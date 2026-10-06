@@ -15,6 +15,8 @@ import {
   SearchableSelect,
   SegmentedControl,
   fieldClass,
+  getModelIconUrl,
+  toModelOptions,
   type SegmentedControlOption,
 } from '@/shared/ui';
 import { diffSettings, parseHosts } from './diff';
@@ -289,12 +291,17 @@ export default function App() {
                 <div className="flex gap-2">
                   <SearchableSelect
                     value={settings.ollama.model}
-                    // 合并当前已选与列表，避免刷新前丢失已选值
-                    options={Array.from(
-                      new Set(
-                        [settings.ollama.model, ...models].filter(Boolean),
+                    // 合并当前已选与列表，避免刷新前丢失已选值；并补厂商图标便于辨认
+                    options={toModelOptions(
+                      Array.from(
+                        new Set(
+                          [settings.ollama.model, ...models].filter(Boolean),
+                        ),
                       ),
                     )}
+                    valueIcon={
+                      getModelIconUrl(settings.ollama.model) ?? undefined
+                    }
                     onChange={(model) =>
                       setSettings({
                         ...settings,
@@ -350,7 +357,10 @@ export default function App() {
                   <SearchableSelect
                     editable
                     value={settings.openai.model}
-                    options={models}
+                    options={toModelOptions(models)}
+                    valueIcon={
+                      getModelIconUrl(settings.openai.model) ?? undefined
+                    }
                     onChange={(model) =>
                       setSettings({
                         ...settings,

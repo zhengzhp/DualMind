@@ -11,17 +11,13 @@ import { sendMessage } from '@/shared/messaging/client';
 import { streamTranslate } from '@/shared/messaging/stream';
 import { consumeChatPending } from '@/shared/storage/settings';
 import {
-  PROVIDER_HINT,
-  PROVIDER_OPTIONS,
   TARGET_LANGUAGES,
   type AppSettings,
   type ChatPendingAction,
   type ProviderType,
 } from '@/shared/storage/types';
-import {
-  SearchableSelect,
-  SegmentedControl,
-} from '@/shared/ui';
+import { SearchableSelect } from '@/shared/ui';
+import { ModelSelector } from './ModelSelector';
 import { Placeholder } from './Placeholder';
 
 type ModuleTab = 'translate' | 'chat' | 'agent';
@@ -324,16 +320,6 @@ export function WorkbenchApp({ surface }: { surface: WorkbenchSurface }) {
   }
 
   const controlsDisabled = loading;
-  const currentModel =
-    settings?.providerType === 'ollama'
-      ? settings.ollama.model
-      : (settings?.openai.model ?? '');
-  const modelHint =
-    settings?.providerType === 'openai-compatible' && !settings.openai.apiKey
-      ? '尚未配置 API Key，请先到设置页填写后再拉取模型。'
-      : settings?.providerType === 'ollama' && !currentModel
-        ? '请选择本地模型；若列表为空，确认 Ollama 已启动并已 pull。'
-        : '';
   // 侧边栏专用操作行：翻译 + 复制（全页工作台的复制按钮已内联到译文卡片）
   const sidepanelActionRow = (
     <div className="flex gap-2">
@@ -374,7 +360,13 @@ export function WorkbenchApp({ surface }: { surface: WorkbenchSurface }) {
     >
       <header className="border-b border-brand-100/80 bg-white/70 backdrop-blur">
         {/* 全页工作台：内层容器统一 max-w-5xl + px-6，与下方 main 左右严格对齐 */}
-        <div className={isPage ? 'mx-auto w-full max-w-5xl px-6 py-3' : 'px-4 py-3'}>
+        <div
+          className={
+            isPage
+              ? 'mx-auto w-full max-w-5xl px-6 py-3'
+              : 'px-4 py-3'
+          }
+        >
           <div className="flex items-center justify-between gap-2">
             {/* 全页：标题与副标题同行，压缩头部高度、让 Tab 上移 */}
             <div className={isPage ? 'flex items-baseline gap-2.5' : ''}>
@@ -411,38 +403,66 @@ export function WorkbenchApp({ surface }: { surface: WorkbenchSurface }) {
               </button>
             </div>
           </div>
-
-          {/* 全页：三个模块 Tab 放大并居中（胶囊分段样式）；侧栏保持紧凑左对齐 */}
-          <nav
-            className={isPage ? 'mt-3 flex justify-center' : 'mt-3 flex gap-1'}
-          >
-            <div
-              className={
-                isPage
-                  ? 'inline-flex gap-1 rounded-xl border border-brand-100 bg-brand-50/80 p-1'
-                  : 'flex gap-1'
-              }
-            >
-              {MODULE_TABS.map(([id, label]) => (
-                <button
-                  key={id}
-                  type="button"
-                  onClick={() => setTab(id)}
-                  className={`rounded-lg font-semibold transition ${
-                    isPage ? 'px-6 py-2 text-sm' : 'px-3 py-1.5 text-xs'
-                  } ${
-                    tab === id
-                      ? 'bg-brand-500 text-white shadow-sm'
-                      : 'text-brand-700/80 hover:bg-white/80'
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </nav>
         </div>
       </header>
+
+      {/* 模型横栏：刻意独立成一条醒目色带，位于 header 之下、模块 Tab 之上，
+          品牌色背景 + 「当前模型」徽标强化存在感，避免用户把它当成普通说明略过。
+          relative + z-10：保证栏内模型下拉展开时盖住下方 main */}
+      <div className="relative z-10 border-b border-brand-100/80 bg-brand-50/70">
+        <div
+          className={isPage ? 'mx-auto w-full max-w-5xl px-6 py-3' : 'px-4 py-3'}
+        >
+          <ModelSelector
+            settings={settings}
+            models={models}
+            modelsLoading={modelsLoading}
+            modelsError={modelsError}
+            openaiModelDraft={openaiModelDraft}
+            disabled={controlsDisabled}
+            onProviderChange={(next) => void handleProviderChange(next)}
+            onOllamaModelChange={(next) => void handleOllamaModelChange(next)}
+            onOpenaiModelDraftChange={setOpenaiModelDraft}
+            onOpenaiModelCommit={(next) => void handleOpenaiModelCommit(next)}
+            onRefresh={() => void refreshModels()}
+            onOpenSettings={() => void handleOpenSettings()}
+          />
+        </div>
+      </div>
+
+      {/* 全页：三个模块 Tab 放大并居中（胶囊分段样式）；侧栏保持紧凑左对齐 */}
+      <nav
+        className={
+          isPage
+            ? 'mx-auto flex w-full max-w-5xl justify-center px-6 pt-3'
+            : 'flex gap-1 px-4 pt-3'
+        }
+      >
+        <div
+          className={
+            isPage
+              ? 'inline-flex gap-1 rounded-xl border border-brand-100 bg-brand-50/80 p-1'
+              : 'flex gap-1'
+          }
+        >
+          {MODULE_TABS.map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setTab(id)}
+              className={`rounded-lg font-semibold transition ${
+                isPage ? 'px-6 py-2 text-sm' : 'px-3 py-1.5 text-xs'
+              } ${
+                tab === id
+                  ? 'bg-brand-500 text-white shadow-sm'
+                  : 'text-brand-700/80 hover:bg-white/80'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </nav>
 
       <main
         className={
@@ -456,78 +476,8 @@ export function WorkbenchApp({ surface }: { surface: WorkbenchSurface }) {
             {/* 沉浸式全文翻译：只在侧栏提供入口（全页工作台自身不是网页标签页，无法承载该指令） */}
             {surface === 'sidepanel' && <ImmersiveControl />}
 
-            <div
-              className={`rounded-xl border border-brand-100/80 bg-white/70 p-3 ${
-                isPage ? 'grid gap-3 sm:grid-cols-3' : 'flex flex-col gap-2'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <label className="w-14 shrink-0 text-xs font-medium text-brand-700">
-                  Provider
-                </label>
-                <SegmentedControl
-                  value={settings?.providerType ?? 'ollama'}
-                  options={PROVIDER_OPTIONS}
-                  disabled={!settings || controlsDisabled}
-                  onChange={(next) => void handleProviderChange(next)}
-                  ariaLabel="Provider"
-                  className="min-w-0 flex-1"
-                />
-              </div>
-
-              {/* 说明「OpenAI 兼容」到底包含什么，消除「只能填官方 OpenAI」的歧义 */}
-              <p
-                className={`text-[11px] leading-relaxed text-brand-700/60 ${
-                  isPage ? 'sm:col-span-3' : ''
-                }`}
-              >
-                {PROVIDER_HINT}
-              </p>
-
-              <div className="flex items-center gap-2">
-                <label className="w-14 shrink-0 text-xs font-medium text-brand-700">
-                  模型
-                </label>
-                {/* settings 未加载完时按默认 Provider（ollama）渲染，避免控件形态闪一下 */}
-                {(settings?.providerType ?? 'ollama') === 'ollama' ? (
-                  <SearchableSelect
-                    value={currentModel}
-                    // 合并当前已选与列表，避免刷新前丢失已选值
-                    options={Array.from(
-                      new Set([currentModel, ...models].filter(Boolean)),
-                    )}
-                    onChange={(next) => void handleOllamaModelChange(next)}
-                    disabled={!settings || controlsDisabled}
-                    loading={modelsLoading}
-                    placeholder="请选择模型"
-                    emptyText="模型列表为空，确认 Ollama 已启动并已 pull"
-                    testId="model-select"
-                    className="min-w-0 flex-1"
-                  />
-                ) : (
-                  <SearchableSelect
-                    editable
-                    value={openaiModelDraft}
-                    options={models}
-                    onChange={setOpenaiModelDraft}
-                    onCommit={(next) => void handleOpenaiModelCommit(next)}
-                    disabled={!settings || controlsDisabled}
-                    placeholder="gpt-4o-mini"
-                    emptyText="暂无候选模型，点右侧「刷新」拉取"
-                    testId="openai-model-input"
-                    className="min-w-0 flex-1"
-                  />
-                )}
-                <button
-                  type="button"
-                  disabled={!settings || controlsDisabled || modelsLoading}
-                  onClick={() => void refreshModels()}
-                  className="shrink-0 rounded-lg border border-brand-100 bg-white px-2.5 py-1.5 text-xs font-medium text-brand-700 hover:bg-brand-50 disabled:opacity-50"
-                >
-                  {modelsLoading ? '拉取中…' : '刷新'}
-                </button>
-              </div>
-
+            {/* Provider / 模型 / 刷新已上移到 header 下方的模型横栏，此处只保留目标语言 */}
+            <div className="rounded-xl border border-brand-100/80 bg-white/70 p-3">
               <div className="flex items-center gap-2">
                 <label className="w-14 shrink-0 text-xs font-medium text-brand-700">
                   语言
@@ -543,30 +493,6 @@ export function WorkbenchApp({ surface }: { surface: WorkbenchSurface }) {
                   className="min-w-0 flex-1"
                 />
               </div>
-
-              {(modelsError || modelHint) && (
-                <p
-                  className={`text-[11px] leading-relaxed text-brand-700/70 ${isPage ? 'sm:col-span-3' : ''}`}
-                >
-                  {modelsError ? (
-                    <span className="text-red-600">{modelsError}</span>
-                  ) : (
-                    modelHint
-                  )}
-                  {modelsError || modelHint ? (
-                    <>
-                      {' '}
-                      <button
-                        type="button"
-                        onClick={() => void handleOpenSettings()}
-                        className="font-medium text-brand-600 underline-offset-2 hover:underline"
-                      >
-                        去设置
-                      </button>
-                    </>
-                  ) : null}
-                </p>
-              )}
             </div>
 
             <div

@@ -14,3 +14,15 @@ export const fieldClass = [
   'focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20',
   'disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-brand-100',
 ].join(' ');
+
+/**
+ * 强调态表单控件：用于「当前正在生效」的关键设置（如工作台的模型选择器），
+ * 通过加粗边框 + 品牌色浅底 + 半粗字重，让它在一屏控件里一眼可辨。
+ */
+export const fieldClassEmphasis = [
+  'w-full rounded-xl border-2 border-brand-500 bg-brand-50/70 px-3 py-2 text-sm font-semibold text-brand-900',
+  'outline-none transition placeholder:text-brand-700/40',
+  'hover:bg-brand-50',
+  'focus:ring-2 focus:ring-brand-500/25',
+  'disabled:cursor-not-allowed disabled:opacity-50',
+].join(' ');

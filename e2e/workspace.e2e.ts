@@ -25,7 +25,7 @@ test.describe('全页工作台', () => {
     // 品牌是字标 img（alt=DualMind），全页身份由副标题体现
     await expect(page.getByText('全页工作台 · 翻译')).toBeVisible();
 
-    // 初始化会拉取模型列表；自绘下拉需先展开面板
+    // 模型横栏常驻可见：直接展开自绘下拉
     await page.getByTestId('model-select').click();
     await expect(
       page.getByRole('option', { name: OLLAMA_MODEL, exact: true }),
@@ -73,6 +73,9 @@ test.describe('全页工作台', () => {
     // Agent 仍为占位
     await page.getByRole('button', { name: 'Agent', exact: true }).click();
     await expect(page.getByText('Agent（即将推出）')).toBeVisible();
+
+    // 模型横栏位于各 Tab 之上且常驻可见：非翻译 Tab 也应能看到
+    await expect(page.getByTestId('model-select')).toBeVisible();
 
     // 切回翻译页仍可用（模型列表已加载）
     await page.getByRole('button', { name: '翻译', exact: true }).click();
