@@ -1,4 +1,5 @@
 import { storage } from 'wxt/utils/storage';
+import { MIGRATION_IDS, shouldMigrateToolbarTrigger } from './migrations';
 import {
   DEFAULT_SETTINGS,
   type AppSettings,
@@ -8,6 +9,28 @@ import {
 export const settingsItem = storage.defineItem<AppSettings>('local:settings', {
   fallback: DEFAULT_SETTINGS,
 });
+
+/** 已执行过的迁移 ID（幂等标记，防止重复迁移） */
+const migrationsItem = storage.defineItem<string[]>('local:migrations', {
+  fallback: [],
+});
+
+/**
+ * 一次性迁移：旧的默认值是 auto，新默认值改为 shortcut，
+ * 需把已存的历史值收敛过来。
+ * 注意：用户若曾手动选择 auto，也会被本次迁移覆盖为 shortcut（一次性的代价）。
+ */
+async function runMigrations(): Promise<void> {
+  const applied = await migrationsItem.getValue();
+  const stored = await settingsItem.getValue();
+  if (!shouldMigrateToolbarTrigger(applied, stored.toolbarTrigger)) return;
+
+  await settingsItem.setValue({ ...stored, toolbarTrigger: 'shortcut' });
+  await migrationsItem.setValue([
+    ...applied,
+    MIGRATION_IDS.toolbarDefaultShortcut,
+  ]);
+}
 
 /** 最近一次划词翻译会话（供 Side Panel 承接） */
 export interface TranslateSession {
@@ -27,6 +50,8 @@ export const translateSessionItem = storage.defineItem<TranslateSession | null>(
 
 /** 读取并与默认值合并，避免旧版本缺字段 */
 export async function getSettings(): Promise<AppSettings> {
+  // 单一入口顺带跑迁移，保证任何调用方拿到的都是迁移后的值（幂等）
+  await runMigrations();
   const stored = await settingsItem.getValue();
   return {
     ...DEFAULT_SETTINGS,
