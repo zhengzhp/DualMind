@@ -36,3 +36,23 @@ export function resolveAutoTargetLanguage(text: string): 'zh-CN' | 'en' {
   if (kind === 'en' || kind === 'mixed') return 'zh-CN';
   return 'en';
 }
+
+/**
+ * 判断文本是否已经就是目标语言。
+ *
+ * 仅对「中文系目标 / 英文目标」做可靠判断（`classifySourceLang` 只能区分 CJK 与拉丁），
+ * 其余语言（ja/ko/fr/de…）一律返回 false —— 宁可多翻一段，也不误判为「无需翻译」。
+ *
+ * 沉浸译用它过滤无需翻译的片段：这类片段正是诱发模型「整批原样抄写」的因素之一，
+ * 同时也能区分模型回显到底是「无需翻译」还是「漏译」（见 features/immersive/translator.ts）。
+ */
+export function isTargetLanguage(
+  text: string,
+  targetLanguage: string,
+): boolean {
+  const kind = classifySourceLang(text);
+  const target = targetLanguage.trim().toLowerCase();
+  if (target.startsWith('zh')) return kind === 'zh';
+  if (target === 'en') return kind === 'en';
+  return false;
+}

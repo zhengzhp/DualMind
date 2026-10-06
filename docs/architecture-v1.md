@@ -21,6 +21,7 @@
 entrypoints/          # background / content / sidepanel / workspace / options
 features/
   translate/          # 翻译用例、prompt、工作台 UI（侧栏 / 全页共用）
+  immersive/          # 沉浸式全文双语翻译（分段 / 分批 / 渲染 / 入口）
   selection-toolbar/  # 划词浮层
 providers/            # Provider 适配层（不碰 DOM；支持 chatStream）
 shared/
@@ -49,6 +50,36 @@ Content / Side Panel → Port `dualmind-translate` → Background → `translate
 
 一次性路径：`translate:run`（右键菜单等）仍可用。
 
+## 数据流（沉浸式全文翻译 · 批量）
+
+```mermaid
+flowchart LR
+  subgraph pageContent [页面 Content]
+    Segmenter["segmenter 采集"]
+    Controller["controller 分批 / 进度"]
+    RendererLayer["renderer 追加译文"]
+    Observer["MutationObserver 增量"]
+  end
+  subgraph backgroundSW [Background SW]
+    ImmPort["Port dualmind-immersive"]
+    Batch["translator 整批 + 逐段补译"]
+    LLM["shared/llm runChat"]
+  end
+  ProviderEndpoint["Provider（SSE / HTTPS）"]
+  Segmenter --> Controller
+  Observer --> Controller
+  Controller -->|"translate-batch (requestId)"| ImmPort
+  ImmPort --> Batch
+  Batch --> LLM
+  LLM --> ProviderEndpoint
+  Batch -->|"batch-done / batch-error"| Controller
+  Controller --> RendererLayer
+```
+
+- 采集与渲染在页面（Content）；模型请求只在 Background。
+- 指令入口（悬浮按钮 / 右键 / 侧栏）最终都落到内容脚本的同一个控制器的 `start / stop / toggle`。
+- 偏好持久化在 `local:immersivePrefs`；页面译文不落 storage。
+
 ## 里程碑状态
 
 - [x] 脚手架
@@ -59,6 +90,7 @@ Content / Side Panel → Port `dualmind-translate` → Background → `translate
 - [x] 全页工作台（workspace）
 - [x] Options 设置页
 - [x] V1 收官（compile / 单测全绿；**功能冻结，仅修 bug**）
+- [x] V1.5 沉浸式全文双语翻译（`features/immersive/`；分段 / 分批并发 / 双语渲染 / 增量补译）
 
 > V1 已冻结：不再新增功能，仅接受 bug 修复。新能力（沉浸译 / Chat / Agent）进入 V1.5+，
 > 须先更新 [docs/decisions.md](./decisions.md) 与 [docs/features.md](./features.md)。

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { ImmersiveControl } from '@/features/immersive/ui/ImmersiveControl';
 import { formatErrorForUi } from '@/shared/errors';
 import {
   closeSidePanelSelf,
@@ -384,6 +385,9 @@ export function WorkbenchApp({ surface }: { surface: WorkbenchSurface }) {
       >
         {tab === 'translate' && (
           <>
+            {/* 沉浸式全文翻译：只在侧栏提供入口（全页工作台自身不是网页标签页，无法承载该指令） */}
+            {surface === 'sidepanel' && <ImmersiveControl />}
+
             <div
               className={`rounded-xl border border-brand-100/80 bg-white/70 p-3 ${
                 isPage ? 'grid gap-3 sm:grid-cols-3' : 'flex flex-col gap-2'

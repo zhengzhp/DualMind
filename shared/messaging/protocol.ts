@@ -56,6 +56,27 @@ export type ProtocolMap = {
     data: { text: string };
     return: { ok: true };
   };
+  /** 沉浸式全文翻译：把指令转发到「当前活动标签页」的内容脚本 */
+  'immersive:command': {
+    data: {
+      command: 'start' | 'stop' | 'toggle';
+      displayMode?: import('@/shared/storage/types').ImmersiveDisplayMode;
+    };
+    return: import('@/features/immersive/types').ImmersiveStatus;
+  };
+  /** 查询当前活动标签页的沉浸式翻译状态 */
+  'immersive:status': {
+    data: undefined;
+    return: import('@/features/immersive/types').ImmersiveStatus;
+  };
+  'immersive:prefs:get': {
+    data: undefined;
+    return: import('@/shared/storage/types').ImmersivePrefs;
+  };
+  'immersive:prefs:save': {
+    data: Partial<import('@/shared/storage/types').ImmersivePrefs>;
+    return: import('@/shared/storage/types').ImmersivePrefs;
+  };
 };
 
 /** Side Panel 生命周期 Port：用于判断是否已打开、以及请求自关闭 */
@@ -65,6 +86,9 @@ export type MessageType = keyof ProtocolMap;
 
 /** 流式翻译 Port 名称 */
 export const TRANSLATE_PORT = 'dualmind-translate';
+
+/** 沉浸式全文翻译 Port 名称（批量、可并发、支持 abort） */
+export const IMMERSIVE_PORT = 'dualmind-immersive';
 
 /** Client → Background */
 export type TranslatePortClientMessage =
@@ -87,3 +111,22 @@ export type TranslatePortServerMessage =
       };
     }
   | { type: 'error'; code: string; message: string };
+
+/** 沉浸式翻译：Client（Content）→ Background */
+export type ImmersivePortClientMessage =
+  | {
+      type: 'translate-batch';
+      requestId: string;
+      segments: import('@/features/immersive/types').ImmersiveSegment[];
+      targetLanguage: string;
+    }
+  | { type: 'abort'; requestId: string };
+
+/** 沉浸式翻译：Background → Client（Content） */
+export type ImmersivePortServerMessage =
+  | {
+      type: 'batch-done';
+      requestId: string;
+      results: import('@/features/immersive/types').ImmersiveSegmentResult[];
+    }
+  | { type: 'batch-error'; requestId: string; code: string; message: string };

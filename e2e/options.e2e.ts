@@ -24,7 +24,11 @@ test.describe('Options 设置页', () => {
     await expect(page.getByRole('heading', { name: 'DualMind 设置' })).toBeVisible();
 
     // 拉取模型列表
-    await page.getByRole('button', { name: '刷新列表' }).click();
+    // 注意：必须限定 exact —— 自绘下拉里「模型列表为空，点右侧『刷新列表』拉取」
+    // 这段提示文案含相同子串，宽松匹配会命中两个按钮触发 strict mode 冲突
+    await page
+      .getByRole('button', { name: '刷新列表', exact: true })
+      .click();
     await expect(page.getByText(/已获取 \d+ 个模型/)).toBeVisible();
     // 已选模型出现在下拉里（合并了当前已选与远端列表）：自绘下拉需先展开面板
     await page.getByTestId('ollama-model-select').click();

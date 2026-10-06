@@ -4,6 +4,8 @@ import { sendMessage } from '@/shared/messaging/client';
 import {
   TARGET_LANGUAGES,
   type AppSettings,
+  type ImmersiveDisplayMode,
+  type ImmersivePrefs,
   type ProviderType,
   type ToolbarTrigger,
 } from '@/shared/storage/types';
@@ -26,8 +28,17 @@ const PROVIDER_OPTIONS: SegmentedControlOption<ProviderType>[] = [
   { value: 'openai-compatible', label: 'OpenAI Compatible' },
 ];
 
+/** 沉浸式译文展示模式（互斥二选一） */
+const IMMERSIVE_MODE_OPTIONS: SegmentedControlOption<ImmersiveDisplayMode>[] = [
+  { value: 'bilingual', label: '双语对照' },
+  { value: 'translation-only', label: '仅译文' },
+];
+
 export default function App() {
   const [settings, setSettings] = useState<AppSettings | null>(null);
+  const [immersivePrefs, setImmersivePrefs] = useState<ImmersivePrefs | null>(
+    null,
+  );
   const [models, setModels] = useState<string[]>([]);
   const [status, setStatus] = useState('');
   const [error, setError] = useState('');
@@ -36,13 +47,17 @@ export default function App() {
 
   useEffect(() => {
     void (async () => {
-      const s = await sendMessage('settings:get', undefined);
+      const [s, prefs] = await Promise.all([
+        sendMessage('settings:get', undefined),
+        sendMessage('immersive:prefs:get', undefined),
+      ]);
       setSettings(s);
       setDisabledHostsText(s.disabledHosts.join('\n'));
+      setImmersivePrefs(prefs);
     })();
   }, []);
 
-  if (!settings) {
+  if (!settings || !immersivePrefs) {
     return (
       <div className="p-8 text-sm text-brand-700">加载设置中…</div>
     );
@@ -60,6 +75,18 @@ export default function App() {
       setError(formatErrorForUi(err));
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function persistImmersive(patch: Partial<ImmersivePrefs>) {
+    setError('');
+    try {
+      const next = await sendMessage('immersive:prefs:save', patch);
+      setImmersivePrefs(next);
+      setStatus('已保存');
+      window.setTimeout(() => setStatus(''), 1500);
+    } catch (err) {
+      setError(formatErrorForUi(err));
     }
   }
 
@@ -164,6 +191,29 @@ export default function App() {
               ariaLabel="划词工具栏"
             />
           </Field>
+
+          <Field
+            label="沉浸式全文翻译"
+            hint="在网页正文中逐段对照展示译文；入口为页面右下角悬浮按钮或右键「翻译整页」"
+          >
+            <SegmentedControl
+              value={immersivePrefs.displayMode}
+              options={IMMERSIVE_MODE_OPTIONS}
+              onChange={(displayMode) => void persistImmersive({ displayMode })}
+              ariaLabel="沉浸式展示模式"
+            />
+          </Field>
+
+          <label className="flex items-center gap-2 text-sm text-brand-900">
+            <input
+              type="checkbox"
+              checked={immersivePrefs.autoTranslate}
+              onChange={(e) =>
+                void persistImmersive({ autoTranslate: e.target.checked })
+              }
+            />
+            打开网页后自动开始整页翻译
+          </label>
 
           <Field
             label="禁用站点（每行一个 hostname）"

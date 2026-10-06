@@ -14,6 +14,7 @@ import {
   type Page,
   type Worker,
 } from '@playwright/test';
+import { MIGRATION_IDS } from '../shared/storage/migrations';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
@@ -69,6 +70,18 @@ export const test = base.extend<ExtensionFixtures>({
 export const expect = test.expect;
 
 /**
+ * E2E 种子要一并写入的「已执行迁移」标记。
+ *
+ * 为什么必须写：种子里会刻意设置 `toolbarTrigger: 'auto'`，而产品迁移
+ * （`toolbar-default-shortcut-v1`）会把存储里的 `auto` 改写成 `shortcut`，
+ * 于是依赖「选中后自动显示」的用例永远拿不到浮层（回归见 2026-10-06）。
+ *
+ * 直接从 `MIGRATION_IDS` 派生，**新增迁移时无需再手工同步这里**；
+ * 语义上也成立：种子写的是完整、权威的初始状态，不需要任何迁移再加工。
+ */
+const APPLIED_MIGRATIONS: string[] = Object.values(MIGRATION_IDS);
+
+/**
  * 直接写扩展的底层 storage（等价于在 Options 页保存设置）。
  * WXT 的 `local:settings` 实际存在 `chrome.storage.local` 的 `settings` 键。
  */
@@ -76,24 +89,30 @@ export async function seedSettings(
   worker: Worker,
   patch: Record<string, unknown>,
 ): Promise<void> {
-  await worker.evaluate(async (payload) => {
-    const KEY = 'settings';
-    const stored = await chrome.storage.local.get(KEY);
-    const current = (stored[KEY] ?? {}) as Record<string, unknown>;
-    // 嵌套的 openai / ollama 需要浅合并，避免覆盖掉未传的字段
-    const merge = (a: unknown, b: unknown): Record<string, unknown> => ({
-      ...((a ?? {}) as Record<string, unknown>),
-      ...((b ?? {}) as Record<string, unknown>),
-    });
-    await chrome.storage.local.set({
-      [KEY]: {
-        ...current,
-        ...payload,
-        openai: merge(current.openai, payload.openai),
-        ollama: merge(current.ollama, payload.ollama),
-      },
-    });
-  }, patch);
+  await worker.evaluate(
+    async ({ payload, applied }) => {
+      const KEY = 'settings';
+      const MIGRATIONS_KEY = 'migrations';
+
+      const stored = await chrome.storage.local.get(KEY);
+      const current = (stored[KEY] ?? {}) as Record<string, unknown>;
+      // 嵌套的 openai / ollama 需要浅合并，避免覆盖掉未传的字段
+      const merge = (a: unknown, b: unknown): Record<string, unknown> => ({
+        ...((a ?? {}) as Record<string, unknown>),
+        ...((b ?? {}) as Record<string, unknown>),
+      });
+      await chrome.storage.local.set({
+        [KEY]: {
+          ...current,
+          ...payload,
+          openai: merge(current.openai, payload.openai),
+          ollama: merge(current.ollama, payload.ollama),
+        },
+        [MIGRATIONS_KEY]: applied,
+      });
+    },
+    { payload: patch, applied: APPLIED_MIGRATIONS },
+  );
 }
 
 /** 从 service worker 回读当前设置（用于断言 storage 是否真的落盘） */

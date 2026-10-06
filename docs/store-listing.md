@@ -6,7 +6,7 @@
 
 ## 单一用途（Single purpose）
 
-在网页中提供基于用户自带模型（BYOK）的**划词翻译**与翻译工作台，帮助用户即时理解外语内容。
+在网页中提供基于用户自带模型（BYOK）的**划词翻译**、**整页沉浸式双语翻译**与翻译工作台，帮助用户即时理解外语内容。
 
 ## 权限用途说明
 
@@ -14,9 +14,9 @@
 |------|------|------|--------------|
 | `storage` | 权限 | 保存扩展设置（Provider、模型、目标语言、站点禁用列表）与**当前一次**翻译会话；供界面恢复状态 | 不用于任何云端同步、不收集历史 |
 | `sidePanel` | 权限 | 打开侧边栏翻译工作台 | — |
-| `contextMenus` | 权限 | 提供右键菜单「用 DualMind 翻译」 | — |
+| `contextMenus` | 权限 | 提供右键菜单「用 DualMind 翻译」（选中文本）与「用 DualMind 翻译整页」 | — |
 | `commands`（Alt/Option+K） | 快捷键 | 对当前选中文本触发划词翻译（默认「仅快捷键」触发） | 不在页面内硬编码监听按键 |
-| `content_scripts.matches: <all_urls>` | 内容脚本 | 注入划词工具栏，支撑「选中后自动显示」模式 | 脚本仅读取**用户当前选区**用于翻译，不采集页面其它内容 |
+| `content_scripts.matches: <all_urls>` | 内容脚本 | 注入划词工具栏与「沉浸译」入口，支撑「选中后自动显示」与整页翻译 | 脚本仅读取**当前选区**与页面正文文本用于翻译，不采集其它信息、不外发 |
 | `host_permissions: <all_urls>` | 主机权限 | 用户在设置中填入**任意** OpenAI 兼容 Base URL 后，由 Background 跨域 `fetch` 调用该端点 | 除用户显式配置的端点外，不外发任何数据 |
 | `host_permissions: 127.0.0.1 / localhost :11434` | 主机权限 | 访问用户本机运行的 Ollama 服务，实现本地模型翻译 | 请求仅发往本机回环地址 |
 
@@ -40,18 +40,20 @@
 
 **Single purpose**
 
-Provide instant, user-configured (BYOK) translation of selected text on web pages, plus a
-translation workbench in the side panel.
+Provide instant, user-configured (BYOK) translation of selected text on web pages and of
+full page content (immersive in-page bilingual translation), plus a translation workbench
+in the side panel.
 
 **Permission justifications**
 
 - `storage` — Persist extension settings (provider, model, target language, disabled-site list)
   and the current translation session. No cloud sync, no history collection.
 - `sidePanel` — Host the translation workbench in the browser side panel.
-- `contextMenus` — Add a "Translate with DualMind" right-click menu item.
+- `contextMenus` — Add "Translate with DualMind" (selection) and "Translate full page with DualMind" right-click menu items.
 - `commands` (Alt/Option+K) — Trigger translation for the current selection (hotkey-only by default).
-- `content_scripts.matches: <all_urls>` — Inject the selection toolbar that supports the
-  "show automatically on selection" mode. The script only reads the user's current selection.
+- `content_scripts.matches: <all_urls>` — Inject the selection toolbar and the immersive
+  full-page translation entry point. The script only reads the user's current selection and
+  the page's visible body text for translation; nothing else is collected or sent.
 - `host_permissions: <all_urls>` — The extension must `fetch` any user-provided OpenAI-compatible
   Base URL from the background service worker to perform translation. No data is sent anywhere
   except the endpoint the user explicitly configured.

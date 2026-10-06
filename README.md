@@ -54,11 +54,13 @@ Chrome 打开 `chrome://extensions` → 开启开发者模式 → 加载 `.outpu
    - **OpenAI Compatible**：填写 Base URL（含 `/v1`）、API Key、模型名。
 2. 任意网页划词 → 按快捷键 `Alt+K`（macOS 为 `Option+K`）弹出浮层并翻译。默认「仅快捷键」，可在设置改为「选中后自动显示」；改键见 `chrome://extensions/shortcuts`。
 3. 点击扩展图标打开 Side Panel，可继续编辑原文并重译；点「工作台」打开加宽的全页（`workspace.html`）并收起侧栏，与侧栏共用同一翻译会话。
+4. **沉浸式全文翻译**：在网页右下角点「沉浸译」，或用右键菜单「用 DualMind 翻译整页」，把整页正文逐段对照翻译；再点「显示原文」即可一键还原。展示模式（双语 / 仅译文）与「打开网页后自动翻译」可在设置或侧栏控制区调整。动态加载的内容会自动补译。
 
 ## 架构要点
 
 - 仅 **Background Service Worker** 发起 AI 请求（密钥不出 Content Script）。
 - Provider 适配层：`providers/openai-compatible.ts`、`providers/ollama.ts`。
+- 能力按 Feature 分包：`features/translate/`（划词 + 工作台）、`features/immersive/`（沉浸式全文翻译，独立消息前缀与 storage）。
 - 后续 Chat / Agent 在 Side Panel 占位，独立 feature 扩展。
 
 ## 项目文档

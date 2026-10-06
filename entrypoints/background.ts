@@ -3,20 +3,30 @@ import {
   translateText,
   translateTextStream,
 } from '@/features/translate/service';
+import { translateBatch } from '@/features/immersive/translator';
+import {
+  IDLE_IMMERSIVE_STATUS,
+  type ImmersiveStatus,
+} from '@/features/immersive/types';
 import { createProviderFromSettings } from '@/providers/registry';
 import { softenDevTabReloads } from '@/shared/dev/softenTabReload';
 import { formatErrorForUi, normalizeError } from '@/shared/errors';
 import { fail, ok } from '@/shared/messaging/client';
 import {
+  IMMERSIVE_PORT,
   SIDEPANEL_PORT,
   TRANSLATE_PORT,
+  type ImmersivePortClientMessage,
+  type ImmersivePortServerMessage,
   type MessageType,
   type ProtocolMap,
   type TranslatePortClientMessage,
   type TranslatePortServerMessage,
 } from '@/shared/messaging/protocol';
 import {
+  getImmersivePrefs,
   getSettings,
+  saveImmersivePrefs,
   saveSettings,
   translateSessionItem,
 } from '@/shared/storage/settings';
@@ -83,6 +93,49 @@ async function closeSidePanel(windowId: number): Promise<void> {
   } catch {
     /* 无接收方时忽略 */
   }
+}
+
+/** 把沉浸式指令 / 状态查询转发到内容脚本；无内容脚本时返回 available:false */
+async function sendImmersiveToTab(
+  tabId: number,
+  message: unknown,
+): Promise<ImmersiveStatus> {
+  try {
+    const status = (await browser.tabs.sendMessage(tabId, message)) as
+      | ImmersiveStatus
+      | undefined;
+    return status
+      ? { ...status, available: true }
+      : { ...IDLE_IMMERSIVE_STATUS, available: true };
+  } catch {
+    // 目标页未注入内容脚本（chrome:// 页、扩展更新后未刷新的旧标签页等）
+    return { ...IDLE_IMMERSIVE_STATUS, available: false };
+  }
+}
+
+async function forwardImmersiveCommand(data: {
+  command: 'start' | 'stop' | 'toggle';
+  displayMode?: ProtocolMap['immersive:command']['data']['displayMode'];
+}): Promise<ImmersiveStatus> {
+  const [tab] = await browser.tabs.query({
+    active: true,
+    currentWindow: true,
+  });
+  if (tab?.id == null) return { ...IDLE_IMMERSIVE_STATUS };
+  return sendImmersiveToTab(tab.id, {
+    type: 'content:immersive-command',
+    command: data.command,
+    displayMode: data.displayMode,
+  });
+}
+
+async function queryImmersiveStatus(): Promise<ImmersiveStatus> {
+  const [tab] = await browser.tabs.query({
+    active: true,
+    currentWindow: true,
+  });
+  if (tab?.id == null) return { ...IDLE_IMMERSIVE_STATUS };
+  return sendImmersiveToTab(tab.id, { type: 'content:immersive-query' });
 }
 
 async function toggleSidePanel(windowId: number): Promise<boolean> {
@@ -154,6 +207,14 @@ const handlers: HandlerMap = {
     });
     return { ok: true as const };
   },
+
+  'immersive:command': async (data) => forwardImmersiveCommand(data),
+
+  'immersive:status': async () => queryImmersiveStatus(),
+
+  'immersive:prefs:get': async () => getImmersivePrefs(),
+
+  'immersive:prefs:save': async (data) => saveImmersivePrefs(data),
 };
 
 /** Port 流式翻译：支持 abort */
@@ -232,6 +293,71 @@ function attachTranslatePort(port: {
   });
 }
 
+/** Port 批量翻译：一个 Port 上可并发多个 requestId，各自独立 abort */
+function attachImmersivePort(port: {
+  postMessage: (msg: unknown) => void;
+  onMessage: {
+    addListener: (cb: (msg: unknown) => void) => void;
+  };
+  onDisconnect: { addListener: (cb: () => void) => void };
+}) {
+  const controllers = new Map<string, AbortController>();
+
+  const post = (msg: ImmersivePortServerMessage) => {
+    try {
+      port.postMessage(msg);
+    } catch {
+      /* port 已断开 */
+    }
+  };
+
+  port.onMessage.addListener((raw: unknown) => {
+    const message = raw as ImmersivePortClientMessage;
+    if (!message || typeof message !== 'object') return;
+
+    if (message.type === 'abort') {
+      controllers.get(message.requestId)?.abort();
+      return;
+    }
+    if (message.type !== 'translate-batch') return;
+
+    // 同一 requestId 重复请求时取消旧的
+    controllers.get(message.requestId)?.abort();
+    const controller = new AbortController();
+    controllers.set(message.requestId, controller);
+
+    void (async () => {
+      try {
+        const results = await translateBatch(
+          message.segments,
+          message.targetLanguage,
+          controller.signal,
+        );
+        post({
+          type: 'batch-done',
+          requestId: message.requestId,
+          results,
+        });
+      } catch (err) {
+        const normalized = normalizeError(err);
+        post({
+          type: 'batch-error',
+          requestId: message.requestId,
+          code: normalized.code,
+          message: formatErrorForUi(normalized),
+        });
+      } finally {
+        controllers.delete(message.requestId);
+      }
+    })();
+  });
+
+  port.onDisconnect.addListener(() => {
+    for (const controller of controllers.values()) controller.abort();
+    controllers.clear();
+  });
+}
+
 export default defineBackground(() => {
   // 必须尽早打补丁：WXT serve 会在 CS 变更时对所有匹配 tab 调 tabs.reload
   softenDevTabReloads();
@@ -245,6 +371,10 @@ export default defineBackground(() => {
   browser.runtime.onConnect.addListener((port) => {
     if (port.name === TRANSLATE_PORT) {
       attachTranslatePort(port);
+      return;
+    }
+    if (port.name === IMMERSIVE_PORT) {
+      attachImmersivePort(port);
       return;
     }
     if (port.name === SIDEPANEL_PORT) {
@@ -338,9 +468,25 @@ export default defineBackground(() => {
       title: '用 DualMind 翻译',
       contexts: ['selection'],
     });
+    browser.contextMenus.create({
+      id: 'dualmind-immersive',
+      title: '用 DualMind 翻译整页',
+      contexts: ['page'],
+    });
   });
 
   browser.contextMenus?.onClicked.addListener(async (info, tab) => {
+    // 翻译整页：直接向当前标签页的内容脚本下发指令
+    if (info.menuItemId === 'dualmind-immersive') {
+      if (tab?.id != null) {
+        await sendImmersiveToTab(tab.id, {
+          type: 'content:immersive-command',
+          command: 'start',
+        });
+      }
+      return;
+    }
+
     if (info.menuItemId !== 'dualmind-translate' || !info.selectionText) return;
 
     // 关键：sidePanel.open() 必须在用户手势有效期内调用。

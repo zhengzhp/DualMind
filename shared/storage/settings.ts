@@ -1,8 +1,10 @@
 import { storage } from 'wxt/utils/storage';
 import { MIGRATION_IDS, shouldMigrateToolbarTrigger } from './migrations';
 import {
+  DEFAULT_IMMERSIVE_PREFS,
   DEFAULT_SETTINGS,
   type AppSettings,
+  type ImmersivePrefs,
 } from './types';
 
 /** 设置项存储 key */
@@ -47,6 +49,32 @@ export const translateSessionItem = storage.defineItem<TranslateSession | null>(
     fallback: null,
   },
 );
+
+/**
+ * 沉浸式全文翻译偏好。
+ * 刻意用独立 storage 键：切换展示模式不应触发 `translateSession` 的监听回调。
+ */
+export const immersivePrefsItem = storage.defineItem<ImmersivePrefs>(
+  'local:immersivePrefs',
+  {
+    fallback: DEFAULT_IMMERSIVE_PREFS,
+  },
+);
+
+/** 读取沉浸式偏好（与默认值合并，容忍旧版本缺字段） */
+export async function getImmersivePrefs(): Promise<ImmersivePrefs> {
+  const stored = await immersivePrefsItem.getValue();
+  return { ...DEFAULT_IMMERSIVE_PREFS, ...stored };
+}
+
+/** 合并写入沉浸式偏好 */
+export async function saveImmersivePrefs(
+  patch: Partial<ImmersivePrefs>,
+): Promise<ImmersivePrefs> {
+  const next = { ...(await getImmersivePrefs()), ...patch };
+  await immersivePrefsItem.setValue(next);
+  return next;
+}
 
 /** 读取并与默认值合并，避免旧版本缺字段 */
 export async function getSettings(): Promise<AppSettings> {

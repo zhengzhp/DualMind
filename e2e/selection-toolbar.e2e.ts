@@ -139,6 +139,11 @@ test.describe('划词工具栏', () => {
     await seedSettings(serviceWorker, OLLAMA_SETTINGS);
     await page.goto('https://example.com');
 
+    // 等影子宿主就位再划词。content.ts 是 `await settings:get` 之后才 mount 的，
+    // 所以宿主出现即代表 toolbarTrigger 已加载；否则 mouseup 早于内容脚本挂载，
+    // 浮层不会弹出，用例会偶发失败（2026-10-06 观察到约 1/3 概率）。
+    await expect(page.locator('dualmind-toolbar')).toHaveCount(1);
+
     // 造一个贴在视口底部的段落，选区底边几乎触底
     const selection = await page.evaluate(() => {
       const el = document.createElement('p');

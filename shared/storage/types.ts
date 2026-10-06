@@ -4,6 +4,24 @@ export type ProviderType = 'openai-compatible' | 'ollama';
 /** 划词工具栏显示策略（默认 `shortcut`：仅快捷键触发，不打扰） */
 export type ToolbarTrigger = 'auto' | 'shortcut';
 
+/** 沉浸式译文展示模式：双语对照 / 仅译文 */
+export type ImmersiveDisplayMode = 'bilingual' | 'translation-only';
+
+/**
+ * 沉浸式全文翻译偏好。
+ * 独立 storage 键（`local:immersivePrefs`），避免与 AppSettings 变更互相牵连。
+ */
+export interface ImmersivePrefs {
+  displayMode: ImmersiveDisplayMode;
+  /** 打开网页后是否自动开始整页翻译；默认关闭，避免打扰与额外费用 */
+  autoTranslate: boolean;
+}
+
+export const DEFAULT_IMMERSIVE_PREFS: ImmersivePrefs = {
+  displayMode: 'bilingual',
+  autoTranslate: false,
+};
+
 /** OpenAI 兼容接口配置 */
 export interface OpenAICompatibleConfig {
   baseUrl: string;
