@@ -32,9 +32,9 @@ export default defineConfig({
     commands: {
       'translate-selection': {
         suggested_key: {
-          // macOS 上 Chrome 会把 Ctrl 自动转换为 Command（即 ⌘+Shift+K）
-          default: 'Ctrl+Shift+K',
-          mac: 'Command+Shift+K',
+          // macOS 上 Alt 即 Option，故 Alt+K 等价于 Option+K
+          default: 'Alt+K',
+          mac: 'Alt+K',
         },
         description: '翻译当前选中文本',
       },

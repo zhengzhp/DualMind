@@ -4,7 +4,7 @@
 
 ## DualMind 关注点
 
-- 划词工具栏：自动显示 / 仅 Ctrl+Shift+K；禁用站点
+- 划词工具栏：自动显示 / 仅 Alt/Option+K；禁用站点
 - Side Panel：承接选区、重译、语言切换
 - Options：Ollama 连接检测与模型列表；OpenAI Compatible Key/Base URL
 - 错误态：Ollama 未启动、模型未 pull、空选区、无 Key
