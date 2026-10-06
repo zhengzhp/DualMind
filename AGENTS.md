@@ -1,6 +1,6 @@
 # DualMind 代理入口
 
-本仓库是 **DualMind** 浏览器扩展（WXT + React + MV3）。当前阶段：**V1 已冻结**（划词 + Side Panel/全页工作台 + BYOK/Ollama），**只修 bug、不加功能**；Chat / Agent 仅占位。新能力进入 V1.5+，须先更新 `docs/decisions.md`。
+本仓库是 **DualMind** 浏览器扩展（WXT + React + MV3）。当前阶段：**V1 + V1.5 已完成并封板**（V1：划词 / Side Panel / 全页工作台 / BYOK-Ollama；V1.5：沉浸式全文双语翻译），**只修 bug、不加功能**；Chat / Agent 仅占位。新能力进入 V2+，须先更新 `docs/decisions.md`。
 
 ## 规则优先级
 

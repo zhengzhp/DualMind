@@ -196,3 +196,40 @@ describe('ImmersiveController 失败态', () => {
     expect(controller.getStatus().error).toBeUndefined();
   });
 });
+
+describe('ImmersiveController 展示模式', () => {
+  it('已激活时 start(mode) 只同步展示模式，不重新采集 / 翻译', async () => {
+    mocks.collectSegments.mockReturnValue(makeSegments('ok', 3));
+    mocks.translateBatch.mockImplementation((batch: ImmersiveSegment[]) =>
+      Promise.resolve(echoResults(batch)),
+    );
+
+    const controller = new ImmersiveController(() => {});
+    await controller.start();
+    expect(controller.getStatus().displayMode).toBe('bilingual');
+    expect(mocks.translateBatch).toHaveBeenCalledTimes(1);
+
+    // 侧栏控制区在已翻译状态下切模式会走这条路（等价于「仅译文」开关）
+    await controller.start('translation-only');
+
+    const status = controller.getStatus();
+    expect(status.displayMode).toBe('translation-only');
+    expect(status.total).toBe(3);
+    // 未触发新的翻译批次
+    expect(mocks.translateBatch).toHaveBeenCalledTimes(1);
+  });
+
+  it('未激活时 start(mode) 以指定模式开始翻译', async () => {
+    mocks.collectSegments.mockReturnValue(makeSegments('ok', 2));
+    mocks.translateBatch.mockImplementation((batch: ImmersiveSegment[]) =>
+      Promise.resolve(echoResults(batch)),
+    );
+
+    const controller = new ImmersiveController(() => {});
+    await controller.start('translation-only');
+
+    const status = controller.getStatus();
+    expect(status.displayMode).toBe('translation-only');
+    expect(status.total).toBe(2);
+  });
+});

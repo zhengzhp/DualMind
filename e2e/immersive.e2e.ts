@@ -192,4 +192,152 @@ test.describe('沉浸式全文翻译', () => {
 
     await expect(page.locator('dualmind-immersive')).toHaveCount(0);
   });
+
+  test('偏好「仅译文」：翻译后隐藏原文、保留译文，偏好仍落 storage', async ({
+    page,
+    serviceWorker,
+  }) => {
+    await seedSettings(serviceWorker, OLLAMA_SETTINGS);
+    // 预置展示模式偏好：内容脚本挂载时读取，决定本轮翻译的展示模式
+    await serviceWorker.evaluate(async () => {
+      const g = globalThis as unknown as {
+        chrome: {
+          storage: {
+            local: { set: (items: Record<string, unknown>) => Promise<void> };
+          };
+        };
+      };
+      await g.chrome.storage.local.set({
+        immersivePrefs: { displayMode: 'translation-only', autoTranslate: false },
+      });
+    });
+
+    await page.goto('https://example.com');
+    await expect(page.locator('dualmind-immersive')).toHaveCount(1);
+    await installFixture(page);
+
+    const fab = page.locator(FAB);
+    await fab.click();
+    await expect(fab).toHaveText('显示原文', { timeout: 150_000 });
+
+    // 「仅译文」：<html> 打类名，源元素被隐藏；译文块仍可见
+    await expect
+      .poll(() =>
+        page.evaluate(() =>
+          document.documentElement.classList.contains(
+            'dm-immersive-translation-only',
+          ),
+        ),
+      )
+      .toBe(true);
+    expect(
+      await page
+        .locator('#dm-p1')
+        .evaluate((el) => getComputedStyle(el).display),
+    ).toBe('none');
+    await expect(page.locator('#dm-p1 + .dm-immersive-block')).toBeVisible();
+
+    // 偏好未被翻译过程改写
+    const prefs = await serviceWorker.evaluate(async () => {
+      const g = globalThis as unknown as {
+        chrome: {
+          storage: {
+            local: { get: (k: string) => Promise<Record<string, unknown>> };
+          };
+        };
+      };
+      return (await g.chrome.storage.local.get('immersivePrefs')).immersivePrefs;
+    });
+    expect(prefs).toMatchObject({ displayMode: 'translation-only' });
+  });
+
+  test('动态内容：翻译完成后新插入的正文被自动补译', async ({
+    page,
+    serviceWorker,
+  }) => {
+    await seedSettings(serviceWorker, OLLAMA_SETTINGS);
+    await page.goto('https://example.com');
+    await expect(page.locator('dualmind-immersive')).toHaveCount(1);
+
+    await installFixture(page);
+    const fab = page.locator(FAB);
+    await fab.click();
+    await expect(fab).toHaveText('显示原文', { timeout: 150_000 });
+
+    const before = await page.locator(BLOCK).count();
+
+    // 模拟前端框架异步插入新正文（不应触发对自己注入译文的再翻译）
+    await page.evaluate(() => {
+      const p = document.createElement('p');
+      p.id = 'dm-late';
+      p.textContent =
+        'A paragraph inserted after the initial pass should be translated automatically.';
+      document.getElementById('dm-fixture')?.appendChild(p);
+    });
+
+    // MutationObserver 防抖 500ms + 翻译耗时
+    await expect(page.locator('#dm-late + .dm-immersive-block')).toContainText(
+      /[\u4e00-\u9fff]/,
+      { timeout: 90_000 },
+    );
+    expect(await page.locator(BLOCK).count()).toBeGreaterThan(before);
+  });
+
+  test('沉浸译指令：扩展页向内容脚本下发后开始整页翻译', async ({
+    context,
+    page,
+    serviceWorker,
+    extensionId,
+  }) => {
+    // 覆盖 content:immersive-command 这一条入口（右键「翻译整页」/ 侧栏控制区最终都落到它）。
+    // 真实右键菜单与 Background 的「当前活动标签页」查找无法在 Playwright 中点击，
+    // 故这里从扩展页直接向内容页下发同款消息。
+    await seedSettings(serviceWorker, OLLAMA_SETTINGS);
+    await page.goto('https://example.com');
+    await expect(page.locator('dualmind-immersive')).toHaveCount(1);
+    await installFixture(page);
+
+    const panel = await context.newPage();
+    await panel.goto(`chrome-extension://${extensionId}/sidepanel.html`);
+
+    const contentTabId = await panel.evaluate(async () => {
+      const g = globalThis as unknown as {
+        browser: {
+          tabs: {
+            query: (info: Record<string, never>) => Promise<
+              { id?: number; url?: string }[]
+            >;
+          };
+        };
+      };
+      // 直接按 URL 锁定内容页：持久化 context 可能先开一个空白标签，
+      // 用「排除自身」会误选到它，导致 sendMessage 报 Receiving end does not exist
+      const all = await g.browser.tabs.query({});
+      return (
+        all.find((tab) => (tab.url ?? '').includes('example.com'))?.id ?? -1
+      );
+    });
+    expect(contentTabId).toBeGreaterThanOrEqual(0);
+
+    await panel.evaluate(
+      (tabId) =>
+        (
+          globalThis as unknown as {
+            browser: {
+              tabs: {
+                sendMessage: (id: number, message: unknown) => Promise<unknown>;
+              };
+            };
+          }
+        ).browser.tabs.sendMessage(tabId, {
+          type: 'content:immersive-command',
+          command: 'start',
+        }),
+      contentTabId,
+    );
+
+    await expect(page.locator(FAB)).toHaveText('显示原文', {
+      timeout: 150_000,
+    });
+  });
 });

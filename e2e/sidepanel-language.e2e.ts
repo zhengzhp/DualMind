@@ -47,20 +47,25 @@ test.describe('Side Panel · 目标语言互切', () => {
     // 默认目标语为简体中文
     await expect(lang).toHaveText(langLabel('zh-CN'));
 
+    // 权威契约在 translateSession.targetLanguage：划词的目标语互切是「按次请求」的，
+    // 只写入本次会话，**不回写 settings**；语言选择器因此始终反映持久化设置，
+    // 不被会话语言覆盖（见 decisions.md「划词目标语」与 WorkbenchApp 的注释）。
+    // 早期版本曾断言选择器随互切变化，那是变更前的旧行为，已不再成立。
+
     // 纯英文 → 目标简体中文
     await pushSelection(page, 'Hello, how are you today?');
-    await expect(lang).toHaveText(langLabel('zh-CN'));
     expect((await readSession(serviceWorker))?.targetLanguage).toBe('zh-CN');
 
     // 纯中文 → 目标英文
     await pushSelection(page, '今天天气很好');
-    await expect(lang).toHaveText(langLabel('en'));
     expect((await readSession(serviceWorker))?.targetLanguage).toBe('en');
 
     // 中英混排 → 目标简体中文
     await pushSelection(page, 'hello 世界');
-    await expect(lang).toHaveText(langLabel('zh-CN'));
     expect((await readSession(serviceWorker))?.targetLanguage).toBe('zh-CN');
+
+    // 三次互切后，选择器仍保持持久化设置（zh-CN），证明未被会话语言污染
+    await expect(lang).toHaveText(langLabel('zh-CN'));
   });
 });
 

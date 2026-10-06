@@ -58,4 +58,48 @@ test.describe('Side Panel 翻译工作台', () => {
 
     await expect(page.getByText(/请先在设置中填写 API Key/)).toBeVisible();
   });
+
+  test('空输入点翻译：提示请输入文本且不产生译文', async ({
+    page,
+    serviceWorker,
+    extensionId,
+  }) => {
+    await seedSettings(serviceWorker, OLLAMA_SETTINGS);
+    await page.goto(`chrome-extension://${extensionId}/sidepanel.html`);
+    await expect(page.getByRole('heading', { name: 'DualMind' })).toBeVisible();
+
+    // 原文为空直接点翻译：应给出提示并提前返回，不发起模型请求
+    await page
+      .getByRole('main')
+      .getByRole('button', { name: '翻译', exact: true })
+      .click();
+
+    await expect(page.getByText('请输入或粘贴要翻译的文本')).toBeVisible();
+    await expect(page.locator('textarea').nth(1)).toHaveValue('');
+  });
+
+  test('Ollama 不可达时翻译给出可读错误', async ({
+    page,
+    serviceWorker,
+    extensionId,
+  }) => {
+    // 指向必然不可达的端口：chat 请求 fetch 失败 → OLLAMA_UNREACHABLE
+    await seedSettings(serviceWorker, {
+      ...OLLAMA_SETTINGS,
+      ollama: { host: 'http://127.0.0.1:1', model: OLLAMA_MODEL },
+    });
+    await page.goto(`chrome-extension://${extensionId}/sidepanel.html`);
+    await expect(page.getByRole('heading', { name: 'DualMind' })).toBeVisible();
+
+    const source = page.locator('textarea').first();
+    await source.fill('Hello, world.');
+    await page
+      .getByRole('main')
+      .getByRole('button', { name: '翻译', exact: true })
+      .click();
+
+    await expect(page.locator('.text-red-700')).toContainText('无法连接 Ollama', {
+      timeout: 60_000,
+    });
+  });
 });

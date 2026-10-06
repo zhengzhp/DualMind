@@ -205,3 +205,48 @@
 - **需要观察界面 / 真实 Side Panel** 时用 `pnpm test:e2e:headed`（即 `E2E_HEADED=1`）。真实 `sidePanel.open()` 依赖窗口侧边 UI，无头下不产生 SIDE_PANEL 上下文，故 `e2e/selection-panel-toggle.e2e.ts` 的首个用例仅在 `E2E_HEADED=1` 时执行，否则自动 skip。
 - 沙箱化 shell 需 `PLAYWRIGHT_HOST_PLATFORM_OVERRIDE=mac-arm64`（沙箱把 `os.arch()` 报成 x64，且 Chromium 因 `xattr` 受限会 SIGABRT）；用户自建终端不需要。
 
+## V1.5 封板 · 测试补充与验收快照（2026-10-07）
+
+**背景**：V1.5 功能已落地（见上节），但自动化覆盖滞后——沉浸译只覆盖「整页翻译 + 还原」，「展示模式 / 动态补译 / 指令入口 / 未翻译标注」以及全页工作台、复制、错误态均无护栏。本节记录封板前补齐的测试、修掉的阻塞项与最终验收结果。
+
+> 上方「V1 收官」与「V1.5 测试结论」中的计数是**当时的历史快照**，不改写；封板以本节为准。
+
+### 本次新增 / 扩展的测试
+
+| 文件 | 类型 | 覆盖 |
+|------|------|------|
+| `features/immersive/renderer.test.ts` | 新增（9） | 双语追加兄弟节点 + 源标记、幂等更新、表格单元格插入内部且不隐藏、「仅译文」`<html>` 类名切换、未翻译角标与计数、未翻译→已翻译、孤儿清理、`clear()` 还原、样式只注入一次 |
+| `features/immersive/dom.test.ts` | 新增（8） | FAB 状态机：idle / error / running / active / warning 的文案与 `data-state`、优先级、状态切换不残留 |
+| `entrypoints/options/diff.ts` | 新增 | 从 `App.tsx` 抽出 `diffSettings` / `parseHosts`（纯逻辑，脱离 React/DOM 才可单测） |
+| `entrypoints/options/diff.test.ts` | 新增（10） | 空补丁、单字段、嵌套只带变化子字段、禁用站点比对、`parseHosts` 解析 |
+| `features/immersive/controller.test.ts` | 扩展（+2） | 已激活时 `start(mode)` 只切模式不重译；未激活时按指定模式开始 |
+| `e2e/workspace.e2e.ts` | 新增（2） | 全页工作台翻译 + 复制按钮启用态；Chat / Agent 占位且无实际能力 |
+| `e2e/immersive.e2e.ts` | 扩展（+3） | 偏好「仅译文」（隐藏原文 + 偏好落盘）、动态内容自动补译、`content:immersive-command` 指令入口 |
+| `e2e/sidepanel.e2e.ts` | 扩展（+2） | 空输入提前返回不请求、Ollama 不可达给出可读错误 |
+
+**测试侧缺陷与阻塞项（本次修，均非产品逻辑）**
+
+1. **`pnpm compile` 阻塞**：`browser.runtime.getURL('wordmark.svg')` 缺前导斜杠 → `TS2769`（`entrypoints/options/App.tsx`、`features/translate/ui/WorkbenchApp.tsx` 两处；HEAD 即存在）。改为 `getURL('/wordmark.svg')` 后 `compile` 归零。
+2. **过期断言（既有回归）**：`e2e/sidepanel-language.e2e.ts` 断言「语言选择器随划词互切变化」，与既定改动「划词目标语**按次写 `translateSession`、不回写 settings**，选择器只反映持久化设置」相矛盾。经 `git stash` 回退到 HEAD **复现确认**（非本次引入）。改为断言权威契约 `translateSession.targetLanguage`，并补一条「三次互切后选择器仍为持久化值」防污染断言。
+3. **新增用例的标签页选择**：持久化 context 会先开一个空白标签，`tabs.query` 用「排除自身」会误选到它（报 `Receiving end does not exist`），改为按 URL（`example.com`）锁定内容页。
+
+### 验收结果（2026-10-07）
+
+| 项目 | 结果 |
+|------|------|
+| `pnpm compile`（tsc --noEmit） | ✅ 通过（0 错误） |
+| `pnpm test`（Vitest） | ✅ **16 文件 / 137 用例**全通过 |
+| `pnpm build`（wxt build） | ✅ 通过（本轮为跑 E2E 构建，dev 写 `chrome-mv3-dev`，互不冲突） |
+| `pnpm test:e2e`（无头） | ✅ **29 passed / 1 skipped**（30 条；skip 为需要真实窗口的真实侧栏用例） |
+| `pnpm test:e2e:headed`（真实侧栏 2 条） | ✅ 2/2 通过（`e2e/selection-panel-toggle.e2e.ts`，含无头下被 skip 的真实 `sidePanel.open()` 用例） |
+| `pnpm zip` / 提审 | ⏸ 未做（发布与全量验证按既定节奏后置到 V3 完成后统一执行） |
+| Firefox | ⏸ 未验证（Chrome / Edge 优先） |
+
+### 封板后仍存在的已知覆盖缺口
+
+- **真实右键菜单**：`contextMenus` 的原生右键无法被 Playwright 点击；已用同款 `content:immersive-command` 消息覆盖内容脚本侧，但 Background 的「当前活动标签页」查找仍是盲区，需手工验证。
+- **无头下侧栏「沉浸翻译」控制区**：`immersive:command` 依赖 `tabs.query({active:true})`，无头多标签下不可靠，需 `pnpm test:e2e:headed` 或手工验证。
+- **真实复杂布局**：布局用例是注入式 fixture，Grid/Flex 卡片流、粘性表头、站点样式冲突未覆盖。
+- **复制译文 → 「已复制」提示**：剪贴板在无头下不稳定，未自动化（工作台用例已断言复制按钮的启用/禁用态）。
+- **`renderFab` 的 error 与 untranslated 同时存在时**：`data-state` 取 error、但 `title` 优先显示未翻译段数（错误原因只在侧栏可见）；已按现状锁定断言，若调整优先级需同步更新 `dom.test.ts`。
+

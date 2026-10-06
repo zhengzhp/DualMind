@@ -90,7 +90,7 @@ flowchart LR
 - [x] 全页工作台（workspace）
 - [x] Options 设置页
 - [x] V1 收官（compile / 单测全绿；**功能冻结，仅修 bug**）
-- [x] V1.5 沉浸式全文双语翻译（`features/immersive/`；分段 / 分批并发 / 双语渲染 / 增量补译）
+- [x] V1.5 沉浸式全文双语翻译（`features/immersive/`；分段 / 分批并发 / 双语渲染 / 增量补译）—— 已封板 2026-10-07
 - [ ] V2 摘要 / 聊天（`features/chat/`，独立 `chat:*` 消息前缀）
 - [ ] V3 浏览器 Agent（独立 feature + 强确认 + 独立权限说明）
 

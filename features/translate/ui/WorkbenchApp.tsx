@@ -28,7 +28,7 @@ type ModuleTab = 'translate' | 'chat' | 'agent';
  * 路径与设计稿逐字节相同，仅裁掉上下空白 —— 因此图片底边≈字标基线，
  * 在 `items-baseline` 行里能直接与副标题对齐，不需要负 margin 补偿。
  */
-const WORDMARK_URL = browser.runtime.getURL('wordmark.svg');
+const WORDMARK_URL = browser.runtime.getURL('/wordmark.svg');
 
 /** 复制成功提示的展示时长（毫秒） */
 const COPY_HINT_MS = 1500;
