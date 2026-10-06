@@ -6,6 +6,7 @@ import {
   removeSessionById,
   toChatSessionSummaries,
   trimTurns,
+  updateTurn,
 } from './chatSessions';
 import type { ChatSession, ChatTurn } from './types';
 
@@ -140,5 +141,33 @@ describe('toChatSessionSummaries', () => {
   it('摘要不含消息体', () => {
     const [summary] = toChatSessionSummaries([session('a', { turns: [turn('1', 'x')] })]);
     expect(summary).not.toHaveProperty('turns');
+  });
+});
+
+describe('updateTurn', () => {
+  it('只更新命中的那条消息', () => {
+    const turns: ChatTurn[] = [
+      { id: 'a', role: 'user', content: '问', createdAt: 0 },
+      { id: 'b', role: 'assistant', content: '', createdAt: 0 },
+    ];
+    const next = updateTurn(turns, 'b', { content: '答' });
+    expect(next[0]!.content).toBe('问');
+    expect(next[1]!.content).toBe('答');
+  });
+
+  it('可标注失败文案', () => {
+    const turns: ChatTurn[] = [
+      { id: 'b', role: 'assistant', content: '', createdAt: 0 },
+    ];
+    const next = updateTurn(turns, 'b', { error: '请求失败' });
+    expect(next[0]!.error).toBe('请求失败');
+  });
+
+  it('id 不存在时原样返回（避免流式回包晚于会话切换而错写）', () => {
+    const turns: ChatTurn[] = [
+      { id: 'a', role: 'user', content: '问', createdAt: 0 },
+    ];
+    const next = updateTurn(turns, 'zzz', { content: '越权写入' });
+    expect(next).toEqual(turns);
   });
 });

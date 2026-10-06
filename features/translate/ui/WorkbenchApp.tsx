@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { ChatPanel } from '@/features/chat/ui/ChatPanel';
 import { ImmersiveControl } from '@/features/immersive/ui/ImmersiveControl';
 import { formatErrorForUi } from '@/shared/errors';
 import {
@@ -33,18 +34,25 @@ const WORDMARK_URL = browser.runtime.getURL('/wordmark.svg');
 /** 复制成功提示的展示时长（毫秒） */
 const COPY_HINT_MS = 1500;
 
-/** 顶部模块 Tab（翻译可用；Chat / Agent 仅占位） */
+/** 顶部模块 Tab（翻译 / 聊天可用；Agent 仅占位） */
 const MODULE_TABS: readonly (readonly [ModuleTab, string])[] = [
   ['translate', '翻译'],
   ['chat', '聊天'],
   ['agent', 'Agent'],
 ];
 
+/** 副标题按当前 Tab 变化，避免在「聊天」页仍显示「翻译」 */
+const TAB_SUBTITLE: Record<ModuleTab, string> = {
+  translate: '翻译',
+  chat: '网页问答',
+  agent: 'Agent',
+};
+
 export type WorkbenchSurface = 'sidepanel' | 'workspace';
 
 /**
  * 翻译工作台（Side Panel 与全页共用）。
- * 会话仍走 translateSession；Chat / Agent 仅占位。
+ * 会话仍走 translateSession；Chat 已接入 `features/chat`，Agent 仅占位。
  */
 export function WorkbenchApp({ surface }: { surface: WorkbenchSurface }) {
   const isPage = surface === 'workspace';
@@ -332,7 +340,7 @@ export function WorkbenchApp({ surface }: { surface: WorkbenchSurface }) {
                 />
               </h1>
               <p className="text-xs text-brand-700/70">
-                {isPage ? '全页工作台 · 翻译' : 'AI 助手 · 翻译工作台'}
+                {isPage ? `全页工作台 · ${TAB_SUBTITLE[tab]}` : `AI 助手 · ${TAB_SUBTITLE[tab]}`}
               </p>
             </div>
             <div className="flex items-center gap-1">
@@ -599,16 +607,7 @@ export function WorkbenchApp({ surface }: { surface: WorkbenchSurface }) {
           </>
         )}
 
-        {tab === 'chat' && (
-          <Placeholder
-            title="聊天（即将推出）"
-            desc={
-              isPage
-                ? '后续将复用同一 Provider，在此进行多轮对话与网页问答。'
-                : '后续将复用同一 Provider，在侧边栏进行多轮对话与网页问答。'
-            }
-          />
-        )}
+        {tab === 'chat' && <ChatPanel surface={surface} />}
         {tab === 'agent' && (
           <Placeholder
             title="Agent（即将推出）"

@@ -24,6 +24,13 @@
 features/
   page-content/       # 语义正文提取 / 分块 / 截断预算 / 选区上下文（chat 与 immersive 共用）
   chat/               # 网页摘要 + 网页问答（独立 chat:* 消息）
+    types.ts          # 域内运行时类型 + 持久化形状转出
+    prompts.ts        # 系统提示 / 上下文拼装 / 历史裁剪（Background 侧组装）
+    service.ts        # answerQuestion()：组装 messages → runChatStream
+    client.ts         # Port 客户端（Side Panel / 工作台侧，流式 + abort）
+    extract.ts        # 内容脚本侧：选区 / 正文提取
+    mount.ts          # 注册 content:chat-extract 监听
+    ui/               # ChatPanel（面板）/ SessionList（历史）/ useChat（状态机）
 ```
 
 - `page-content/` 由 `immersive/segmenter.ts` **等价抽取**而来，immersive 改为引用它（既有单测作护栏）。

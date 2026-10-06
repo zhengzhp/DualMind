@@ -80,3 +80,15 @@ export function toChatSessionSummaries(
       updatedAt: session.updatedAt,
     }));
 }
+
+/**
+ * 按 id 更新某条消息（流式增量写入、失败标注都用它）。
+ * 找不到 id 时原样返回，避免流式回包晚于会话切换导致错写。
+ */
+export function updateTurn(
+  turns: ChatTurn[],
+  id: string,
+  patch: Partial<Omit<ChatTurn, 'id' | 'role'>>,
+): ChatTurn[] {
+  return turns.map((turn) => (turn.id === id ? { ...turn, ...patch } : turn));
+}
