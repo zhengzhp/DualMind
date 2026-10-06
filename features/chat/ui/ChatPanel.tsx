@@ -150,6 +150,32 @@ export function ChatPanel({
         </div>
       )}
 
+      {/* 会话来源页与当前页不一致：先确认再用当前页继续（见 docs/decisions.md） */}
+      {chat.mismatchConfirm && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+          <p className="break-words leading-relaxed">
+            该会话来自其他页面（{chat.mismatchConfirm.sessionUrl}），当前页面不同。
+            仍要基于<strong>当前页</strong>继续提问吗？
+          </p>
+          <div className="mt-1.5 flex gap-1.5">
+            <button
+              type="button"
+              onClick={chat.confirmMismatch}
+              className="rounded-lg bg-amber-500 px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-amber-600"
+            >
+              仍要继续
+            </button>
+            <button
+              type="button"
+              onClick={chat.cancelMismatch}
+              className="rounded-lg border border-amber-200 bg-white px-2.5 py-1 text-[11px] font-medium text-amber-800 hover:bg-amber-50"
+            >
+              取消
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* 消息区：全页有固定视口高度，可 flex-1 撑满；侧栏外层高度由内容决定，
           故用 max-h 限高，避免消息一多就把输入框挤出屏幕 */}
       <div
@@ -214,7 +240,11 @@ function TurnBubble({ turn }: { turn: ChatTurn }) {
   const pending = !isUser && !turn.content && !turn.error;
 
   return (
-    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
+    <div
+      // 稳定的测试标识：E2E 里需要单独断言「助手回复」（用户提问也是中文，不能按语言选）
+      data-testid={isUser ? 'chat-turn-user' : 'chat-turn-assistant'}
+      className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}
+    >
       <div
         className={`max-w-[85%] whitespace-pre-wrap break-words rounded-xl px-3 py-2 leading-relaxed ${
           isUser

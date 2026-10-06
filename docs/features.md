@@ -15,7 +15,7 @@
 
 | Feature | 目录 | 入口消息 / Port | 写入 storage | UI 入口 | 状态 |
 |---------|------|-----------------|--------------|---------|------|
-| chat | `features/chat/` | `chat:*`：`chat:prefs:get/save`、`chat:sessions:list/get/upsert/delete/clear`、`chat:context`（BG 转发内容脚本提取正文 / 选区）；Port `dualmind-chat`（`start` / `abort`，流式） | `local:chatSessions`（全局会话，上限 50 会话 / 200 条，超限淘汰最旧）、`local:chatPrefs`（`contextScope` / `maxContextChars`）、`local:chatPending`（右键菜单信箱，消费即清空，TTL 30s）；正文不落 storage | Side Panel / 全页工作台「聊天」Tab（`ChatPanel` + `SessionList`）、「总结本页」按钮、右键菜单「用 DualMind 总结本页」（仅 `contexts: ['page']`） | V2 可用 |
+| chat | `features/chat/` | `chat:*`：`chat:prefs:get/save`、`chat:sessions:list/get/upsert/delete/clear`、`chat:context`（BG 转发内容脚本提取正文 / 选区）、`chat:page-info`（BG 取活动页地址 / 标题，用于会话来源一致性确认）；Port `dualmind-chat`（`start` / `abort`，流式） | `local:chatSessions`（全局会话，上限 50 会话 / 200 条，超限淘汰最旧）、`local:chatPrefs`（`contextScope` / `maxContextChars`）、`local:chatPending`（右键菜单信箱，消费即清空，TTL 30s）；正文不落 storage | Side Panel / 全页工作台「聊天」Tab（`ChatPanel` + `SessionList`）、「总结本页」按钮、右键菜单「用 DualMind 总结本页」（仅 `contexts: ['page']`，`disabledHosts` 站点置灰） | V2 可用 |
 
 > 共享提取层 `features/page-content/` **不是独立 Feature**：无消息前缀、不写 storage，被 `chat` 与 `immersive` 共同引用（`segmenter` 语义采集 / `budget` 字符预算截断）。
 

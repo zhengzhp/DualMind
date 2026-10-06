@@ -13,6 +13,7 @@ import { createProviderFromSettings } from '@/providers/registry';
 import { softenDevTabReloads } from '@/shared/dev/softenTabReload';
 import { formatErrorForUi, normalizeError } from '@/shared/errors';
 import { fail, ok } from '@/shared/messaging/client';
+import { hostnameFromUrl, isHostDisabled } from '@/shared/siteAccess';
 import {
   CHAT_PORT,
   IMMERSIVE_PORT,
@@ -279,6 +280,16 @@ const handlers: HandlerMap = {
   },
 
   'chat:context': async (data) => forwardChatContext(data.scope),
+
+  'chat:page-info': async () => {
+    // 不触发内容脚本：仅取活动标签页的地址 / 标题，用于会话来源一致性判断
+    const [tab] = await browser.tabs.query({
+      active: true,
+      currentWindow: true,
+    });
+    if (!tab) return null;
+    return { url: tab.url ?? '', title: tab.title ?? '' };
+  },
 };
 
 /** Port 流式翻译：支持 abort */
@@ -502,6 +513,45 @@ function attachChatPort(port: {
   });
 }
 
+/** DualMind 的右键菜单项 id（按站点统一置灰时用） */
+const CONTEXT_MENU_IDS = [
+  'dualmind-translate',
+  'dualmind-immersive',
+  'dualmind-chat-summarize',
+] as const;
+
+/**
+ * 按「当前活动标签页是否被禁用」统一更新右键菜单项的 `enabled`。
+ *
+ * 背景：菜单项全站可见，而 `contextMenus` 的 `documentUrlPatterns` 无法表达
+ * 「除 disabledHosts 之外的所有站点」；在内容脚本被禁用的站点上点击只会得到
+ * 一个空洞的失败提示。改为在这些站点上把菜单置灰（见 docs/decisions.md）。
+ *
+ * 触发时机：标签页切换 / 地址变化 / 设置变更。任何失败都静默（菜单可能尚未创建）。
+ */
+async function refreshContextMenuEnabled(): Promise<void> {
+  try {
+    const { disabledHosts } = await getSettings();
+    const [tab] = await browser.tabs.query({
+      active: true,
+      currentWindow: true,
+    });
+    const disabled = isHostDisabled(
+      disabledHosts,
+      hostnameFromUrl(tab?.url ?? ''),
+    );
+    for (const id of CONTEXT_MENU_IDS) {
+      try {
+        await browser.contextMenus?.update(id, { enabled: !disabled });
+      } catch {
+        /* 菜单项尚未创建：忽略 */
+      }
+    }
+  } catch {
+    /* 查询失败不影响主流程 */
+  }
+}
+
 export default defineBackground(() => {
   // 必须尽早打补丁：WXT serve 会在 CS 变更时对所有匹配 tab 调 tabs.reload
   softenDevTabReloads();
@@ -626,6 +676,23 @@ export default defineBackground(() => {
       title: '用 DualMind 总结本页',
       contexts: ['page'],
     });
+    // 创建完成后再按当前站点置灰（removeAll + create 是异步的，不能提前调用）
+    void refreshContextMenuEnabled();
+  });
+
+  // 右键菜单按站点置灰：切标签页 / 地址变化 / 设置变更时重算
+  browser.tabs?.onActivated.addListener(() => {
+    void refreshContextMenuEnabled();
+  });
+  browser.tabs?.onUpdated.addListener((_tabId, changeInfo) => {
+    if (changeInfo.url || changeInfo.status === 'complete') {
+      void refreshContextMenuEnabled();
+    }
+  });
+  browser.storage.onChanged.addListener((changes, area) => {
+    if (area !== 'local') return;
+    if (!Object.keys(changes).some((key) => key.includes('settings'))) return;
+    void refreshContextMenuEnabled();
   });
 
   browser.contextMenus?.onClicked.addListener(async (info, tab) => {

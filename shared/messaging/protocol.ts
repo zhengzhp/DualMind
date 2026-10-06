@@ -116,6 +116,14 @@ export type ProtocolMap = {
     data: { scope?: import('@/shared/storage/types').ChatContextScope };
     return: import('@/features/chat/types').ChatContextPayload | null;
   };
+  /**
+   * 取「当前活动标签页」的地址 / 标题（**不触发内容脚本**，纯 tabs.query）。
+   * 用途：重开旧会话后判断来源页是否与当前页一致，不一致则让 UI 先确认。
+   */
+  'chat:page-info': {
+    data: undefined;
+    return: { url: string; title: string } | null;
+  };
 };
 
 /** Side Panel 生命周期 Port：用于判断是否已打开、以及请求自关闭 */

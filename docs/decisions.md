@@ -37,6 +37,8 @@
 | 上下文预算 | `chatPrefs.maxContextChars`（默认 12000）按段累加截断，不切半段；首段即超预算时至少保留一段，避免空上下文 |
 | 上下文读取时机 | **首次提问时**读取并缓存于内存（不落 storage）；切换范围立即按新范围重读；面板提供「重新读取」手动刷新。读取失败不阻塞对话，退化为纯对话并如实提示 |
 | 会话切换与在途流式 | 新建 / 切换会话**中断**在途流式；所有异步回写先比对会话 id，**迟到回包直接丢弃**（防止流式增量写进新会话） |
+| 会话与页面绑定 | 重开旧会话后追问，取的是**当前活动标签页**正文。若会话已记录 `pageUrl` 且**已有历史消息**，发送前比对当前页（新增 `chat:page-info`，仅 `tabs.query`、不触发内容脚本，比较时**忽略 hash**）：不一致则在面板弹确认条「该会话来自其他页面，仍要基于当前页继续？」，用户点「仍要继续」才发出，点「取消」则不发。新建会话 / 首轮提问不做这次探测（零额外往返） |
+| 右键菜单与 disabledHosts | 三个右键菜单项（`dualmind-translate` / `-immersive` / `-chat-summarize`）在内容脚本被禁用的站点上**置灰**（`contextMenus.update({ enabled: false })`），由 Background 在 `tabs.onActivated` / `tabs.onUpdated` / `storage.onChanged` 时重算。理由：`documentUrlPatterns` 无法表达「除 disabledHosts 外的所有站点」，而无效点击只会得到空洞的失败提示；站点禁用能力不应被绕过 |
 | 右键菜单入口 | 「总结本页」由 Background 写入信箱 `local:chatPending`（消费即清空 + TTL 30s），**由常驻的 `WorkbenchApp` 消费**并切到聊天 Tab 再下发给 `ChatPanel`。理由：`sidePanel.open()` 与面板挂载存在竞态，runtime 广播不可靠；且 `ChatPanel` 仅在聊天 Tab 挂载，用户停在翻译 Tab 时会漏事件。仅 Side Panel 消费，避免全页工作台抢走动作 |
 | 正文不落 storage | 页面正文只在会话内保存已发送的上下文片段 / 引用，不作为独立快照持久化 |
 | 权限 | **不扩大**：复用现有 `<all_urls>` content script，不引入 `scripting` / `activeTab` |

@@ -1,6 +1,7 @@
 import { mountImmersive } from '@/features/immersive/mount';
 import { mountChatContext } from '@/features/chat/mount';
 import { mountSelectionToolbar } from '@/features/selection-toolbar/mount';
+import { isHostDisabled } from '@/shared/siteAccess';
 import { sendMessage } from '@/shared/messaging/client';
 
 export default defineContentScript({
@@ -17,7 +18,7 @@ export default defineContentScript({
     }
 
     const host = window.location.hostname;
-    if (settings.disabledHosts.includes(host)) {
+    if (isHostDisabled(settings.disabledHosts, host)) {
       return;
     }
 

@@ -18,6 +18,7 @@ import type {
   ChatTurn,
 } from '@/shared/storage/types';
 import { streamChat } from '../client';
+import { isSamePageUrl } from '../pageUrl';
 import { SUMMARY_QUESTION } from '../prompts';
 import type { ChatContextPayload } from '../types';
 
@@ -42,6 +43,16 @@ function createSession(): ChatSession {
   };
 }
 
+/** 会话来自其他页面时的待确认状态（发送前先问用户） */
+export interface MismatchConfirm {
+  /** 用户原本要发送的提问（确认后原样发出） */
+  question: string;
+  /** 会话记录的来源页 */
+  sessionUrl: string;
+  /** 当前活动标签页地址 */
+  currentUrl: string;
+}
+
 export interface ChatController {
   prefs: ChatPrefs | null;
   session: ChatSession;
@@ -51,6 +62,8 @@ export interface ChatController {
   contextError: string;
   streaming: boolean;
   error: string;
+  /** 非空时 UI 需弹「会话来自其他页面，仍要继续？」确认条 */
+  mismatchConfirm: MismatchConfirm | null;
   setScope(scope: ChatContextScope): Promise<void>;
   refreshContext(): Promise<void>;
   send(question: string): Promise<void>;
@@ -60,6 +73,10 @@ export interface ChatController {
   openSession(id: string): Promise<void>;
   removeSession(id: string): Promise<void>;
   clearSessions(): Promise<void>;
+  /** 确认用当前页继续（发出挂起的提问） */
+  confirmMismatch(): void;
+  /** 取消本次发送 */
+  cancelMismatch(): void;
 }
 
 export interface UseChatOptions {
@@ -82,6 +99,9 @@ export function useChat(options: UseChatOptions = {}): ChatController {
   const [contextError, setContextError] = useState('');
   const [streaming, setStreaming] = useState(false);
   const [error, setError] = useState('');
+  /** 会话来源页与当前页不一致时的待确认状态（见 docs/decisions.md） */
+  const [mismatchConfirm, setMismatchConfirm] =
+    useState<MismatchConfirm | null>(null);
 
   /** 逻辑侧读取「当前会话」的权威引用（避免闭包拿到过期 state） */
   const sessionRef = useRef<ChatSession>(session);
@@ -180,9 +200,9 @@ export function useChat(options: UseChatOptions = {}): ChatController {
     [loadContext],
   );
 
-  const send = useCallback(
-    async (question: string) => {
-      const text = question.trim();
+  const sendNow = useCallback(
+    async (raw: string) => {
+      const text = raw.trim();
       // 在途请求存在时不允许并发提问（UI 此时显示「停止」）
       if (!text || abortRef.current) return;
 
@@ -284,6 +304,53 @@ export function useChat(options: UseChatOptions = {}): ChatController {
     ],
   );
 
+  /** 读取当前活动标签页地址（不触发内容脚本）；失败返回空串 */
+  const probeActivePageUrl = useCallback(async (): Promise<string> => {
+    try {
+      const info = await sendMessage('chat:page-info', undefined);
+      return info?.url ?? '';
+    } catch {
+      return '';
+    }
+  }, []);
+
+  /**
+   * 发送入口：先做「会话来源页 vs 当前页」一致性判断。
+   *
+   * 仅当会话**已记录了来源页且已有历史消息**（即重开旧会话追问）时探测，
+   * 新建会话或首轮提问不会多这一跳。
+   * 地址为空（chrome:// 等无 URL 的页）视为无法比较，直接放行。
+   */
+  const send = useCallback(
+    async (question: string) => {
+      const text = question.trim();
+      if (!text || abortRef.current) return;
+
+      const base = sessionRef.current;
+      if (base.pageUrl && base.turns.length > 0) {
+        const currentUrl = await probeActivePageUrl();
+        if (currentUrl && !isSamePageUrl(base.pageUrl, currentUrl)) {
+          setMismatchConfirm({
+            question: text,
+            sessionUrl: base.pageUrl,
+            currentUrl,
+          });
+          return;
+        }
+      }
+      await sendNow(text);
+    },
+    [probeActivePageUrl, sendNow],
+  );
+
+  const confirmMismatch = useCallback(() => {
+    if (!mismatchConfirm) return;
+    setMismatchConfirm(null);
+    void sendNow(mismatchConfirm.question);
+  }, [mismatchConfirm, sendNow]);
+
+  const cancelMismatch = useCallback(() => setMismatchConfirm(null), []);
+
   const stop = useCallback(() => {
     abortRef.current?.abort();
   }, []);
@@ -296,6 +363,7 @@ export function useChat(options: UseChatOptions = {}): ChatController {
     setContext(null);
     setContextError('');
     setError('');
+    setMismatchConfirm(null);
   }, [commitSession, interrupt]);
 
   const openSession = useCallback(
@@ -307,6 +375,7 @@ export function useChat(options: UseChatOptions = {}): ChatController {
         setError('');
         setContext(null);
         setContextError('');
+        setMismatchConfirm(null);
         commitSession(loaded);
       } catch (err) {
         setError(formatErrorForUi(err));
@@ -323,6 +392,7 @@ export function useChat(options: UseChatOptions = {}): ChatController {
         if (sessionRef.current.id === id) {
           setContext(null);
           setContextError('');
+          setMismatchConfirm(null);
           commitSession(createSession());
         }
       } catch (err) {
@@ -338,6 +408,7 @@ export function useChat(options: UseChatOptions = {}): ChatController {
       await refreshSessions();
       setContext(null);
       setContextError('');
+      setMismatchConfirm(null);
       commitSession(createSession());
     } catch (err) {
       setError(formatErrorForUi(err));
@@ -373,6 +444,7 @@ export function useChat(options: UseChatOptions = {}): ChatController {
     contextError,
     streaming,
     error,
+    mismatchConfirm,
     setScope,
     refreshContext: async () => {
       await loadContext(prefs?.contextScope);
@@ -384,5 +456,7 @@ export function useChat(options: UseChatOptions = {}): ChatController {
     openSession,
     removeSession,
     clearSessions,
+    confirmMismatch,
+    cancelMismatch,
   };
 }
