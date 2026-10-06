@@ -10,11 +10,14 @@ import {
   TARGET_LANGUAGES,
   type ImmersiveDisplayMode,
 } from '@/shared/storage/types';
+import {
+  collectSegments,
+  type CollectedSegment,
+} from '@/features/page-content/segmenter';
 import { isTargetLanguage } from '@/features/translate/detectLang';
 import { chunkSegments } from './batch';
 import { createImmersiveClient, type ImmersiveClient } from './client';
 import { ImmersiveRenderer } from './renderer';
-import { collectSegments, type CollectedSegment } from './segmenter';
 import type { ImmersiveStatus } from './types';
 
 /** 同一时刻最多在途批次数：兼顾速度与本地模型压力 */
@@ -74,7 +77,7 @@ export class ImmersiveController {
   /**
    * 当前会话中「整批失败」的片段 id 集合。
    * 后续若补译成功会从中移除，因此 `error` 能如实反映「还有几段没译出来」，
-   * 而不是把部分失败伪装成成功（见 docs/decisions.md 的残留观察）。
+   * 而不是把部分失败伪装成成功（见 docs/decisions-v1.md 的残留观察）。
    */
   private readonly failedIds = new Set<string>();
   /** 最近一次失败的用户可见原因，与 failedIds 拼成同一条提示 */

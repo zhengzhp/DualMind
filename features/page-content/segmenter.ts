@@ -1,5 +1,8 @@
 /**
- * 正文采集：把页面 DOM 切成「可翻译片段」。
+ * 正文采集（共享层）：把页面 DOM 切成「可处理片段」。
+ *
+ * 由 chat（网页摘要 / 问答上下文）与 immersive（全文双语翻译）共用，
+ * 因此这里保持纯 DOM 逻辑、不含任何 feature 特有字段。
  *
  * 策略：自根节点向下遍历 ——
  * - 含块级子元素的容器 → 继续下钻（避免把整块结构当一个片段）
@@ -7,14 +10,11 @@
  *
  * 除 DOM 访问外无副作用，便于单测（可注入极简的伪 DOM）。
  */
-import type { ImmersiveSegment } from './types';
+import type { CollectedSegment } from './types';
 
-/** 采集结果：附带源元素引用，供渲染层在其后插入译文 */
-export interface CollectedSegment extends ImmersiveSegment {
-  el: Element;
-}
+export type { CollectedSegment, PageSegment } from './types';
 
-/** 这些标签内部文本不翻译（代码 / 表单 / 媒体 / 交互控件） */
+/** 这些标签内部文本不参与处理（代码 / 表单 / 媒体 / 交互控件） */
 const SKIP_TAGS = new Set([
   'SCRIPT',
   'STYLE',
@@ -90,7 +90,7 @@ const BLOCK_TAGS = new Set([
 export const DEFAULT_SEGMENT_LIMIT = 500;
 
 /**
- * 是否包含可翻译字符（CJK / 拉丁字母）。
+ * 是否包含可处理字符（CJK / 拉丁字母）。
  * 过滤纯数字、纯符号（如「123」「——」「·」），避免无意义请求。
  */
 export function isTranslatableText(text: string): boolean {
@@ -108,7 +108,7 @@ function isSkipped(el: Element): boolean {
   // 本扩展自己注入的节点（译文 / 样式 / 悬浮按钮）
   if (el.hasAttribute('data-dualmind')) return true;
   if (el.hasAttribute('data-dualmind-ignore')) return true;
-  // 无障碍隐藏节点通常是辅助文案，不参与翻译
+  // 无障碍隐藏节点通常是辅助文案，不参与处理
   if (el.getAttribute('aria-hidden') === 'true') return true;
   // 富文本编辑区不碰，避免破坏用户输入
   if ((el as HTMLElement).isContentEditable) return true;
@@ -167,7 +167,7 @@ export interface CollectSegmentsOptions {
 let autoSeq = 0;
 
 /**
- * 采集根节点下的可翻译片段。
+ * 采集根节点下的正文片段。
  * 若 root 本身是块级元素（增量场景传入新增节点）则从其自身开始，
  * 否则遍历其子元素（典型：document.body）。
  */
@@ -185,8 +185,7 @@ export function collectSegments(
     if (!isVisible(el)) return;
 
     const blockChildren = Array.from(el.children).filter(
-      (child) =>
-        BLOCK_TAGS.has(child.tagName.toUpperCase()) && !isSkipped(child),
+      (child) => BLOCK_TAGS.has(child.tagName.toUpperCase()) && !isSkipped(child),
     );
 
     // 含块级子元素 → 下钻，让每个子块独立成段
@@ -199,7 +198,7 @@ export function collectSegments(
     if (!isTranslatableText(text)) return;
 
     // 只有「真正产出片段」的元素才记入 seen。
-    // 若在判定可译前就标记，一次空结果会把所有遍历过的叶子元素永久写入
+    // 若在判定可处理前就标记，一次空结果会把所有遍历过的叶子元素永久写入
     // 这个弱引用集合（元素仍在文档中就不会被回收），导致之后每次采集都直接
     // 跳过它们、恒返回 0 段，表现为「一直提示没有正文」的假死。
     seen?.add(el);
@@ -208,8 +207,7 @@ export function collectSegments(
     out.push({ id: `${idPrefix}-${autoSeq}`, text, el });
   };
 
-  const rootEl =
-    (root as Element).nodeType === 1 ? (root as Element) : null;
+  const rootEl = (root as Element).nodeType === 1 ? (root as Element) : null;
   if (rootEl && BLOCK_TAGS.has(rootEl.tagName.toUpperCase())) {
     visit(rootEl);
   } else {

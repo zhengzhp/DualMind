@@ -1,7 +1,7 @@
 /**
  * ImmersiveController 失败态语义的回归护栏。
  *
- * 背景（docs/decisions.md「残留观察」）：此前某批失败后 error 会一直挂到下一次
+ * 背景（docs/decisions-v1.md「残留观察」）：此前某批失败后 error 会一直挂到下一次
  * start / stop，即使后续批次全部成功也不清除。现在的要求是：失败如实保留为
  * 「有 N 段翻译失败：原因」，并在下列情况清除：
  *   1. 全部失败片段都补译成功；
@@ -11,7 +11,7 @@
  * 通道用 vi.mock 隔离。
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { CollectedSegment } from './segmenter';
+import type { CollectedSegment } from '@/features/page-content/segmenter';
 import type { ImmersiveSegment } from './types';
 
 // vi.mock 会被提升到 import 之前，用 hoisted 与 mock 工厂共享同一组函数
@@ -21,9 +21,12 @@ const mocks = vi.hoisted(() => ({
   sendMessage: vi.fn(),
 }));
 
-// 只替换采集函数，其余导出保留（segmenter 是纯逻辑，无 DOM / wxt 依赖）
-vi.mock('./segmenter', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('./segmenter')>();
+// 只替换采集函数，其余导出保留（共享采集层是纯逻辑，无 DOM / wxt 依赖）
+vi.mock('@/features/page-content/segmenter', async (importOriginal) => {
+  const actual =
+    await importOriginal<
+      typeof import('@/features/page-content/segmenter')
+    >();
   return { ...actual, collectSegments: mocks.collectSegments };
 });
 
