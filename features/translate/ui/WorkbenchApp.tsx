@@ -9,6 +9,8 @@ import {
 import { sendMessage } from '@/shared/messaging/client';
 import { streamTranslate } from '@/shared/messaging/stream';
 import {
+  PROVIDER_HINT,
+  PROVIDER_OPTIONS,
   TARGET_LANGUAGES,
   type AppSettings,
   type ProviderType,
@@ -16,7 +18,6 @@ import {
 import {
   SearchableSelect,
   SegmentedControl,
-  type SegmentedControlOption,
 } from '@/shared/ui';
 import { Placeholder } from './Placeholder';
 
@@ -24,15 +25,6 @@ type ModuleTab = 'translate' | 'chat' | 'agent';
 
 /** 复制成功提示的展示时长（毫秒） */
 const COPY_HINT_MS = 1500;
-
-/**
- * Provider 是二选一的互斥项 → 用分段控件，选项一眼可见、少一次点击。
- * 侧栏很窄，标签取短名，完整名称放 title（悬停可见）。
- */
-const PROVIDER_OPTIONS: SegmentedControlOption<ProviderType>[] = [
-  { value: 'ollama', label: 'Ollama', title: 'Ollama（本地）' },
-  { value: 'openai-compatible', label: 'OpenAI', title: 'OpenAI Compatible' },
-];
 
 /** 顶部模块 Tab（翻译可用；Chat / Agent 仅占位） */
 const MODULE_TABS: readonly (readonly [ModuleTab, string])[] = [
@@ -79,8 +71,15 @@ export function WorkbenchApp({ surface }: { surface: WorkbenchSurface }) {
       if (!abortRef.current) {
         setTranslatedText(sess.translatedText);
       }
-      setTargetLanguage(sess.targetLanguage);
-      if (sess.error && !abortRef.current) setError(sess.error);
+      // 刻意不用会话语言覆盖语言选择器：会话里的 targetLanguage 是「上次实际
+      // 使用的语言」（划词会按中英互切自动推导），并不等于持久化设置。用它覆盖
+      // 显示值会造成「下拉显示简体中文、而 settings.targetLanguage 其实是 en」的
+      // 假象；此时用户再选同一个选项不会触发 onChange，设置永远改不回去。
+      // 以会话为权威来源同步错误态：有则显示，无则清除。
+      // 只「设置、不清除」会把上一次失败的提示永久挂住——例如新一轮翻译由划词
+      // 浮层发起并成功（同样写 translateSession），本视图收不到任何清空动作，
+      // 面板上仍留着上一轮的报错。
+      if (!abortRef.current) setError(sess.error ?? '');
     }
   }, []);
 
@@ -406,6 +405,15 @@ export function WorkbenchApp({ surface }: { surface: WorkbenchSurface }) {
                   className="min-w-0 flex-1"
                 />
               </div>
+
+              {/* 说明「OpenAI 兼容」到底包含什么，消除「只能填官方 OpenAI」的歧义 */}
+              <p
+                className={`text-[11px] leading-relaxed text-brand-700/60 ${
+                  isPage ? 'sm:col-span-3' : ''
+                }`}
+              >
+                {PROVIDER_HINT}
+              </p>
 
               <div className="flex items-center gap-2">
                 <label className="w-14 shrink-0 text-xs font-medium text-brand-700">

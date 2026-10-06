@@ -1,11 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { formatErrorForUi } from '@/shared/errors';
 import { sendMessage } from '@/shared/messaging/client';
 import {
+  PROVIDER_HINT,
+  PROVIDER_OPTIONS,
   TARGET_LANGUAGES,
   type AppSettings,
   type ImmersiveDisplayMode,
   type ImmersivePrefs,
+  type OllamaConfig,
+  type OpenAICompatibleConfig,
   type ProviderType,
   type ToolbarTrigger,
 } from '@/shared/storage/types';
@@ -20,12 +24,6 @@ import {
 const TOOLBAR_OPTIONS: SegmentedControlOption<ToolbarTrigger>[] = [
   { value: 'shortcut', label: '仅快捷键' },
   { value: 'auto', label: '选中后自动显示' },
-];
-
-/** Provider 同样二选一 → 分段控件 */
-const PROVIDER_OPTIONS: SegmentedControlOption<ProviderType>[] = [
-  { value: 'ollama', label: 'Ollama（本地）' },
-  { value: 'openai-compatible', label: 'OpenAI Compatible' },
 ];
 
 /** 沉浸式译文展示模式（互斥二选一） */
@@ -44,6 +42,13 @@ export default function App() {
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [disabledHostsText, setDisabledHostsText] = useState('');
+  /**
+   * 上次「已落盘」的设置快照。
+   * Options 是「本地草稿 + 保存按钮」模式，草稿可能停留很久；保存时只提交
+   * 相对本快照真正改动过的字段，避免用陈旧草稿整体覆盖用户在其他入口
+   * （侧栏切换目标语言 / Provider）刚写入的值。
+   */
+  const baselineRef = useRef<AppSettings | null>(null);
 
   useEffect(() => {
     void (async () => {
@@ -52,6 +57,7 @@ export default function App() {
         sendMessage('immersive:prefs:get', undefined),
       ]);
       setSettings(s);
+      baselineRef.current = s;
       setDisabledHostsText(s.disabledHosts.join('\n'));
       setImmersivePrefs(prefs);
     })();
@@ -63,12 +69,23 @@ export default function App() {
     );
   }
 
-  async function persist(patch: Partial<AppSettings>) {
+  /**
+   * 保存草稿：只把「相对上次已保存值有改动」的字段作为补丁提交。
+   * `disabledHosts` 独立于 `settings` 状态（由 textarea 维护），一并参与比对。
+   */
+  async function persistDraft(draft: AppSettings | null = settings) {
+    const baseline = baselineRef.current;
+    if (!baseline || !draft) return;
+    const patch = diffSettings(baseline, draft, parseHosts(disabledHostsText));
+
     setSaving(true);
     setError('');
     try {
-      const next = await sendMessage('settings:save', patch);
-      setSettings(next);
+      if (Object.keys(patch).length > 0) {
+        const next = await sendMessage('settings:save', patch);
+        baselineRef.current = next;
+        setSettings(next);
+      }
       setStatus('已保存');
       window.setTimeout(() => setStatus(''), 1500);
     } catch (err) {
@@ -95,10 +112,7 @@ export default function App() {
     setStatus('检测中…');
     setError('');
     // 先保存当前表单再测
-    await persist({
-      ...settings,
-      disabledHosts: parseHosts(disabledHostsText),
-    });
+    await persistDraft();
     try {
       const result = await sendMessage('provider:test', undefined);
       if (result.ok) {
@@ -118,10 +132,7 @@ export default function App() {
     setStatus('拉取模型列表…');
     setError('');
     const snapshot = settings;
-    await persist({
-      ...snapshot,
-      disabledHosts: parseHosts(disabledHostsText),
-    });
+    await persistDraft();
     try {
       const { models: list } = await sendMessage(
         'provider:listModels',
@@ -129,16 +140,18 @@ export default function App() {
       );
       setModels(list);
       setStatus(`已获取 ${list.length} 个模型`);
-      // Ollama 若尚未选模型，自动选第一个
+      // Ollama 若尚未选模型，自动选第一个（同样只提交增量）
       if (
         snapshot.providerType === 'ollama' &&
         !snapshot.ollama.model &&
         list[0]
       ) {
-        const next = await sendMessage('settings:save', {
+        const next = {
+          ...snapshot,
           ollama: { ...snapshot.ollama, model: list[0] },
-        });
+        };
         setSettings(next);
+        await persistDraft(next);
       }
     } catch (err) {
       setError(formatErrorForUi(err));
@@ -237,6 +250,10 @@ export default function App() {
               onChange={updateProviderType}
               ariaLabel="AI Provider"
             />
+            {/* 「OpenAI 兼容」不等于官方 API，这里显式说明覆盖范围 */}
+            <span className="block pt-1.5 text-xs leading-relaxed text-brand-700/60">
+              {PROVIDER_HINT}
+            </span>
           </Field>
 
           {settings.providerType === 'ollama' ? (
@@ -350,12 +367,7 @@ export default function App() {
             <button
               type="button"
               disabled={saving}
-              onClick={() =>
-                void persist({
-                  ...settings,
-                  disabledHosts: parseHosts(disabledHostsText),
-                })
-              }
+              onClick={() => void persistDraft()}
               className="rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600 disabled:opacity-60"
             >
               {saving ? '保存中…' : '保存设置'}
@@ -399,6 +411,65 @@ function Field({
       {children}
     </label>
   );
+}
+
+/**
+ * 计算「草稿相对已保存值」的增量补丁。
+ *
+ * 为什么不能整对象提交：Options 的草稿在页面加载时快照一次，之后可能长时间
+ * 停留。若整对象 `settings:save`，会把快照里陈旧的 `targetLanguage` 等一并写回，
+ * 覆盖用户刚在侧栏改过的设置（这正是沉浸译的目标语被写回 `en`、对英文页误报
+ * 「没有可翻译的正文内容」的诱因）。嵌套对象只提交变化的子字段，Background 侧
+ * `saveSettings` 会做浅合并，语义等价且不会误伤其他入口的修改。
+ */
+function diffSettings(
+  baseline: AppSettings,
+  draft: AppSettings,
+  disabledHosts: string[],
+): Partial<AppSettings> {
+  const patch: Partial<AppSettings> = {};
+
+  if (draft.targetLanguage !== baseline.targetLanguage) {
+    patch.targetLanguage = draft.targetLanguage;
+  }
+  if (draft.toolbarTrigger !== baseline.toolbarTrigger) {
+    patch.toolbarTrigger = draft.toolbarTrigger;
+  }
+  if (draft.providerType !== baseline.providerType) {
+    patch.providerType = draft.providerType;
+  }
+  // 站点禁用列表由独立 textarea 维护，按最终解析结果比对
+  if (disabledHosts.join('\n') !== baseline.disabledHosts.join('\n')) {
+    patch.disabledHosts = disabledHosts;
+  }
+
+  const openai: Partial<OpenAICompatibleConfig> = {};
+  if (draft.openai.baseUrl !== baseline.openai.baseUrl) {
+    openai.baseUrl = draft.openai.baseUrl;
+  }
+  if (draft.openai.apiKey !== baseline.openai.apiKey) {
+    openai.apiKey = draft.openai.apiKey;
+  }
+  if (draft.openai.model !== baseline.openai.model) {
+    openai.model = draft.openai.model;
+  }
+  if (Object.keys(openai).length > 0) {
+    // 协议声明为 Partial<AppSettings>，嵌套只带变化字段需收窄一次（运行时由 saveSettings 合并）
+    patch.openai = openai as OpenAICompatibleConfig;
+  }
+
+  const ollama: Partial<OllamaConfig> = {};
+  if (draft.ollama.host !== baseline.ollama.host) {
+    ollama.host = draft.ollama.host;
+  }
+  if (draft.ollama.model !== baseline.ollama.model) {
+    ollama.model = draft.ollama.model;
+  }
+  if (Object.keys(ollama).length > 0) {
+    patch.ollama = ollama as OllamaConfig;
+  }
+
+  return patch;
 }
 
 function parseHosts(text: string): string[] {

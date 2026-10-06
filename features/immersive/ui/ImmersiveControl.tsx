@@ -31,6 +31,11 @@ export function ImmersiveControl() {
       const next = await sendMessage('immersive:status', undefined);
       setStatus(next);
       setMode(next.displayMode);
+      // 成功取到状态即视为链路正常，清掉上一轮的错误提示。
+      // 否则从悬浮按钮 / 右键菜单发起的新一轮翻译不经过 runCommand，
+      // 面板会一直挂着上次的旧提示（如「正文已是 English」），
+      // 与正在进行的「翻译中 x/y」自相矛盾。
+      setError('');
     } catch (err) {
       setError(formatErrorForUi(err));
     }

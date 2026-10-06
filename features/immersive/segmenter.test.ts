@@ -224,6 +224,24 @@ describe('collectSegments', () => {
     expect(second).toHaveLength(0);
   });
 
+  it('未产出片段的元素不写入 seen（避免一次空扫永久跳过）', () => {
+    // 回归：曾经在「判定是否可译」之前就 seen.add，导致纯数字 / 符号等
+    // 被访问过的叶子被永久标记；一旦首轮整体未产出片段（例如内容已是目标
+    // 语言被上层过滤），之后任何采集都会跳过它们、恒返回 0 段。
+    const numberSpan = el('span', { text: '2026' });
+    const body = el('body', {
+      children: [numberSpan, el('span', { text: '—— ··' })],
+    });
+    const seen = new WeakSet<Element>();
+    const first = collectSegments(body as unknown as ParentNode, { seen });
+    expect(first).toHaveLength(0);
+
+    // 元素并未被记入 seen，内容和可译性变化后仍应能被采集到
+    numberSpan.ownText = 'Real words';
+    const second = collectSegments(body as unknown as ParentNode, { seen });
+    expect(second.map((segment) => segment.text)).toEqual(['Real words']);
+  });
+
   it('root 本身是块级元素时从其自身开始（增量采集场景）', () => {
     const paragraph = el('p', { text: 'Added later' });
     const segments = collectSegments(paragraph as unknown as ParentNode);

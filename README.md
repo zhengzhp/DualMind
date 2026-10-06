@@ -1,6 +1,6 @@
 # DualMind
 
-AI 浏览器助手（Chrome / Edge Manifest V3）。第一版聚焦翻译：划词工具栏 + Side Panel 工作台 + BYOK（OpenAI Compatible / 本地 Ollama）。
+AI 浏览器助手（Chrome / Edge Manifest V3）。第一版聚焦翻译：划词工具栏 + Side Panel 工作台 + BYOK（OpenAI 兼容 / 本地 Ollama）。
 
 ## 开发
 
@@ -51,8 +51,8 @@ Chrome 打开 `chrome://extensions` → 开启开发者模式 → 加载 `.outpu
 ## 使用
 
 1. 打开扩展 **设置**，选择 Provider：
-   - **Ollama**：确认本机已启动（默认 `http://127.0.0.1:11434`），点击「刷新列表」选择模型。
-   - **OpenAI Compatible**：填写 Base URL（含 `/v1`）、API Key、模型名。
+  - **本地 Ollama**：确认本机已启动（默认 `http://127.0.0.1:11434`），点击「刷新列表」选择模型。
+  - **OpenAI 兼容**：适用于 DeepSeek / Groq / 各类中转 / 自建 `/v1` 服务等，填写 Base URL（含 `/v1`）、API Key、模型名。
 2. 任意网页划词 → 按快捷键 `Alt+K`（macOS 为 `Option+K`）弹出浮层并翻译。默认「仅快捷键」，可在设置改为「选中后自动显示」；改键见 `chrome://extensions/shortcuts`。
 3. 点击扩展图标打开 Side Panel，可继续编辑原文并重译；点「工作台」打开加宽的全页（`workspace.html`）并收起侧栏，与侧栏共用同一翻译会话。
 4. **沉浸式全文翻译**：在网页右下角点「沉浸译」，或用右键菜单「用 DualMind 翻译整页」，把整页正文逐段对照翻译；再点「显示原文」即可一键还原。展示模式（双语 / 仅译文）与「打开网页后自动翻译」可在设置或侧栏控制区调整。动态加载的内容会自动补译。

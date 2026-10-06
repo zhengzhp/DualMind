@@ -38,6 +38,7 @@
 | 设置 | 目标语言、Provider、API Key、Ollama Host/模型、站点禁用列表 |
 | Side Panel 模块 | Translate 可用；Chat / Agent 仅占位；全页工作台与侧栏共用翻译 UI / `translateSession` |
 | Side Panel 模型 | 翻译页顶部可切换 Provider + 当前模型；Key/Host 仍在 Options |
+| Provider 文案 | 统一称 **「本地 Ollama」/「OpenAI 兼容」**，两处 UI 共用 `PROVIDER_OPTIONS` / `PROVIDER_HINT`（`shared/storage/types.ts`，与 `TARGET_LANGUAGES` 同处）。**不再使用单说「OpenAI」的标签**：`openai-compatible` 覆盖 DeepSeek / Groq / 中转 / 自建 `/v1` 等任意兼容端点，叫「OpenAI」会让用户以为只能填官方 API（尤其模型下拉出现 `deepseek-*` 时字面矛盾） |
 | 划词浮层侧边栏 | 按钮为 **toggle**（开/收起）；扩展图标行为不改 |
 | 划词目标语 | 未显式指定时中英互切：英→中、中→英、**混排→中**；Side Panel 手选语言仍优先 |
 
@@ -140,6 +141,39 @@
 | Options「拉取模型」strict mode 冲突 | `getByRole('button', { name: '刷新列表' })` 宽松匹配命中了含同子串的下拉空态提示文案。修法：加 `exact: true`。 |
 
 > 两处均经 `git stash` 回退到上一提交重跑验证为**既有回归**，与沉浸译改动无关。
+
+### 本轮修复的产品缺陷：整页翻译误报「没有正文」（2026-10-06）
+
+**现象**：在英文页面点「开始翻译」，侧栏与悬浮按钮报「当前页面没有可翻译的正文内容」；把目标语言改成中文重试**仍然报错**。
+
+**根因（三重叠加，均以真实页面 + 扩展存储日志证实）**：
+
+| # | 位置 | 问题 |
+|---|------|------|
+| 1 | `features/immersive/segmenter.ts` | `seen.add(el)` 写在「判定是否可译」之前：一次未产出片段的全页扫描会把所有遍历过的叶子永久标记，之后每次采集都直接跳过，恒返回 0 段（`WeakSet` 不会自行清除，只有刷新页面才恢复）。这是「改了语言重试仍失败」的直接原因 |
+| 2 | `features/immersive/controller.ts` | 「页面真的没有正文」与「正文已是目标语言被过滤」共用同一文案，把排查引向错误方向 |
+| 3 | `features/translate/ui/WorkbenchApp.tsx` | 侧栏语言选择器被 `translateSession.targetLanguage` 覆盖显示：该值是「上次实际使用的语言」（划词按中英互切自动推导），并非持久化设置。于是出现「下拉显示简体中文、而 `settings.targetLanguage` 其实是 `en`」的假象；用户再选同一项不触发 `onChange`，设置永远改不回去 |
+| 4 | `entrypoints/options/App.tsx` | 草稿整对象 `settings:save`：Options 加载时的旧快照会把其他入口（侧栏改语言 / Provider）刚写入的值覆盖回去，是设置被反复写回 `en` 的来源 |
+
+**修法**：
+
+1. `segmenter.ts`：仅在**真正产出片段**时写入 `seen`。
+2. `controller.ts`：采集改为 `collectForTranslation()`，同时回传未过滤量；0 段时按成因给出准确文案（`当前页面正文已是{语言}，无需翻译`），并在「采到片段但全被语言过滤」时**回退 `seen`**，让改完目标语言后能直接重试成功。
+3. `WorkbenchApp.tsx`：语言选择器只反映持久化设置，会话语言不再覆盖显示值。
+4. `options/App.tsx`：新增 `diffSettings()`，保存只提交相对基线的**增量字段**（嵌套对象只带变化子字段，Background 侧 `saveSettings` 浅合并）。
+
+**回归护栏**：`features/immersive/segmenter.test.ts` 新增「未产出片段的元素不写入 `seen`」用例。
+
+> 现象层面：该页正文全英文，目标语为 `en` 时 `isTargetLanguage` 会把所有片段判为「无需翻译」→ 0 段。实测该页可采到 **111** 段，故采集算法本身无问题。
+
+**同类缺陷（同一类根因，一并修复）**：UI 把提示存进**本地 state**，只在「本视图内的操作」里清空。当新一轮翻译由**其他入口**（悬浮按钮 / 右键菜单 / 划词浮层）发起时，本视图收不到任何清空动作，上一轮的旧提示会永久挂着，甚至与正在进行的「翻译中 x/y」自相矛盾。
+
+| 位置 | 问题 | 修法 |
+|------|------|------|
+| `features/immersive/ui/ImmersiveControl.tsx` | 本地 `error` 仅由 `runCommand` 清空；轮询 `refresh()` 只更新 status，不清本地 error | `refresh()` 成功取到状态后 `setError('')`，提示以权威的 `status.error` 为准 |
+| `features/translate/ui/WorkbenchApp.tsx` | `refresh()` 只在 `sess.error` 存在时 `setError`，从不清除 | 改为 `setError(sess.error ?? '')`，让 `translateSession` 成为错误态的唯一权威来源 |
+
+**残留观察（未改，待定夺）**：`features/immersive/controller.ts` 的 `processSegments` 在某一批失败时 `this.error = message` 后**继续处理后续批次**且不再清除；若后续批次成功、整页翻完，错误文案仍会留在面板与悬浮按钮上（属「部分失败」的真实信息，但无过期机制）。当前实现仅在下一次 `start()` / `stop()` 时清空。
 
 ### 本地 E2E 运行须知
 

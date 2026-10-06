@@ -77,3 +77,34 @@ export const TARGET_LANGUAGES = [
   { value: 'ru', label: 'Русский' },
   { value: 'pt', label: 'Português' },
 ] as const;
+
+/**
+ * Provider 选择项（Options 与侧栏工作台共用一份，避免两处文案漂移）。
+ *
+ * 文案刻意避开单说「OpenAI」：`openai-compatible` 覆盖的是**任意**遵循 OpenAI
+ * 协议的端点（DeepSeek / Groq / 各类中转 / 自建 vLLM 等），叫「OpenAI」会让
+ * 用户以为只能填官方 API——尤其当模型下拉里出现 `deepseek-*` 时字面自相矛盾。
+ * 因此标签统一为「OpenAI 兼容」，用 `hint` 补充说明它到底包含什么。
+ *
+ * 结构上天然满足 `SegmentedControlOption`（UI 层不反向依赖 storage，故此处不引入其类型）。
+ */
+export const PROVIDER_OPTIONS = [
+  {
+    value: 'ollama',
+    label: '本地 Ollama',
+    title: 'Ollama：模型跑在本机，默认端口 11434',
+  },
+  {
+    value: 'openai-compatible',
+    label: 'OpenAI 兼容',
+    title: 'OpenAI 兼容接口：DeepSeek / Groq / 中转 / 自建 /v1 服务',
+  },
+] as const satisfies readonly {
+  value: ProviderType;
+  label: string;
+  title: string;
+}[];
+
+/** Provider 选择项下方的说明文案（两处 UI 共用，保证口径一致） */
+export const PROVIDER_HINT =
+  '本地 Ollama 走本机端口；OpenAI 兼容适用于 DeepSeek、Groq、各类中转或自建 /v1 服务等任意兼容端点。';

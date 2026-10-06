@@ -196,8 +196,13 @@ export function collectSegments(
     }
 
     const text = normalizeSegmentText(el.textContent ?? '');
-    seen?.add(el);
     if (!isTranslatableText(text)) return;
+
+    // 只有「真正产出片段」的元素才记入 seen。
+    // 若在判定可译前就标记，一次空结果会把所有遍历过的叶子元素永久写入
+    // 这个弱引用集合（元素仍在文档中就不会被回收），导致之后每次采集都直接
+    // 跳过它们、恒返回 0 段，表现为「一直提示没有正文」的假死。
+    seen?.add(el);
 
     autoSeq += 1;
     out.push({ id: `${idPrefix}-${autoSeq}`, text, el });

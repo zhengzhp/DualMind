@@ -6,7 +6,10 @@
  */
 import { formatErrorForUi } from '@/shared/errors';
 import { sendMessage } from '@/shared/messaging/client';
-import type { ImmersiveDisplayMode } from '@/shared/storage/types';
+import {
+  TARGET_LANGUAGES,
+  type ImmersiveDisplayMode,
+} from '@/shared/storage/types';
 import { isTargetLanguage } from '@/features/translate/detectLang';
 import { chunkSegments } from './batch';
 import { createImmersiveClient, type ImmersiveClient } from './client';
@@ -34,6 +37,14 @@ function viewportDistance(el: Element): number {
   } catch {
     return Number.MAX_SAFE_INTEGER;
   }
+}
+
+/**
+ * 目标语言的可读名称（取自界面同款语言标签，未知代码退回原样）。
+ * 用于「正文已是目标语言」这类提示，避免向用户抛出 `zh-CN` 这种原始码。
+ */
+function describeLanguage(code: string): string {
+  return TARGET_LANGUAGES.find((item) => item.value === code)?.label ?? code;
 }
 
 export class ImmersiveController {
@@ -102,9 +113,18 @@ export class ImmersiveController {
       return;
     }
 
-    const fresh = this.collectTranslatableSegments();
+    const { collected, fresh } = this.collectForTranslation();
     if (fresh.length === 0) {
-      this.error = '当前页面没有可翻译的正文内容';
+      if (collected.length > 0) {
+        // 采到了片段，但它们全被判为「已是目标语言」，本次未产生任何译文。
+        // 必须回退采集标记：否则这些元素已被 seen 记录，下次（例如用户改完
+        // 目标语言后）会整体跳过，永远停在 0 段——正是「换了语言仍报错」的成因。
+        this.seen = new WeakSet<Element>();
+      }
+      this.error =
+        collected.length === 0
+          ? '当前页面没有可翻译的正文内容'
+          : `当前页面正文已是${describeLanguage(this.targetLanguage)}，无需翻译`;
       this.emit();
       return;
     }
@@ -123,11 +143,19 @@ export class ImmersiveController {
    * 采集正文并过滤掉「已经是目标语言」的片段。
    * 这类片段无需翻译，且本就是诱发模型「整批原样抄写」的因素之一；
    * 过滤后 `total` 与实际待译量一致，回显也就只可能是真实的漏译。
+   *
+   * 同时回传未过滤的原始采集量：两种 0 段（页面真的没有正文 / 正文已是目标
+   * 语言）成因完全不同，调用方需要据此给出准确提示，而不是一律报「没有正文」。
    */
-  private collectTranslatableSegments(): CollectedSegment[] {
-    return collectSegments(document.body, { seen: this.seen }).filter(
+  private collectForTranslation(): {
+    collected: CollectedSegment[];
+    fresh: CollectedSegment[];
+  } {
+    const collected = collectSegments(document.body, { seen: this.seen });
+    const fresh = collected.filter(
       (segment) => !isTargetLanguage(segment.text, this.targetLanguage),
     );
+    return { collected, fresh };
   }
 
   stop(): void {
@@ -278,7 +306,7 @@ export class ImmersiveController {
       return;
     }
 
-    const fresh = this.collectTranslatableSegments();
+    const { fresh } = this.collectForTranslation();
     if (fresh.length === 0) return;
 
     for (const segment of fresh) this.segments.set(segment.id, segment);
