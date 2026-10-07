@@ -103,6 +103,7 @@ Windows：多数将 `⌘` 换成 `Ctrl`。
 | `/arch-check` | `arch-check.md` | 架构合规检查 |
 | `/commit-msg` | `commit-msg.md` | 起草 commit message（默认不直接提交） |
 | `/save-commit` | `save-commit.md` | 保存并提交（= commit；走 `auto-commit` skill，默认不 push） |
+| `/push` | `push.md` | 推送到远程（明确授权 `git push`；默认不 force） |
 | `/test-plan` | `test-plan.md` | 生成手工测试清单 |
 
 ### 用法示例
@@ -115,6 +116,7 @@ Windows：多数将 `⌘` 换成 `Ctrl`。
 /arch-check
 /commit-msg
 /save-commit
+/push
 ```
 
 命令名后的文字会作为额外上下文传给提示词。

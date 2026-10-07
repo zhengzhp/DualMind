@@ -11,7 +11,7 @@
 ## DualMind 护栏
 
 - **不要**提交：`.output/`、临时 `_tmp-*`、含密钥的本地配置 / `.env`
-- **不要**擅自 `pnpm build` / `compile` / e2e，也不要默认 `git push`
+- **不要**擅自 `pnpm build` / `compile` / e2e，也不要默认 `git push`（推远程用 `/push`）
 - 选择性 `git add`，禁止盲加全仓库
 
 无变更则不空提交；提交后用 `git status` 确认。
