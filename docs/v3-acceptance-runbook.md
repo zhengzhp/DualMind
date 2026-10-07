@@ -309,7 +309,14 @@ Failed to load styles @ chrome-extension://<id>/content-scripts/content.css
 | --- | --- | --- | --- | --- | --- |
 | AG-09 | B2i | `/t7-react-form` / Side Panel / **`qwen3:4b`（Provider A）** | **PASS** | 页面：`应用状态：多行第一行`、`DOM 可见值：多行第一行`、`镜像文本：这是一段简介`；`state()`：`受控:onChange 触发=1`（detail 「多行第一行」）、`contenteditable input=1`，且 **`受控:直写被判定为无变化并回写` 未出现（=0）**；timeline：`任务成功完成` → `已点击 [#2] 简介` → `已填写 [#2]（6 字）` → `finish` | 六项判据**逐条命中**，其中「直写被判定为无变化并回写 = 0」是关键：证明内容脚本确在**隔离世界**、绕过 React value tracker。受控 textarea 的**应用状态**与 DOM 可见值一致 ⇒ 不是「只改了 DOM 而状态没动」。本轮同时覆盖 Provider A 的受控表单表现 |
 
-### B2j · AG-04（工作台占用活动 Tab，待执行）
+### B2j · AG-04（工作台占用活动 Tab，2026-10-08 · **PASS（主路径）**）
+
+| 用例 ID | 批次 | 场景 / UI / Provider | 结果 | 证据 | 备注 |
+| --- | --- | --- | --- | --- | --- |
+| AG-04 | B2n | 从**全页工作台**（`chrome-extension://…/workspace.html`，**且为活动 Tab**）发起 / 工作台内嵌 Agent / `deepseek-flash` | **PASS（主路径）** | ① 工作台内面板标题显示「本页操作 Agent　**T1 静态表单** · DualMind 封板 · 127.0.0.1」；② timeline：`RESULT 已填写 (2 字)` → `snapshot 20/20` → `INFO 姓名输入框的值已确认为「王五」` → `finish 已完成：在 T1 静态表单页…`；③ T1 页面「姓名」= **王五**，`state()` = `input:dm-name=1` / `change:dm-name=1`（同一毫秒 `1791413319443`） | **比 Side Panel 场景更强的证据**：本次就是从工作台发起的，而工作台自身**零写入**，**显示页（T1）= 实际执行页（T1）**。机理：工作台为 `chrome-extension://`，被 `isReadableContentUrl`（仅认 `http/https`）天然排除 → 回退同窗口最近可读页 |
+
+> ⚠️ **负路径未跑**：关掉内容页、只剩扩展页时，预期报「没有可读的内容页。请先打开普通网页再试。」
+> 该分支**未验证**，签收前建议补（成本很低）。
 
 **已核实的实现（判据即由此推出，非推测）**
 
