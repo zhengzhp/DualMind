@@ -254,6 +254,18 @@ Failed to load styles @ chrome-extension://<id>/content-scripts/content.css
 > 另：AG-13 依赖的 `wait` 路径曾命中 **DM-V3-002**（已做最小修复：`MAX_WAIT_MS` 15000 → 10000）。
 > **重跑前必须先 `pnpm build`**，否则测到的仍是旧产物。
 
+### B2g · 计划闸门留证复跑（AG-05，P0，2026-10-08 · **PASS**）
+
+| 用例 ID | 批次 | 页面 / UI / Provider | 结果 | 证据（计数器 / 日志 / 截图） | 备注 |
+| --- | --- | --- | --- | --- | --- |
+| AG-05 | B2g | `/t1-static-form` / Side Panel / deepseek-flash（BYOK） | **PASS（留证）** | ① 截图：待批准 UI（`请确认执行计划` + `批准并执行` / `取消`，状态 `awaiting_plan`）；② 终态 `window.dmTest.state()` = `input:dm-name=1`、`change:dm-name=1`（同一毫秒 1791411134724→725） | 判定依据：T1 的 `dm-name` **无默认值**、计数随页面加载归零 ⇒ 全会话**仅一次写入**。任何**批准前**写入或**重复任务**都会表现为 ≥2 次 `input` ⇒ 两条 P0 判据（未批准不写页面 / 不产生重复任务）**均成立** |
+
+> **残留不确定性（不阻塞结论，仅记录）**：截图时点存疑——截图内「姓名」框已含终态写入值「张三」
+> （经像素采样确认为**黑体实值**而非占位灰；字形为「张」+「三」），
+> 疑为①重复点「开始」产生的新一轮待批准计划，或②距上一次已批准执行后未刷新页面。
+> 因此「批准前面板读数 = 0」目前由 **state() 反推**而非截图直读。
+> 若要消除该疑点，按「重置计数 → 提目标 → **立刻截图面板（须 0 变更）** → 再操作并批准 → 导出 state()」重跑一次即可。
+
 ### B2 判定标准（供重跑参考）
 
 - **AG-10 未知选项**：对 `#dm-city` 请求 value/文案为「火星」→ 期望**失败且 `选择城市` 计数不增加**，页面停在原选项。
@@ -271,7 +283,7 @@ Failed to load styles @ chrome-extension://<id>/content-scripts/content.css
 | DM-V3-ENV-02 | **Edge 未安装**（本机仅 Chrome 155.0.8059.40） | 必测矩阵的 Edge 列 BLOCKED：Edge 的 Provider 主路径与全部安全 / 生命周期人工项无法执行 |
 | DM-V3-ENV-03 | 无 Windows 环境 | `Alt+K` 快捷键路径无法验证；仅能验 macOS 的 `Option+K` |
 | DM-V3-ENV-04 | 工作区含**未提交**改动（测试页 / runbook / 文档 + 工具链改动） | 证据无法绑定到 `9770b9e` 单一提交；验收前建议先提交 |
-| DM-V3-ENV-05 | **B1 结果无留存证据**（7 条用例仅执行人口头确认，无计数器 / 日志 / 截图） | 不构成可复核证据；其中 **AG-05 是 P0**，签收前必须留证复跑。建议此后每条用例固定导出 `window.dmTest.state()` |
+| DM-V3-ENV-05 | **B1 结果多数无留存证据**（AG-01/02/03/06 仅执行人口头确认，无计数器 / 日志 / 截图） | 不构成可复核证据；建议此后每条用例固定导出 `window.dmTest.state()`。其中 **AG-05（P0）已于 2026-10-08 留证复跑通过**（见 B2g 行） |
 | DM-V3-UNTESTED | **仍待补测/复跑**：AG-05（P0，无证据，需留证复跑）、AG-09（T7 的受控 textarea / contenteditable）、AG-12（`wait` 返回时机与 `extract_text`）、AG-04、AG-13、AG-19 | 签收 A 闸门前必须补齐；AG-05 为 P0 |
 | DM-V3-ENV-06 | **Provider A（Ollama）的 Agent 主路径未实跑**：tools 能力已探测通过（`qwen3:4b` 返回结构化 `tool_calls`），但 B2 的全部主链路证据来自 Provider B（BYOK `deepseek-flash`）；测试过程中切换过 Provider 配置 | 必测矩阵要求「两种 Provider 各完成计划 → 批准 → DOM 操作 → finish」；**NET-01 目前只覆盖 Provider B 且未到 finish** |
 | 基线版本 | `9770b9e`；生产构建 2026-10-08 05:06，`.output/chrome-mv3`（manifest `0.1.0`）；权限无 `debugger` / `scripting` / `tabs` / `activeTab` | 与「V3.0 零新增权限」一致（PRIV-01 / PRIV-02 已在产物层核对） |
