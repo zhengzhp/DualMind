@@ -69,6 +69,10 @@ SEC、LIFE 工具段）都不能成立。
 - **AG-04**（工作台占用活动 Tab）→ 在工作台打开一个扩展页（如 Options / Side Panel），再启动 Agent；期望回退到同窗口可读内容页，不操作扩展页。
 - **AG-08**（type 追加 vs fill 覆盖）→ `/t1-static-form`：`type` 用 `#dm-name`（应为追加），`fill` 用 `#dm-prefill`（值为「原有内容」，应为覆盖）。记录计数器的 `input:*` / `change:*`。
 - **AG-09**（受控表单）→ `/t7-react-form`：对照页面「应用状态」与「DOM 可见值」；**预期命中已登记缺陷 DM-V3-001**。
+  ⚠️ **页面基准**：必须看 T7 页面正文里的「应用状态」readout。**不可**用「重新 snapshot 看 value」判断——
+  `snapshot` 读的是 DOM value，受控组件被回写后 DOM 可能仍显示写入值，会造成**假阳性**。
+- **AG-08 与 AG-09 不要混页**：T1 的 `#dm-name` 是普通非受控 input，`fill` 直写本应成功（计数器 `input`/`change` 成对 +1），
+  属 **AG-08** 证据；只有 T7 才是 **AG-09** 的判定页面。
 - **AG-10**（select 按 value 与文案）→ `/t1-static-form` 的 `#dm-city`：`value="bj"` 与显示文案「北京」不同；另用不存在的选项验证「未知选项失败且不误选」。
 - **AG-12**（滚动 / 等待 / 抽取）→ `/t4-waiting`：`wait({text:'延时完成'})` 需先点「开始延时」。
 - **AG-13**（移除 / 越界 / 参数错误）→ `/t3-dynamic`：先 snapshot，点「移除目标节点」，再对旧 index 发 click；另用越界 index 与错误参数类型。
