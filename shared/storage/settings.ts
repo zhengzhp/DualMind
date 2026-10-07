@@ -6,13 +6,20 @@ import {
   toChatSessionSummaries,
 } from './chatSessions';
 import {
+  evaluateAgentPending,
+  type ConsumeAgentPendingResult,
+} from './agentPendingEval';
+import {
   evaluateChatPending,
   type ConsumeChatPendingResult,
 } from './chatPendingEval';
 import {
+  DEFAULT_AGENT_PREFS,
   DEFAULT_CHAT_PREFS,
   DEFAULT_IMMERSIVE_PREFS,
   DEFAULT_SETTINGS,
+  type AgentPendingAction,
+  type AgentPrefs,
   type AppSettings,
   type ChatPageNavSignal,
   type ChatPendingAction,
@@ -23,8 +30,8 @@ import {
   type PageFabPos,
 } from './types';
 
-export type { ConsumeChatPendingResult };
-export { evaluateChatPending };
+export type { ConsumeAgentPendingResult, ConsumeChatPendingResult };
+export { evaluateAgentPending, evaluateChatPending };
 
 /** 设置项存储 key */
 export const settingsItem = storage.defineItem<AppSettings>('local:settings', {
@@ -253,4 +260,47 @@ export async function setChatPageNavSignal(
     title: signal.title,
     at: signal.at ?? Date.now(),
   });
+}
+
+/* ------------------------------------------------------------------ */
+/* Agent 偏好 / 信箱（独立键，不混入 chat）                              */
+/* ------------------------------------------------------------------ */
+
+export const agentPrefsItem = storage.defineItem<AgentPrefs>('local:agentPrefs', {
+  fallback: DEFAULT_AGENT_PREFS,
+});
+
+export async function getAgentPrefs(): Promise<AgentPrefs> {
+  const stored = await agentPrefsItem.getValue();
+  const merged = { ...DEFAULT_AGENT_PREFS, ...stored };
+  // 钳制步数，避免异常配置拖垮 SW
+  merged.maxSteps = Math.min(40, Math.max(1, Math.trunc(merged.maxSteps) || 20));
+  return merged;
+}
+
+export async function saveAgentPrefs(
+  patch: Partial<AgentPrefs>,
+): Promise<AgentPrefs> {
+  const next = { ...(await getAgentPrefs()), ...patch };
+  next.maxSteps = Math.min(40, Math.max(1, Math.trunc(next.maxSteps) || 20));
+  await agentPrefsItem.setValue(next);
+  return next;
+}
+
+export const agentPendingItem = storage.defineItem<AgentPendingAction | null>(
+  'local:agentPending',
+  { fallback: null },
+);
+
+export async function setAgentPending(
+  kind: AgentPendingAction['kind'] = 'open',
+): Promise<void> {
+  await agentPendingItem.setValue({ kind, createdAt: Date.now() });
+}
+
+export async function consumeAgentPending(): Promise<ConsumeAgentPendingResult> {
+  const action = await agentPendingItem.getValue();
+  if (!action) return { status: 'empty' };
+  await agentPendingItem.setValue(null);
+  return evaluateAgentPending(action);
 }

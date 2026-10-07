@@ -3,11 +3,14 @@ import {
   ProviderError,
   toUserMessage,
 } from '@/shared/errors';
-import { parseOpenAIChatSSE } from './sse';
+import { buildChatCompletionsBody } from './chat-body';
+import { parseOpenAIChatCompletionsSSE } from './sse';
+import { collectChatResult } from './tool-calls';
 import type {
   ChatInput,
   ChatProvider,
   ChatResult,
+  ChatStreamEvent,
   ProviderCapabilities,
 } from './types';
 
@@ -18,10 +21,14 @@ function normalizeBaseUrl(baseUrl: string): string {
 /**
  * OpenAI 兼容 Provider（含各类中转 / DeepSeek / Groq 等）
  * 约定路径：POST {baseUrl}/chat/completions、GET {baseUrl}/models
+ * 支持 tools / 流式 tool_calls（具体模型能力由调用方校验）
  */
 export class OpenAICompatibleProvider implements ChatProvider {
   readonly id = 'openai-compatible';
-  readonly capabilities: ProviderCapabilities = { streaming: true };
+  readonly capabilities: ProviderCapabilities = {
+    streaming: true,
+    toolCalling: true,
+  };
 
   constructor(
     private readonly baseUrl: string,
@@ -74,18 +81,32 @@ export class OpenAICompatibleProvider implements ChatProvider {
   }
 
   async chat(input: ChatInput): Promise<ChatResult> {
-    let full = '';
-    for await (const chunk of this.chatStream(input)) {
-      full += chunk;
-    }
-    const content = full.trim();
-    if (!content) {
+    const result = await collectChatResult(this.chatStreamEvents(input));
+    // 纯文本路径仍要求有内容；带 tool_calls 时允许 content 为空
+    if (!result.content && !(result.tool_calls?.length)) {
       throw new ProviderError(toUserMessage('EMPTY_RESPONSE'), 'EMPTY_RESPONSE');
     }
-    return { content };
+    return result;
   }
 
   async *chatStream(input: ChatInput): AsyncIterable<string> {
+    let anyContent = false;
+    let hadToolCalls = false;
+    for await (const ev of this.chatStreamEvents(input)) {
+      if (ev.type === 'content') {
+        anyContent = true;
+        yield ev.delta;
+      } else if (ev.type === 'tool_call_delta') {
+        hadToolCalls = true;
+      }
+    }
+    // 仅 tool_calls、无文本时不抛错（调用方应走 chatStreamEvents）
+    if (!anyContent && !hadToolCalls) {
+      throw new ProviderError(toUserMessage('EMPTY_RESPONSE'), 'EMPTY_RESPONSE');
+    }
+  }
+
+  async *chatStreamEvents(input: ChatInput): AsyncIterable<ChatStreamEvent> {
     this.assertConfigured();
     if (!input.model.trim()) {
       throw new ProviderError(toUserMessage('NO_MODEL'), 'NO_MODEL');
@@ -97,12 +118,7 @@ export class OpenAICompatibleProvider implements ChatProvider {
       res = await fetch(url, {
         method: 'POST',
         headers: this.headers(),
-        body: JSON.stringify({
-          model: input.model,
-          messages: input.messages,
-          temperature: 0.2,
-          stream: true,
-        }),
+        body: JSON.stringify(buildChatCompletionsBody(input)),
         signal: input.signal,
       });
     } catch (err) {
@@ -122,9 +138,9 @@ export class OpenAICompatibleProvider implements ChatProvider {
     }
 
     let any = false;
-    for await (const delta of parseOpenAIChatSSE(res, input.signal)) {
-      any = true;
-      yield delta;
+    for await (const ev of parseOpenAIChatCompletionsSSE(res, input.signal)) {
+      if (ev.type === 'content' || ev.type === 'tool_call_delta') any = true;
+      yield ev;
     }
     if (!any) {
       throw new ProviderError(toUserMessage('EMPTY_RESPONSE'), 'EMPTY_RESPONSE');

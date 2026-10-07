@@ -3,11 +3,14 @@ import {
   ProviderError,
   toUserMessage,
 } from '@/shared/errors';
-import { parseOpenAIChatSSE } from './sse';
+import { buildChatCompletionsBody } from './chat-body';
+import { parseOpenAIChatCompletionsSSE } from './sse';
+import { collectChatResult } from './tool-calls';
 import type {
   ChatInput,
   ChatProvider,
   ChatResult,
+  ChatStreamEvent,
   ProviderCapabilities,
 } from './types';
 
@@ -18,11 +21,14 @@ function normalizeHost(host: string): string {
 /**
  * Ollama Provider
  * - 模型列表：GET {host}/api/tags
- * - 对话：POST {host}/v1/chat/completions（OpenAI 兼容 + stream）
+ * - 对话：POST {host}/v1/chat/completions（OpenAI 兼容 + stream + tools）
  */
 export class OllamaProvider implements ChatProvider {
   readonly id = 'ollama';
-  readonly capabilities: ProviderCapabilities = { streaming: true };
+  readonly capabilities: ProviderCapabilities = {
+    streaming: true,
+    toolCalling: true,
+  };
 
   constructor(private readonly host: string) {}
 
@@ -59,18 +65,30 @@ export class OllamaProvider implements ChatProvider {
   }
 
   async chat(input: ChatInput): Promise<ChatResult> {
-    let full = '';
-    for await (const chunk of this.chatStream(input)) {
-      full += chunk;
-    }
-    const content = full.trim();
-    if (!content) {
+    const result = await collectChatResult(this.chatStreamEvents(input));
+    if (!result.content && !(result.tool_calls?.length)) {
       throw new ProviderError(toUserMessage('EMPTY_RESPONSE'), 'EMPTY_RESPONSE');
     }
-    return { content };
+    return result;
   }
 
   async *chatStream(input: ChatInput): AsyncIterable<string> {
+    let anyContent = false;
+    let hadToolCalls = false;
+    for await (const ev of this.chatStreamEvents(input)) {
+      if (ev.type === 'content') {
+        anyContent = true;
+        yield ev.delta;
+      } else if (ev.type === 'tool_call_delta') {
+        hadToolCalls = true;
+      }
+    }
+    if (!anyContent && !hadToolCalls) {
+      throw new ProviderError(toUserMessage('EMPTY_RESPONSE'), 'EMPTY_RESPONSE');
+    }
+  }
+
+  async *chatStreamEvents(input: ChatInput): AsyncIterable<ChatStreamEvent> {
     this.assertHost();
     if (!input.model.trim()) {
       throw new ProviderError(toUserMessage('NO_MODEL'), 'NO_MODEL');
@@ -82,12 +100,7 @@ export class OllamaProvider implements ChatProvider {
       res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: input.model,
-          messages: input.messages,
-          temperature: 0.2,
-          stream: true,
-        }),
+        body: JSON.stringify(buildChatCompletionsBody(input)),
         signal: input.signal,
       });
     } catch (err) {
@@ -115,9 +128,9 @@ export class OllamaProvider implements ChatProvider {
     }
 
     let any = false;
-    for await (const delta of parseOpenAIChatSSE(res, input.signal)) {
-      any = true;
-      yield delta;
+    for await (const ev of parseOpenAIChatCompletionsSSE(res, input.signal)) {
+      if (ev.type === 'content' || ev.type === 'tool_call_delta') any = true;
+      yield ev;
     }
     if (!any) {
       throw new ProviderError(toUserMessage('EMPTY_RESPONSE'), 'EMPTY_RESPONSE');

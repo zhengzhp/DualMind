@@ -96,6 +96,75 @@ describe('OpenAICompatibleProvider', () => {
     expect(text).toBe('你好');
     expect(authHeader).toBe('Bearer sk-test');
     expect(JSON.parse(body)).toMatchObject({ stream: true, model: 'm' });
+    expect(JSON.parse(body).tools).toBeUndefined();
+  });
+
+  it('chat 带 tools 时请求体含 tools，且允许仅 tool_calls 无文本', async () => {
+    let body = '';
+    const tools = [
+      {
+        type: 'function' as const,
+        function: {
+          name: 'snapshot',
+          description: 'page snapshot',
+          parameters: { type: 'object', properties: {} },
+        },
+      },
+    ];
+    const srv = await startMockServer({
+      'POST /v1/chat/completions': (req, res) => {
+        req.on('data', (c) => (body += c));
+        req.on('end', () => {
+          res.writeHead(200, { 'Content-Type': 'text/event-stream' });
+          res.write(
+            `data: ${JSON.stringify({
+              choices: [
+                {
+                  delta: {
+                    tool_calls: [
+                      {
+                        index: 0,
+                        id: 'call_s',
+                        type: 'function',
+                        function: { name: 'snapshot', arguments: '{}' },
+                      },
+                    ],
+                  },
+                  finish_reason: 'tool_calls',
+                },
+              ],
+            })}\n\n`,
+          );
+          res.end();
+        });
+      },
+    });
+    closers.push(srv.close);
+
+    const provider = new OpenAICompatibleProvider(`${srv.baseUrl}/v1`, 'sk');
+    const result = await provider.chat({
+      model: 'm',
+      messages: [{ role: 'user', content: '看一下页面' }],
+      tools,
+      tool_choice: 'auto',
+    });
+
+    expect(JSON.parse(body)).toMatchObject({
+      tools,
+      tool_choice: 'auto',
+      stream: true,
+    });
+    expect(result).toEqual({
+      content: '',
+      finish_reason: 'tool_calls',
+      tool_calls: [
+        {
+          id: 'call_s',
+          type: 'function',
+          function: { name: 'snapshot', arguments: '{}' },
+        },
+      ],
+    });
   });
 
   it('apiKey 为空白时在发请求前就被拦下', async () => {

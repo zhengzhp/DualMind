@@ -11,7 +11,7 @@
 export type PageFabTone = 'idle' | 'busy' | 'active' | 'warning' | 'error';
 
 /** 内置图标名（SVG 在 `dom.ts` 里内联，避免入口壳依赖图标库 / 网络资源） */
-export type PageFabIconName = 'immersive' | 'summarize';
+export type PageFabIconName = 'immersive' | 'summarize' | 'agent';
 
 /** 某个动作当前的展示状态（由动作自己在 `getView()` 里给出） */
 export interface PageFabActionView {

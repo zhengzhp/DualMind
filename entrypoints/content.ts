@@ -1,3 +1,7 @@
+import {
+  mountAgentExecutor,
+  mountAgentFabAction,
+} from '@/features/agent/mount';
 import { mountImmersive } from '@/features/immersive/mount';
 import { mountChatContext, mountChatFabAction } from '@/features/chat/mount';
 import { mountPageFab } from '@/features/page-fab/mount';
@@ -46,9 +50,14 @@ export default defineContentScript({
     if (fab) {
       // V2 网页总结：注册「总结本页」动作（入口动作，无入口则无可注册之处）
       mountChatFabAction(fab);
+      // V3 Agent：注册「请 Agent 操作本页」
+      mountAgentFabAction(fab);
     }
     // V2 网页上下文提取：仅注册监听，按需响应（不主动做任何请求）
     // 与悬浮入口无关 —— 右键菜单的「总结本页」同样依赖它
     mountChatContext();
+
+    // V3 Agent：仅注册 DOM 工具执行监听（Background 批准后再转发）
+    mountAgentExecutor();
   },
 });

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { AgentPanel } from '@/features/agent/ui/AgentPanel';
 import { ChatPanel } from '@/features/chat/ui/ChatPanel';
 import { ImmersiveControl } from '@/features/immersive/ui/ImmersiveControl';
 import { formatErrorForUi } from '@/shared/errors';
@@ -9,16 +10,19 @@ import {
 } from '@/shared/extensionPages';
 import { sendMessage } from '@/shared/messaging/client';
 import { streamTranslate } from '@/shared/messaging/stream';
-import { consumeChatPending } from '@/shared/storage/settings';
+import {
+  consumeAgentPending,
+  consumeChatPending,
+} from '@/shared/storage/settings';
 import {
   TARGET_LANGUAGES,
+  type AgentPendingAction,
   type AppSettings,
   type ChatPendingAction,
   type ProviderType,
 } from '@/shared/storage/types';
 import { SearchableSelect } from '@/shared/ui';
 import { ModelSelector } from './ModelSelector';
-import { Placeholder } from './Placeholder';
 
 type ModuleTab = 'translate' | 'chat' | 'agent';
 
@@ -32,7 +36,7 @@ const WORDMARK_URL = browser.runtime.getURL('/wordmark.svg');
 /** 复制成功提示的展示时长（毫秒） */
 const COPY_HINT_MS = 1500;
 
-/** 顶部模块 Tab（翻译 / 网页助手可用；Agent 仅占位） */
+/** 顶部模块 Tab（翻译 / 网页助手 / Agent） */
 const MODULE_TABS: readonly (readonly [ModuleTab, string])[] = [
   ['translate', '翻译'],
   ['chat', '网页助手'],
@@ -43,14 +47,14 @@ const MODULE_TABS: readonly (readonly [ModuleTab, string])[] = [
 const TAB_SUBTITLE: Record<ModuleTab, string> = {
   translate: '翻译',
   chat: '摘要与问答',
-  agent: 'Agent',
+  agent: '本页操作',
 };
 
 export type WorkbenchSurface = 'sidepanel' | 'workspace';
 
 /**
  * 翻译工作台（Side Panel 与全页共用）。
- * 会话仍走 translateSession；Chat 已接入 `features/chat`，Agent 仅占位。
+ * 会话仍走 translateSession；Chat / Agent 分别接入独立 feature。
  */
 export function WorkbenchApp({ surface }: { surface: WorkbenchSurface }) {
   const isPage = surface === 'workspace';
@@ -73,10 +77,14 @@ export function WorkbenchApp({ surface }: { surface: WorkbenchSurface }) {
   /** 右键菜单信箱下发的待执行动作（消费后交给 ChatPanel 执行） */
   const [pendingChatAction, setPendingChatAction] =
     useState<ChatPendingAction | null>(null);
+  /** FAB「请 Agent 操作本页」信箱 */
+  const [pendingAgentAction, setPendingAgentAction] =
+    useState<AgentPendingAction | null>(null);
   /** 信箱过期提示（TTL 内未打开侧栏） */
   const [pendingExpiredHint, setPendingExpiredHint] = useState('');
   /** 已处理动作的时间戳：初始读取与 storage 监听可能同时命中，靠它去重 */
   const handledPendingRef = useRef(0);
+  const handledAgentPendingRef = useRef(0);
 
   /**
    * 右键菜单「总结本页」：信箱由**常驻的**工作台统一消费，再下发给 ChatPanel。
@@ -121,6 +129,43 @@ export function WorkbenchApp({ surface }: { surface: WorkbenchSurface }) {
     return () => browser.storage.onChanged.removeListener(listener);
   }, [surface]);
 
+  /**
+   * FAB「请 Agent 操作本页」：信箱由侧栏消费并切到 Agent Tab。
+   */
+  useEffect(() => {
+    if (surface !== 'sidepanel') return;
+
+    const handle = async () => {
+      const result = await consumeAgentPending();
+      if (result.status === 'empty') return;
+      if (result.status === 'expired') {
+        setPendingExpiredHint('Agent 打开请求已过期，请再点一次悬浮入口');
+        return;
+      }
+      const action = result.action;
+      if (handledAgentPendingRef.current === action.createdAt) return;
+      handledAgentPendingRef.current = action.createdAt;
+      setPendingExpiredHint('');
+      setTab('agent');
+      setPendingAgentAction(action);
+    };
+
+    void handle();
+
+    const listener = (
+      changes: Record<string, { newValue?: unknown }>,
+      area: string,
+    ) => {
+      if (area !== 'local') return;
+      if (!Object.keys(changes).some((key) => key.includes('agentPending'))) {
+        return;
+      }
+      void handle();
+    };
+    browser.storage.onChanged.addListener(listener);
+    return () => browser.storage.onChanged.removeListener(listener);
+  }, [surface]);
+
   useEffect(() => {
     if (!pendingExpiredHint) return;
     const timer = window.setTimeout(() => setPendingExpiredHint(''), 6_000);
@@ -129,6 +174,10 @@ export function WorkbenchApp({ surface }: { surface: WorkbenchSurface }) {
 
   const clearPendingChatAction = useCallback(() => {
     setPendingChatAction(null);
+  }, []);
+
+  const clearPendingAgentAction = useCallback(() => {
+    setPendingAgentAction(null);
   }, []);
 
   const refresh = useCallback(async () => {
@@ -607,7 +656,7 @@ export function WorkbenchApp({ surface }: { surface: WorkbenchSurface }) {
           </div>
         )}
 
-        {/* 常驻挂载、非当前 Tab 时 hidden：切走翻译再回来不丢内存中的当前会话 */}
+        {/* 常驻挂载、非当前 Tab 时 hidden：切走再回来不丢内存态 */}
         <div
           className={
             tab === 'chat' ? 'flex min-h-0 flex-1 flex-col' : 'hidden'
@@ -619,12 +668,17 @@ export function WorkbenchApp({ surface }: { surface: WorkbenchSurface }) {
             onPendingHandled={clearPendingChatAction}
           />
         </div>
-        {tab === 'agent' && (
-          <Placeholder
-            title="Agent（即将推出）"
-            desc="浏览器操作能力将独立于翻译链路，并带强确认。V1 仅占位。"
+        <div
+          className={
+            tab === 'agent' ? 'flex min-h-0 flex-1 flex-col' : 'hidden'
+          }
+        >
+          <AgentPanel
+            surface={surface}
+            pendingAction={pendingAgentAction}
+            onPendingHandled={clearPendingAgentAction}
           />
-        )}
+        </div>
       </main>
     </div>
   );

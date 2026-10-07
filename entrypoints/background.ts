@@ -14,6 +14,11 @@ import {
   pickContentTab,
   type ContentTabLite,
 } from '@/features/chat/resolveContentTab';
+import {
+  AGENT_EXECUTE_MESSAGE,
+  type AgentToolResult,
+} from '@/features/agent/types';
+import { runAgentTask } from '@/features/agent/service';
 import { answerQuestion } from '@/features/chat/service';
 import { createProviderFromSettings } from '@/providers/registry';
 import { softenDevTabReloads } from '@/shared/dev/softenTabReload';
@@ -21,10 +26,13 @@ import { formatErrorForUi, normalizeError } from '@/shared/errors';
 import { fail, ok } from '@/shared/messaging/client';
 import { hostnameFromUrl, isHostDisabled } from '@/shared/siteAccess';
 import {
+  AGENT_PORT,
   CHAT_PORT,
   IMMERSIVE_PORT,
   SIDEPANEL_PORT,
   TRANSLATE_PORT,
+  type AgentPortClientMessage,
+  type AgentPortServerMessage,
   type ChatPortClientMessage,
   type ChatPortServerMessage,
   type ImmersivePortClientMessage,
@@ -37,14 +45,17 @@ import {
 import {
   clearChatSessions,
   deleteChatSession,
+  getAgentPrefs,
   getChatPrefs,
   getChatSession,
   getImmersivePrefs,
   getSettings,
   listChatSessions,
+  saveAgentPrefs,
   saveChatPrefs,
   saveImmersivePrefs,
   saveSettings,
+  setAgentPending,
   setChatPending,
   setChatPageNavSignal,
   translateSessionItem,
@@ -271,11 +282,31 @@ async function deliverSummarizeAction(
   return canOpen;
 }
 
+/**
+ * 打开 Side Panel Agent Tab：手势窗口内 open + 投递 `local:agentPending`
+ */
+async function deliverAgentOpenAction(
+  tab: ContentTabLite | undefined,
+): Promise<boolean> {
+  if (tab) contentTabTracker.remember(tab);
+
+  const windowId = tab?.windowId;
+  const canOpen = sidePanelApi != null && windowId != null;
+  if (sidePanelApi && windowId != null) {
+    void sidePanelApi.open({ windowId }).catch(() => {
+      /* 打开失败不阻塞信箱 */
+    });
+  }
+  await setAgentPending('open');
+  return canOpen;
+}
+
 /** 需要瞬时用户手势的侧边栏开关：在 onMessage 中特判（见下），故不进通用表 */
 type SidePanelGestureType =
   | 'sidepanel:open'
   | 'sidepanel:toggle'
-  | 'chat:summarize-page';
+  | 'chat:summarize-page'
+  | 'agent:open-panel';
 
 type HandlerMap = {
   [K in Exclude<MessageType, SidePanelGestureType>]: (
@@ -371,7 +402,214 @@ const handlers: HandlerMap = {
     await setChatPageNavSignal({ url: data.url, title: data.title });
     return { ok: true as const };
   },
+
+  /* ---------------- V3 Agent ---------------- */
+
+  'agent:prefs:get': async () => getAgentPrefs(),
+
+  'agent:prefs:save': async (data) => saveAgentPrefs(data),
 };
+
+/** 向内容页执行 Agent 工具（单工具超时由 service 侧 race） */
+async function executeAgentToolOnTab(
+  tabId: number,
+  tool: string,
+  args: Record<string, unknown>,
+): Promise<AgentToolResult> {
+  try {
+    const result = (await browser.tabs.sendMessage(tabId, {
+      type: AGENT_EXECUTE_MESSAGE,
+      tool,
+      args,
+    })) as AgentToolResult | undefined;
+    if (!result || typeof result !== 'object') {
+      return {
+        ok: false,
+        tool: tool as AgentToolResult['tool'],
+        summary: '内容脚本无响应，请刷新页面后重试',
+        error: '内容脚本无响应',
+      };
+    }
+    return result;
+  } catch (err) {
+    const message =
+      err instanceof Error ? err.message : '无法联系内容脚本（请刷新页面）';
+    return {
+      ok: false,
+      tool: tool as AgentToolResult['tool'],
+      summary: message,
+      error: message,
+    };
+  }
+}
+
+/** Port：本页 Agent（计划批准 + tool 环 + 危险确认） */
+function attachAgentPort(port: {
+  postMessage: (msg: unknown) => void;
+  onMessage: {
+    addListener: (cb: (msg: unknown) => void) => void;
+  };
+  onDisconnect: { addListener: (cb: () => void) => void };
+}) {
+  const controllers = new Map<string, AbortController>();
+  const planWaiters = new Map<
+    string,
+    (v: 'approved' | 'rejected' | 'aborted') => void
+  >();
+  const dangerWaiters = new Map<
+    string,
+    { stepId: string; resolve: (v: 'confirmed' | 'rejected' | 'aborted') => void }
+  >();
+
+  const post = (msg: AgentPortServerMessage) => {
+    try {
+      port.postMessage(msg);
+    } catch {
+      /* port 已断开 */
+    }
+  };
+
+  const clearTaskWaiters = (taskId: string, aborted: boolean) => {
+    planWaiters.get(taskId)?.(aborted ? 'aborted' : 'rejected');
+    planWaiters.delete(taskId);
+    const danger = dangerWaiters.get(taskId);
+    if (danger) {
+      danger.resolve(aborted ? 'aborted' : 'rejected');
+      dangerWaiters.delete(taskId);
+    }
+  };
+
+  port.onMessage.addListener((raw: unknown) => {
+    const message = raw as AgentPortClientMessage;
+    if (!message || typeof message !== 'object') return;
+
+    if (message.type === 'abort') {
+      controllers.get(message.taskId)?.abort();
+      clearTaskWaiters(message.taskId, true);
+      return;
+    }
+
+    if (message.type === 'approve_plan') {
+      planWaiters.get(message.taskId)?.('approved');
+      planWaiters.delete(message.taskId);
+      return;
+    }
+    if (message.type === 'reject_plan') {
+      planWaiters.get(message.taskId)?.('rejected');
+      planWaiters.delete(message.taskId);
+      return;
+    }
+    if (message.type === 'confirm_danger') {
+      const waiter = dangerWaiters.get(message.taskId);
+      if (waiter && waiter.stepId === message.stepId) {
+        waiter.resolve('confirmed');
+        dangerWaiters.delete(message.taskId);
+      }
+      return;
+    }
+    if (message.type === 'reject_danger') {
+      const waiter = dangerWaiters.get(message.taskId);
+      if (waiter && waiter.stepId === message.stepId) {
+        waiter.resolve('rejected');
+        dangerWaiters.delete(message.taskId);
+      }
+      return;
+    }
+
+    if (message.type !== 'start') return;
+
+    controllers.get(message.taskId)?.abort();
+    clearTaskWaiters(message.taskId, true);
+    const controller = new AbortController();
+    controllers.set(message.taskId, controller);
+
+    void (async () => {
+      try {
+        const prefs = await getAgentPrefs();
+        if (!prefs.enabled) {
+          post({
+            type: 'error',
+            taskId: message.taskId,
+            code: 'UNKNOWN',
+            message: 'Agent 已关闭，请在面板中启用后再试',
+          });
+          return;
+        }
+
+        const tab = await resolveContentTab();
+        if (!tab?.id) {
+          post({
+            type: 'error',
+            taskId: message.taskId,
+            code: 'UNKNOWN',
+            message: '没有可读的内容页。请先打开普通网页再试。',
+          });
+          return;
+        }
+
+        const goal = message.goal.trim();
+        if (!goal) {
+          post({
+            type: 'error',
+            taskId: message.taskId,
+            code: 'UNKNOWN',
+            message: '请输入操作目标',
+          });
+          return;
+        }
+
+        await runAgentTask({
+          taskId: message.taskId,
+          goal,
+          pageUrl: tab.url ?? '',
+          pageTitle: tab.title ?? '',
+          maxSteps: prefs.maxSteps,
+          signal: controller.signal,
+          post,
+          gate: {
+            waitPlanApproval: () =>
+              new Promise((resolve) => {
+                planWaiters.set(message.taskId, resolve);
+              }),
+            waitDangerConfirm: (stepId) =>
+              new Promise((resolve) => {
+                dangerWaiters.set(message.taskId, { stepId, resolve });
+              }),
+          },
+          executeTool: (tool, args) =>
+            executeAgentToolOnTab(tab.id!, tool, args),
+        });
+      } catch (err) {
+        if (controller.signal.aborted) {
+          post({
+            type: 'phase',
+            taskId: message.taskId,
+            phase: 'aborted',
+          });
+          return;
+        }
+        const normalized = normalizeError(err);
+        post({
+          type: 'error',
+          taskId: message.taskId,
+          code: normalized.code,
+          message: formatErrorForUi(normalized),
+        });
+      } finally {
+        controllers.delete(message.taskId);
+        clearTaskWaiters(message.taskId, false);
+      }
+    })();
+  });
+
+  port.onDisconnect.addListener(() => {
+    for (const [taskId, controller] of controllers) {
+      controller.abort();
+      clearTaskWaiters(taskId, true);
+    }
+    controllers.clear();
+  });
+}
 
 /** Port 流式翻译：支持 abort */
 function attachTranslatePort(port: {
@@ -656,6 +894,10 @@ export default defineBackground(() => {
       attachChatPort(port);
       return;
     }
+    if (port.name === AGENT_PORT) {
+      attachAgentPort(port);
+      return;
+    }
     if (port.name === SIDEPANEL_PORT) {
       sidePanelPorts.add(port);
       port.onDisconnect.addListener(() => {
@@ -681,6 +923,18 @@ export default defineBackground(() => {
       void (async () => {
         try {
           const opened = await deliverSummarizeAction(sender.tab);
+          sendResponse(ok({ ok: true as const, open: opened }));
+        } catch (err) {
+          sendResponse(fail(err));
+        }
+      })();
+      return true;
+    }
+
+    if (type === 'agent:open-panel') {
+      void (async () => {
+        try {
+          const opened = await deliverAgentOpenAction(sender.tab);
           sendResponse(ok({ ok: true as const, open: opened }));
         } catch (err) {
           sendResponse(fail(err));

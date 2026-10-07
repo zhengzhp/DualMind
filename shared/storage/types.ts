@@ -242,3 +242,27 @@ export interface ChatPageNavSignal {
   title: string;
   at: number;
 }
+
+/**
+ * Agent 偏好（`local:agentPrefs`）。
+ * 确认策略按决策固定为「计划批准 + 危险再确认」，此处不提供降级开关。
+ */
+export interface AgentPrefs {
+  /** 总开关；关闭后 Side Panel 仍可见但无法开跑 */
+  enabled: boolean;
+  /** 单任务最大 tool 轮次（约等于模型往返次数） */
+  maxSteps: number;
+}
+
+export const DEFAULT_AGENT_PREFS: AgentPrefs = {
+  enabled: true,
+  maxSteps: 20,
+};
+
+/** FAB / 入口打开 Agent Tab 的信箱动作 */
+export interface AgentPendingAction {
+  kind: 'open';
+  createdAt: number;
+}
+
+export const AGENT_PENDING_TTL_MS = 120_000;

@@ -37,7 +37,7 @@ features/
 
 - 复用 `features/chat/resolveContentTab.ts`（或上提 `shared/`，实现时选成本更低者）
 - 可选：`page-fab` 注册 Agent 动作（壳不反向依赖）
-- `shared/llm`：补 tool-calling（流式 tool_calls + 多轮）
+- `shared/llm`：`runChatWithTools` / `runChatStreamWithTools`（流式 tool_calls + 多轮；协议层已通，Agent 环待接）
 - 其余目录沿用 V2 / V1，见归档架构文档
 
 Feature 契约表见：[features.md](./features.md)
@@ -85,7 +85,7 @@ flowchart LR
 ## 里程碑
 
 - [x] V2 摘要 / 聊天 —— **已封板**（见 [decisions-v2.md](./decisions-v2.md)）
-- [ ] V3.0 本页 Agent（零新增权限 + 计划批准 + 危险确认）—— **已立项，未实现**
+- [x] V3.0 本页 Agent（零新增权限 + 计划批准 + 危险确认）—— **主链路已接**（实机验收与发布闸门仍待做）
 - [ ] V3.1 可选 debugger / 有限多 Tab / 步骤导出 —— 未立项
 - [ ] V3.2 配方 / 可选 MCP —— 未立项
 

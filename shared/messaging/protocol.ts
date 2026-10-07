@@ -147,6 +147,23 @@ export type ProtocolMap = {
     data: { url: string; title: string };
     return: { ok: true };
   };
+  /* ---------------- V3 Agent · 独立 `agent:*` 前缀 ---------------- */
+  'agent:prefs:get': {
+    data: undefined;
+    return: import('@/shared/storage/types').AgentPrefs;
+  };
+  'agent:prefs:save': {
+    data: Partial<import('@/shared/storage/types').AgentPrefs>;
+    return: import('@/shared/storage/types').AgentPrefs;
+  };
+  /**
+   * 悬浮入口「请 Agent 操作本页」：开侧栏 + 投递 `local:agentPending`。
+   * 与 chat:summarize-page 相同，须在用户手势窗口内调用 sidePanel.open。
+   */
+  'agent:open-panel': {
+    data: undefined;
+    return: { ok: true; open: boolean };
+  };
 };
 
 /** Side Panel 生命周期 Port：用于判断是否已打开、以及请求自关闭 */
@@ -223,3 +240,54 @@ export type ChatPortServerMessage =
   | { type: 'chunk'; requestId: string; text: string; accumulated: string }
   | { type: 'done'; requestId: string; content: string }
   | { type: 'error'; requestId: string; code: string; message: string };
+
+/** 本页 Agent Port */
+export const AGENT_PORT = 'dualmind-agent';
+
+/** Agent：Client（Side Panel / 工作台）→ Background */
+export type AgentPortClientMessage =
+  | { type: 'start'; taskId: string; goal: string }
+  | { type: 'approve_plan'; taskId: string }
+  | { type: 'reject_plan'; taskId: string }
+  | { type: 'confirm_danger'; taskId: string; stepId: string }
+  | { type: 'reject_danger'; taskId: string; stepId: string }
+  | { type: 'abort'; taskId: string };
+
+/** Agent：Background → Client */
+export type AgentPortServerMessage =
+  | {
+      type: 'phase';
+      taskId: string;
+      phase: import('@/features/agent/types').AgentTaskPhase;
+      message?: string;
+    }
+  | {
+      type: 'plan';
+      taskId: string;
+      plan: import('@/features/agent/types').AgentPlan;
+    }
+  | {
+      type: 'timeline';
+      taskId: string;
+      item: import('@/features/agent/types').AgentTimelineItem;
+    }
+  | {
+      type: 'awaiting_danger';
+      taskId: string;
+      stepId: string;
+      tool: string;
+      summary: string;
+      reasons: string[];
+    }
+  | {
+      type: 'done';
+      taskId: string;
+      summary: string;
+      success: boolean;
+    }
+  | {
+      type: 'error';
+      taskId: string;
+      code: string;
+      message: string;
+    };

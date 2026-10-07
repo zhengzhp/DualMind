@@ -1,9 +1,10 @@
 /**
  * OpenAI 兼容 SSE 流解析单测
- * 覆盖：跨 TCP 分包的 buffer 拼接、注释/空行/残缺 JSON 容错、[DONE] 终止、abort
+ * 覆盖：跨 TCP 分包的 buffer 拼接、注释/空行/残缺 JSON 容错、[DONE] 终止、abort、tool_calls
  */
 import { describe, expect, it } from 'vitest';
-import { parseOpenAIChatSSE } from './sse';
+import { parseOpenAIChatCompletionsSSE, parseOpenAIChatSSE } from './sse';
+import { collectChatResult } from './tool-calls';
 
 /** 把若干字符串按顺序推入一个 Response 的 body，模拟网络分包 */
 function responseFrom(chunks: string[]): Response {
@@ -86,5 +87,83 @@ describe('parseOpenAIChatSSE', () => {
     await expect(
       collect(responseFrom([sseDelta('A')]), controller.signal),
     ).rejects.toMatchObject({ name: 'AbortError' });
+  });
+});
+
+describe('parseOpenAIChatCompletionsSSE · tool_calls', () => {
+  it('合并分片 tool_calls 并读出 finish_reason', async () => {
+    const frames = [
+      `data: ${JSON.stringify({
+        choices: [
+          {
+            delta: {
+              tool_calls: [
+                {
+                  index: 0,
+                  id: 'call_1',
+                  type: 'function',
+                  function: { name: 'snap', arguments: '' },
+                },
+              ],
+            },
+          },
+        ],
+      })}\n\n`,
+      `data: ${JSON.stringify({
+        choices: [
+          {
+            delta: {
+              tool_calls: [{ index: 0, function: { arguments: '{"i":' } }],
+            },
+          },
+        ],
+      })}\n\n`,
+      `data: ${JSON.stringify({
+        choices: [
+          {
+            delta: {
+              tool_calls: [{ index: 0, function: { arguments: '1}' } }],
+            },
+            finish_reason: 'tool_calls',
+          },
+        ],
+      })}\n\n`,
+      'data: [DONE]\n\n',
+    ];
+
+    const result = await collectChatResult(
+      parseOpenAIChatCompletionsSSE(responseFrom(frames)),
+    );
+    expect(result).toEqual({
+      content: '',
+      finish_reason: 'tool_calls',
+      tool_calls: [
+        {
+          id: 'call_1',
+          type: 'function',
+          function: { name: 'snap', arguments: '{"i":1}' },
+        },
+      ],
+    });
+  });
+
+  it('中间帧 finish_reason:null 不提前结束', async () => {
+    const frames = [
+      `data: ${JSON.stringify({
+        choices: [{ delta: { content: 'A' }, finish_reason: null }],
+      })}\n\n`,
+      `data: ${JSON.stringify({
+        choices: [{ delta: { content: 'B' }, finish_reason: 'stop' }],
+      })}\n\n`,
+    ];
+    const events = [];
+    for await (const ev of parseOpenAIChatCompletionsSSE(responseFrom(frames))) {
+      events.push(ev);
+    }
+    expect(events).toEqual([
+      { type: 'content', delta: 'A' },
+      { type: 'content', delta: 'B' },
+      { type: 'finish', finish_reason: 'stop' },
+    ]);
   });
 });

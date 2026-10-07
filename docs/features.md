@@ -16,7 +16,7 @@
 
 | Feature | 目录 | 入口消息 / Port | 写入 storage | UI 入口 | 状态 |
 |---------|------|-----------------|--------------|---------|------|
-| agent | `features/agent/` | `agent:*`（prefs / 计划确认 / 危险确认等，实现时定稿）；Port `dualmind-agent`（`start` / `abort` + 步骤事件流） | `local:agentPrefs`；任务轨迹默认不落正文快照 | Side Panel / 全页工作台「Agent」Tab；（可选）`page-fab`「请 Agent 操作本页」 | V3.0 立项，未实现 |
+| agent | `features/agent/` | `agent:prefs:*` / `agent:open-panel`；Port `dualmind-agent`（start / 计划批准 / 危险确认 / abort）；内容脚本 `content:agent-execute` | `local:agentPrefs`；`local:agentPending`（FAB 信箱）；任务轨迹内存 | Side Panel / 工作台 Agent Tab；`page-fab`「请 Agent 操作本页」 | V3.0 主链路已接（计划批准 + tool 环 + 危险确认） |
 
 > 工具执行在内容脚本（DOM）；LLM tool-calling 只在 Background。Provider 永不碰 DOM。
 
@@ -31,7 +31,7 @@
 
 ## LLM 调用约定
 
-- 仅 Background 调用 `shared/llm/run.ts`（`runChat` / `runChatStream`；V3 可扩展 tool-calling 入口，仍经同一层）
+- 仅 Background 调用 `shared/llm/run.ts`（`runChat` / `runChatStream`；Agent 用 `runChatWithTools` / `runChatStreamWithTools`，仍经同一层）
 - Feature 不得直接 `createProviderFromSettings`（Background 的 listModels / test 除外）
 - Provider 永不碰 DOM；错误经 `shared/errors` 统一码与文案
 - Agent 所用模型须支持 tools；不支持时返回可读错误，禁止无工具硬跑

@@ -113,6 +113,9 @@ const ICONS: Record<PageFabIconName, string> = {
   // 文档 + 摘要线：总结本页
   summarize:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h8l5 5v13H6z"/><path d="M14 3v5h5"/><path d="M9 13h6"/><path d="M9 17h4"/></svg>',
+  // 鼠标指针：本页 Agent 操作
+  agent:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4l7 16 2-6 6-2z"/><path d="M13 13l5 5"/></svg>',
 };
 
 /**
