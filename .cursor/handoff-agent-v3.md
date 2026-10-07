@@ -18,6 +18,12 @@
 - 可选 `page-fab`「请 Agent 操作本页」+ `local:agentPending`
 - 安全加固：支付动作不可确认放行；同页单任务 / 文档绑定 / 快照版本 / 内容页执行前复核；停止与超时取消等待，导航使旧授权失效；UI 实际绑定页回传、卸载清理与迟到消息过滤（Agent 单测通过，Background / React UI 实机仍待验）
 - A 功能补口（2026-10-08）：Options 新增 Agent 设置区（启用 / 最大步数 / 只读说明）；tool 环连续两轮零 `tool_calls` 判定模型不支持 tools 并明确失败（新增错误码 `TOOLS_UNSUPPORTED`）；文档收口「运行态仅内存、不持久化」
+- 封板测试页 T1–T7（2026-10-08）：`e2e/pages/`（`serve.mjs` + `site/`，主站 4173 / 跨源 4174），含共享动作计数器与日志；映射见 `e2e/pages/README.md`
+- 封板期缺陷候选 DM-V3-001（2026-10-08）：受控表单上 `executor` 的 `fill`/`type` 静默失败（写 `el.value` 不触发框架 onChange）；已登记在 `docs/v3-release-test-plan.md` 第 15 节，待决定是否修
+- 人工验收 runbook（2026-10-08）：`docs/v3-acceptance-runbook.md`（8 个批次 + 页面路由 + 记录表）
+- 模型前提已解决（2026-10-08）：原两模型不支持 tool calling，已拉取 `qwen3:4b` 并复测通过（结构化 `tool_calls`）；工具段用例（B2/B3/B4/B5/B7）现已可执行
+- B1 计划闸门人工验收（2026-10-08）：Chrome + Side Panel，AG-01/02/03/06 PASS、AG-17/NET-05（qwen-coder-8k 负面样本）PASS，计划闸门另在 BYOK 与 qwen3:4b 下重跑通过；**全部无留存证据**，AG-05（P0）保留未勾选待留证复跑。已登记 DM-V3-ENV-05；结论见 `docs/v3-acceptance-runbook.md` 第 3 节
+- 下一步：B2 执行主路径（AG-04 / 07~15 / 18 / 19），需 tools 能力模型 `qwen3:4b`；AG-09 预期命中 DM-V3-001
 
 ## 下一步
 
@@ -40,6 +46,8 @@
 | 单测（tool-calling / agent tools·danger·plan / pending） | ⬜ 已写，待用户同意后 `pnpm test` |
 | Agent 最小单测（danger / tools / prompts / session / service / executor / client） | ✅ 2026-10-08：7 个文件 / 51 个用例通过；`git diff --check` 通过。`pnpm test features/agent` 因 pnpm 9.5.1 镜像获取失败，改用已安装的 `node node_modules/vitest/vitest.mjs run features/agent`，未修改依赖或配置 |
 | A 功能补口单测（service tool-calling 判定） | ✅ 2026-10-08：`features/agent` 7 文件 / 53 用例通过（较此前 51 增 2：拆分轮数上限用例 + 新增零 tool_calls 判定用例），用本地 `node node_modules/vitest/vitest.mjs run features/agent`。Options 为 UI 改动，未跑命令，待人工验 |
+| 封板测试页 T1–T7 | ✅ 2026-10-08：已建并冒烟（`node e2e/pages/serve.mjs`；全部路由 200、跨源 4174 可达、路径穿越 404、JS 全部 `node --check` 通过）。用例本身**未执行** |
+| AG-09 机制验证（缺陷候选 DM-V3-001） | ⚠️ 2026-10-08：T7 上以 Runtime.evaluate 对比两种写入路径，确认 `el.value=x` 不更新受控状态且不报错。**尚未**在真实扩展 + 真实模型下复现 |
 | 实机验收 | ⬜ 见下方 |
 
 ## 请用户验证

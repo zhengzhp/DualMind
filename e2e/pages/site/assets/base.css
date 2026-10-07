@@ -1,0 +1,121 @@
+/* 封板测试页共享样式：只求可读、可点，不做产品级观感 */
+:root {
+  color-scheme: light;
+}
+
+body {
+  margin: 0;
+  padding: 24px 24px 220px; /* 底部留白，避免动作计数面板盖住内容 */
+  font: 14px/1.7 system-ui, -apple-system, "Segoe UI", "PingFang SC", sans-serif;
+  color: #0f172a;
+  background: #f8fafc;
+}
+
+h1 {
+  font-size: 20px;
+  margin: 0 0 4px;
+}
+
+h2 {
+  font-size: 15px;
+  margin: 24px 0 8px;
+  padding-top: 12px;
+  border-top: 1px solid #e2e8f0;
+}
+
+p,
+li {
+  color: #334155;
+}
+
+code {
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: #e2e8f0;
+  font-size: 12px;
+}
+
+.hint {
+  padding: 8px 10px;
+  border-left: 3px solid #38bdf8;
+  background: #f0f9ff;
+  font-size: 13px;
+  color: #075985;
+}
+
+.warn {
+  border-left-color: #f59e0b;
+  background: #fffbeb;
+  color: #92400e;
+}
+
+label {
+  display: block;
+  margin: 10px 0 2px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+input,
+textarea,
+select {
+  padding: 6px 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font: inherit;
+  min-width: 240px;
+}
+
+textarea {
+  min-height: 64px;
+}
+
+button {
+  padding: 6px 12px;
+  margin: 4px 6px 4px 0;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #fff;
+  font: inherit;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #f1f5f9;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  align-items: center;
+}
+
+.card {
+  padding: 12px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #fff;
+  margin: 12px 0;
+}
+
+.readout {
+  font: 12px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: #0f172a;
+  background: #f1f5f9;
+  padding: 6px 8px;
+  border-radius: 6px;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+th,
+td {
+  border: 1px solid #e2e8f0;
+  padding: 6px 8px;
+  text-align: left;
+  font-size: 13px;
+}

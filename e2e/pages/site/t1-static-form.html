@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>T1 静态表单 · DualMind 封板</title>
+    <link rel="stylesheet" href="/assets/base.css" />
+  </head>
+  <body>
+    <h1>T1 · 静态表单</h1>
+    <p class="hint">
+      对应用例：AG-03 / AG-07 / AG-08 / AG-09 / AG-10 / AG-11 / AG-13 / AG-14 / SEC-06 / SEC-08。
+      所有动作只更新左下角计数器与虚构结果，<b>不会真的提交到任何服务器</b>。
+    </p>
+
+    <form id="dm-form" action="#" method="get">
+      <h2>文本类</h2>
+
+      <label for="dm-name">姓名（type 用于「追加」验证）</label>
+      <input id="dm-name" name="name" type="text" placeholder="请输入姓名" />
+
+      <label for="dm-note">备注（textarea）</label>
+      <textarea id="dm-note" name="note" placeholder="多行备注"></textarea>
+
+      <label for="dm-bio">简介（contenteditable）</label>
+      <div
+        id="dm-bio"
+        contenteditable="true"
+        role="textbox"
+        aria-label="个人简介"
+        style="min-height:56px;padding:6px 8px;border:1px solid #cbd5e1;border-radius:6px;background:#fff"
+      ></div>
+
+      <label for="dm-prefill">预填内容（fill 用于「覆盖」验证）</label>
+      <input id="dm-prefill" name="prefill" type="text" value="原有内容" />
+
+      <h2>选择类</h2>
+
+      <label for="dm-city">城市（select：value 与显示文案不同）</label>
+      <select id="dm-city" name="city">
+        <option value="">请选择</option>
+        <option value="bj">北京</option>
+        <option value="sh">上海</option>
+        <option value="gz">广州</option>
+        <option value="SZ-TEXT-ONLY">深圳</option>
+      </select>
+
+      <div class="row" style="margin-top:10px">
+        <span style="font-size:13px;font-weight:600">兴趣（checkbox）</span>
+        <label style="display:inline;font-weight:400"><input type="checkbox" id="dm-news" name="news" />订阅通讯</label>
+        <label style="display:inline;font-weight:400"><input type="checkbox" id="dm-agree" name="agree" />同意条款</label>
+      </div>
+
+      <div class="row" style="margin-top:6px">
+        <span style="font-size:13px;font-weight:600">联系偏好（radio）</span>
+        <label style="display:inline;font-weight:400"><input type="radio" name="contact" id="dm-mail" value="mail" />邮件</label>
+        <label style="display:inline;font-weight:400"><input type="radio" name="contact" id="dm-phone" value="phone" />电话</label>
+      </div>
+
+      <h2>按钮</h2>
+      <button type="button" id="dm-plain">普通按钮</button>
+      <button type="button" id="dm-delete">删除草稿</button>
+      <button type="button" id="dm-clear">清空表单</button>
+      <button type="submit" id="dm-submit">提交</button>
+      <input type="submit" id="dm-submit-input" value="确认提交" />
+
+      <h2>敏感控件（SEC-08：应触发危险确认而非静默执行）</h2>
+      <label for="dm-password">密码</label>
+      <input id="dm-password" name="password" type="password" placeholder="虚构密码即可" />
+      <label for="dm-file">文件上传（不支持时应可读失败）</label>
+      <input id="dm-file" name="upload" type="file" />
+
+      <h2>边界元素</h2>
+      <button type="button" id="dm-disabled" disabled>已禁用按钮（AG-11：不应可点）</button>
+      <button type="button" id="dm-hidden" style="display:none">隐藏按钮（不应进入快照）</button>
+      <button type="button" id="dm-aria" aria-label="无障碍名称按钮">X</button>
+      <button type="button" id="dm-empty-name"></button>
+    </form>
+
+    <script src="/assets/counters.js"></script>
+    <script src="/assets/t1-static-form.js"></script>
+  </body>
+</html>

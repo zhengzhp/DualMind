@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <!--
+      严格 CSP：inline script（含 onclick 属性）会被浏览器拒绝执行。
+      用来验证 UI-10「严格 CSP 下的限制应可读，而不是虚构成功」。
+      注意：本页刻意**不用** inline <script>，否则连自己的计数器都加载不了。
+    -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self'"
+    />
+    <title>T6 CSP 限制页 · DualMind 封板</title>
+    <link rel="stylesheet" href="/assets/base.css" />
+  </head>
+  <body>
+    <h1>T6-2 · 严格 CSP + 只接受可信事件的控件</h1>
+    <p class="hint warn">
+      对应用例：UI-10。两类控件都**不应该**因为合成点击而触发：
+      一是被 CSP 拦下的 inline onclick；二是要求 <code>event.isTrusted</code> 的控件。
+      期望：Agent 明确报告限制，而不是声称已点击成功。
+    </p>
+
+    <h2>1. inline onclick（应被 CSP 阻止，计数保持 0）</h2>
+    <div class="card">
+      <button type="button" id="csp-inline" onclick="window.dmTest.bump('csp:inline')">
+        内联 onclick 按钮
+      </button>
+    </div>
+
+    <h2>2. 只接受可信事件（合成点击应被忽略，计数保持 0）</h2>
+    <div class="card">
+      <button type="button" id="trusted-only">仅响应真实点击</button>
+      <p class="readout">真实点击次数：<b id="trusted-count">0</b></p>
+    </div>
+
+    <h2>3. 对照组：普通按钮（合成点击应正常生效）</h2>
+    <div class="card">
+      <button type="button" id="plain-csp">普通按钮</button>
+    </div>
+
+    <p id="dm-result" class="readout">页面结果：尚未执行任何动作</p>
+
+    <script src="/assets/counters.js"></script>
+    <script src="/assets/t6-csp.js"></script>
+  </body>
+</html>

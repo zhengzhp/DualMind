@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>T5 长文页 · DualMind 封板</title>
+    <link rel="stylesheet" href="/assets/base.css" />
+  </head>
+  <body>
+    <h1>T5 · 长文页（中英混排 / 列表 / 表格 / 图片链接 / 动态段落）</h1>
+    <p class="hint">
+      用于翻译（划词 + 沉浸译）、Chat（摘要 / 问答）与 Agent 三者**共存回归**：
+      REG-01 ~ REG-09、REG-13、UI-11。长度刻意做够，保证流式翻译分多段到达。
+    </p>
+
+    <h2>正文（中英混排）</h2>
+    <p>
+      浏览器扩展是一种运行在浏览器内部的小型软件。A browser extension is a small
+      program that runs inside the browser and can observe and modify the pages you
+      visit. 它既可以只是只读地整理信息，也可以在**明确授权**后代表你执行若干操作。
+    </p>
+    <p>
+      语言模型的能力边界取决于它是否支持工具调用。Tool calling lets a model ask the
+      host application to perform an action, such as reading a page element or filling
+      a form field. 没有工具调用的模型只能输出文本，无法与页面交互，因此
+      在需要操作页面时应明确提示用户更换模型，而不是静默退化成胡乱点击。
+    </p>
+    <p>
+      安全设计上，最重要的原则是「先展示计划，再执行动作」。Plan first, then act.
+      对于提交表单、删除数据这类不可逆操作，应在执行前再次确认；而对于支付、
+      转账一类高风险动作，应当直接拒绝自动执行，而不提供「仍然执行」的旁路。
+    </p>
+
+    <h2>列表</h2>
+    <ul>
+      <li>只读能力：读取正文、抽取文本、总结要点。</li>
+      <li>写入能力：点击按钮、填写输入框、选择下拉项。</li>
+      <li>导航能力：滚动、跳转锚点；离开当前页面属于危险动作。</li>
+      <li>限制：Shadow DOM 与跨域 iframe 内的元素通常无法直接操作。</li>
+    </ul>
+
+    <h2>表格</h2>
+    <table>
+      <tr><th>能力</th><th>是否需要确认</th><th>说明</th></tr>
+      <tr><td>snapshot</td><td>否</td><td>只读观测，返回可交互元素索引</td></tr>
+      <tr><td>fill / type</td><td>视目标而定</td><td>普通输入无需确认；密码框需要</td></tr>
+      <tr><td>click</td><td>视目标而定</td><td>普通按钮无需确认；提交 / 删除需要</td></tr>
+      <tr><td>select</td><td>视选项而定</td><td>选中支付类选项应直接拒绝</td></tr>
+      <tr><td>finish</td><td>否</td><td>结束任务并给出摘要</td></tr>
+    </table>
+
+    <h2>图片与链接</h2>
+    <p>
+      <a href="/t5-long-text#section-1" id="t5-anchor">本章锚点链接</a> 与
+      <a href="https://example.com/attachment" id="t5-external">外部图片链接（example.com，不会真实访问）</a>。
+    </p>
+    <p>
+      <img
+        src="/assets/placeholder.svg"
+        alt="占位图（本地，不请求外网）"
+        width="160"
+        height="90"
+        style="border:1px solid #e2e8f0;border-radius:6px"
+      />
+    </p>
+
+    <h2 id="section-1">动态段落</h2>
+    <div class="card">
+      <button type="button" id="t5-insert-p">插入一段中文段落</button>
+      <button type="button" id="t5-insert-en">插入一段英文段落</button>
+      <button type="button" id="t5-insert-list">插入一个列表</button>
+      <button type="button" id="t5-normal">普通按钮（Agent 安全动作）</button>
+    </div>
+    <div id="t5-dynamic"></div>
+
+    <h2>较长正文（供摘要 / 问答）</h2>
+    <p>
+      隐私是本地优先工具的核心理由。Local-first tools process your data on your own
+      machine, which means the content you are reading does not have to leave your
+      computer unless you explicitly send it to a model endpoint you configured.
+      即便如此，用户仍然需要清楚地知道：哪些数据会被发送、发送到哪里、以及如何删除它们。
+    </p>
+    <p>
+      可用性方面，错误信息应当是可读的。An error message should tell the user what went
+      wrong and what to do next, without leaking credentials or internal details.
+      例如「模型不支持工具调用，请更换模型」就比「请求失败」更有帮助。
+    </p>
+    <p>
+      可靠性方面，任何自动化都应当可以被随时中止。Cancellation must be honored
+      promptly: once the user stops a task, no further page actions should be taken,
+      even if a slow network response arrives later.
+    </p>
+
+    <p id="dm-result" class="readout">页面结果：尚未执行任何动作</p>
+
+    <script src="/assets/counters.js"></script>
+    <script src="/assets/t5-long-text.js"></script>
+  </body>
+</html>

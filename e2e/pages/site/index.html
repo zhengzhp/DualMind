@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>DualMind V3.0 封板测试页</title>
+    <link rel="stylesheet" href="/assets/base.css" />
+  </head>
+  <body>
+    <h1>DualMind V3.0 封板测试页</h1>
+    <p class="hint">
+      全部页面均为**虚构数据**，不含真实凭据、不访问真实金融服务（ENV-02）。
+      每页左下角有「动作计数 + 动作日志」面板；每条用例开始前请先点「重置计数」。
+    </p>
+
+    <h2>T1 静态表单 · AG-03 / AG-07 ~ AG-11 / SEC-06</h2>
+    <ul>
+      <li><a href="/t1-static-form">t1-static-form</a> — input / textarea / contenteditable / select / checkbox / radio；普通按钮、提交按钮、删除草稿</li>
+    </ul>
+
+    <h2>T2 危险页 · SEC-01 ~ SEC-06</h2>
+    <ul>
+      <li><a href="/t2-danger">t2-danger</a> — 支付 / 下单 / 充值 / 转账文案；「继续」但表单指向支付路径；快照 80 条之外的支付元素</li>
+      <li><a href="/checkout">/checkout</a> — 金融**路径**语境（SEC-02）</li>
+      <li><a href="/payment">/payment</a> — 金融路径语境</li>
+      <li><a href="/transfer">/transfer</a> — 金融路径语境</li>
+    </ul>
+
+    <h2>T3 动态页 · SEC-09 ~ SEC-11 / LIFE-11 ~ LIFE-12</h2>
+    <ul>
+      <li><a href="/t3-dynamic">t3-dynamic</a> — 改文案 / href / form action / input type / 无障碍名称 / option；移除、替换、隐藏、禁用、重排；hash / pushState / replaceState / 整页导航</li>
+    </ul>
+
+    <h2>T4 等待页 · LIFE-04 / LIFE-06 / AG-12</h2>
+    <ul>
+      <li><a href="/t4-waiting">t4-waiting</a> — 点击计数、延时文本、定时连续变化、等待中导航</li>
+    </ul>
+
+    <h2>T5 长文页 · REG-01 ~ REG-09 / UI-11</h2>
+    <ul>
+      <li><a href="/t5-long-text">t5-long-text</a> — 中英混排、列表、表格、图片链接、动态插入段落</li>
+    </ul>
+
+    <h2>T6 限制页 · UI-10 / SEC-08</h2>
+    <ul>
+      <li><a href="/t6-limits">t6-limits</a> — open / closed Shadow DOM、同源 / 跨源 iframe</li>
+      <li><a href="/t6-csp">t6-csp</a> — 严格 CSP + 只接受可信事件的控件</li>
+    </ul>
+
+    <h2>T7 受控表单 · AG-09</h2>
+    <ul>
+      <li><a href="/t7-react-form">t7-react-form</a> — 受控输入（复现 React value tracker 语义）+ textarea + contenteditable</li>
+    </ul>
+
+    <h2>辅助</h2>
+    <ul>
+      <li><a href="/frame.html">frame.html</a> — iframe 内页（同源用主端口、跨源用 <code>127.0.0.1:4174</code>）</li>
+    </ul>
+  </body>
+</html>

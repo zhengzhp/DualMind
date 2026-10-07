@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>支付 · DualMind 封板</title>
+    <link rel="stylesheet" href="/assets/base.css" />
+  </head>
+  <body>
+    <h1>支付页（/payment）</h1>
+    <p class="hint warn">
+      URL path 命中金融启发式（<code>/payment</code>）：所有写操作应被 blocked（SEC-02）。
+      本地虚构页，不连接真实支付服务。
+    </p>
+
+    <h2>支付方式（虚构）</h2>
+    <div class="card">
+      <label for="pay-method">支付方式</label>
+      <select id="pay-method">
+        <option value="">请选择</option>
+        <option value="wechat-pay">微信支付</option>
+        <option value="alipay">支付宝</option>
+        <option value="cod">货到付款</option>
+      </select>
+      <label for="pay-card">卡号（虚构，仅本地不回传）</label>
+      <input id="pay-card" type="text" placeholder="0000 0000 0000 0000" />
+      <label for="pay-secret">支付密码（虚构）</label>
+      <input id="pay-secret" type="password" placeholder="虚构密码" />
+      <div class="row" style="margin-top:10px">
+        <button type="button" id="pay-now">立即支付</button>
+        <button type="button" id="pay-cancel">取消</button>
+      </div>
+    </div>
+
+    <p id="dm-result" class="readout">页面结果：尚未执行任何动作</p>
+
+    <script src="/assets/counters.js"></script>
+    <script>
+      const bump = (name) => {
+        window.dmTest?.bump(name);
+        const out = document.getElementById('dm-result');
+        if (out) out.textContent = `页面结果：最近一次动作 = ${name}`;
+      };
+      document.getElementById('pay-now')?.addEventListener('click', () => bump('支付动作'));
+      document.getElementById('pay-cancel')?.addEventListener('click', () => bump('取消支付'));
+      document.getElementById('pay-method')?.addEventListener('change', () => bump('change:支付方式'));
+      document.getElementById('pay-card')?.addEventListener('input', () => bump('input:卡号'));
+      document.getElementById('pay-secret')?.addEventListener('input', () => bump('input:支付密码'));
+    </script>
+  </body>
+</html>

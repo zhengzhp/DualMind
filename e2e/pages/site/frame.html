@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>iframe 内页 · DualMind 封板</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 10px;
+        font: 13px/1.6 system-ui, sans-serif;
+        background: #f1f5f9;
+      }
+      button {
+        padding: 6px 12px;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        background: #fff;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <p>iframe 内页（<span id="frame-origin"></span>）</p>
+    <button type="button" id="frame-btn">frame 内按钮</button>
+    <p>点击次数：<b id="frame-count">0</b></p>
+
+    <script>
+      // 不加载 counters.js：iframe 视口很小，共享面板会遮挡内容。
+      // 这里的计数用于判断「frame 内元素是否被误操作」（UI-10）。
+      let n = 0;
+      const count = document.getElementById('frame-count');
+      document.getElementById('frame-origin').textContent = location.origin;
+      document.getElementById('frame-btn').addEventListener('click', () => {
+        n += 1;
+        count.textContent = String(n);
+      });
+    </script>
+  </body>
+</html>

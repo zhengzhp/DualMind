@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>T7 受控表单 · DualMind 封板</title>
+    <link rel="stylesheet" href="/assets/base.css" />
+  </head>
+  <body>
+    <h1>T7 · 受控表单（React value tracker 语义）</h1>
+    <p class="hint warn">
+      对应用例：AG-09。用于验证 <code>fill</code> / <code>type</code> 是否**真的更新了应用状态**，
+      而不是只改了 DOM 外观被浏览器短暂显示、随后被框架回写覆盖。
+    </p>
+    <p class="hint">
+      实现说明：本页用原生 JS **精确复现** React 受控输入的关键机制 —— 框架在节点上定义
+      <code>value</code> 访问器并维护一个「框架认为的值」。直接 <code>node.value = x</code>
+      （内容脚本的做法）会同步该记录，框架随即判定「无变化」，<b>不触发 onChange 并回写受控值</b>。
+      真实键盘输入与原生 setter 不受此影响。
+    </p>
+
+    <h2>受控文本输入</h2>
+    <div class="card">
+      <label for="r-name">姓名（受控 input）</label>
+      <input id="r-name" type="text" placeholder="请输入姓名" />
+      <p class="readout">
+        应用状态：<b id="r-name-state">（空）</b><br />
+        DOM 可见值：<b id="r-name-dom">（空）</b>
+      </p>
+    </div>
+
+    <h2>受控 textarea</h2>
+    <div class="card">
+      <label for="r-note">备注（受控 textarea）</label>
+      <textarea id="r-note" placeholder="多行备注"></textarea>
+      <p class="readout">
+        应用状态：<b id="r-note-state">（空）</b><br />
+        DOM 可见值：<b id="r-note-dom">（空）</b>
+      </p>
+    </div>
+
+    <h2>contenteditable（非受控，仅镜像）</h2>
+    <div class="card">
+      <div
+        id="r-bio"
+        contenteditable="true"
+        role="textbox"
+        aria-label="简介"
+        style="min-height:56px;padding:6px 8px;border:1px solid #cbd5e1;border-radius:6px;background:#fff"
+      ></div>
+      <p class="readout">镜像文本：<b id="r-bio-state">（空）</b></p>
+    </div>
+
+    <h2>对照实验（区分「页面坏了」还是「写入方式不兼容」）</h2>
+    <div class="card">
+      <button type="button" id="r-native-set">用原生 setter 模拟真实输入 → 张三</button>
+      <button type="button" id="r-force-render">强制重渲染（观察直写是否被回写）</button>
+      <button type="button" id="r-reset">重置全部</button>
+    </div>
+
+    <p id="dm-result" class="readout">页面结果：尚未执行任何动作</p>
+
+    <script src="/assets/counters.js"></script>
+    <script src="/assets/t7-react-form.js"></script>
+  </body>
+</html>

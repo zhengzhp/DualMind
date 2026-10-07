@@ -3,6 +3,7 @@
 > 编制日期：2026-10-08。适用：V3.0 本页 Agent + V1 / V1.5 / V2 回归，Chrome / Edge MV3。
 > 权威边界：`docs/decisions.md`、`docs/architecture-v3.md`、`docs/features.md`；冲突时以这些文档为准。
 > 本文是待执行清单，不是验收通过报告。Agent 最小单测的已有结果见第 2 节；所有复选框默认未验。
+> **执行顺序与记录表**见 [v3-acceptance-runbook.md](./v3-acceptance-runbook.md)（按浏览器上下文重排 8 个批次，含路由与阻塞登记）。
 > Agent 不新增权限、不跨 Tab 自动化、不做支付 / 转账、CAPTCHA、下载管理、PDF、debugger / CDP 或 MCP。
 
 ## 1. 执行纪律与通过标准
@@ -37,7 +38,11 @@
 | Agent 最小单测 | 7 文件 / 51 用例通过：danger / tools / prompts / session / service / executor / client | 证明被测纯逻辑、Mock 编排、伪 DOM 与 Port 边界；不证明真实浏览器消息、React 卸载、SW 生命周期或真实模型行为 |
 | 最小单测启动 | `pnpm test features/agent` 的指定 pnpm 版本镜像获取失败，使用本地 `node node_modules/vitest/vitest.mjs run features/agent` 通过 | 可作为此次定向单测证据；正式版仍需排除包管理环境阻塞、完成可复现构建 |
 | 静态差异 | `git diff --check` 通过 | 仅检查差异中的空白问题，不代表类型或功能通过 |
-| 既有 Playwright E2E | 翻译、划词、沉浸译、Options、工作台、Chat 有用例 | 当前没有专门的 Agent E2E 文件；必须人工执行第 6～10 节，不能用全量 E2E 绿灯推断 Agent 浏览器主链路通过 |
+| 封板测试页 T1–T7 | 2026-10-08 由 `e2e/pages/` 提供（`node e2e/pages/serve.mjs`，主站 4173 / 跨源 4174）；已冒烟：全部路由 200、跨源可达、路径穿越 404；JS 全部 `node --check` 通过 | 提供了可控页面与可独立观测的动作计数 / 日志；**不**代表任何用例已通过 |
+| 模型 tool calling 前提（ENV-06） | ⚠️ 2026-10-08 实测：本机原有 `qwen-coder-8k:latest` 与 `qwen2.5-coder:7b` 均返回 `tool_calls: null`（把工具调用当纯文本输出，Ollama 0.35.1）；同日拉取 **`qwen3:4b`** 复测返回结构化 `tool_calls` / `finish_reason: "tool_calls"` | 证明当前环境**已具备** Agent DOM 操作主路径的模型前提（Provider A）；原两个模型可作为 NET-05 的负面样本 |
+| B1 计划闸门人工验收 | 2026-10-08，Chrome + Side Panel：AG-01 / AG-02 / AG-03 / AG-06 PASS；AG-17 / NET-05 用 `qwen-coder-8k`（不支持 tools）PASS；计划闸门另在 BYOK 与 `qwen3:4b` 下分别重跑通过。**全部无留存证据**；AG-05（P0）仅执行人确认 | 证明计划闸门在三种 Provider 配置下可用，且不支持 tools 的模型能给出可读提示；**不**证明 tools 主路径（NET-01）、不证明 AG-09；**AG-05 不足以关闭 P0**，签收前须留证复跑 |
+| T7 受控输入实测（缺陷候选） | 2026-10-08 于 `http://127.0.0.1:4173/t7-react-form` 以 Runtime.evaluate 两种写入路径对比：`el.value=x` + `input/change`（= `executor.runFill` 的做法）**不更新应用状态且不报错**；原生 setter + `input` 正常更新 | 指向 AG-09 缺陷候选：受控表单上 `fill`/`type` 静默失败（详见第 15 节缺陷记录）。仅为单页机制验证，仍需真实站点与真实模型复现 |
+    39|| 既有 Playwright E2E | 翻译、划词、沉浸译、Options、工作台、Chat 有用例 | 当前没有专门的 Agent E2E 文件；必须人工执行第 6～10 节，不能用全量 E2E 绿灯推断 Agent 浏览器主链路通过 |
 | compile / 全量 test / build / E2E | 本次安全修复后尚未执行 | 发布前必须补齐 |
 | 上架材料 | `docs/store-listing.md` 仍有 V1 口径，未完整披露 Chat 历史与 Agent DOM 写操作 | 正式发布前必须修订和复核，不可直接粘贴提交 |
 
@@ -59,6 +64,21 @@
 | 构建与包 | 构建时间、manifest、zip 文件名与校验值 |
 | 验证产物 | 命令日志、截图、必要录像、E2E report / trace、缺陷单位置 |
 
+### 本次登记（2026-10-08）
+
+| 字段 | 填写内容 |
+| --- | --- |
+| 候选版本 / 源码标识 | `9770b9e625061c6c82eee1e2daae20f1de501672`（`main`，2026-10-08 04:53:38 +0800）。**工作区含未提交改动**：本文件与 `docs/v3-acceptance-runbook.md`、`e2e/pages/`（本次新增），以及工具链改动 `package.json` / `pnpm-workspace.yaml` / `pnpm-lock.yaml` / `.github/workflows/ci.yml`。⇒ 建议验收前先提交，把证据绑定到不可变提交，否则不能只写 `9770b9e` |
+| 测试日期 / 执行人 | 2026-10-08；执行人 **待填** |
+| OS / 浏览器 | macOS 14.6.1（build 23G93，arm64）；Google Chrome 155.0.8059.40。**Edge 未安装 → 必测矩阵的 Edge 列 BLOCKED**；Windows 的 `Alt+K` 路径本机无法验证 |
+| 工具链 | Node `v24.21.0`；pnpm `12.9.1`（原 `9.5.1` 镜像获取失败，已由工作区改动修好并实测 `pnpm build` 通过）；WXT `^0.21.4`；Vitest `^3.2.7`；Playwright `^1.63.0`；TypeScript `^5.7.2` |
+| 扩展 | manifest 版本 `0.1.0`（与产品阶段名「V3.0」不等价，正式版号见 REL-01）；加载路径 `.output/chrome-mv3`（生产构建）；扩展 ID 随加载变化，验收时记录实际值 |
+| 权限核对（PRIV-01 / PRIV-02） | `permissions: ["storage","sidePanel","contextMenus"]`；`host_permissions: ["http://127.0.0.1:11434/*","http://localhost:11434/*","<all_urls>"]`；`optional_permissions: null`；`commands: ["translate-selection"]`。**无 `debugger` / `scripting` / `tabs` / `activeTab`**，与「V3.0 零新增权限」一致 |
+| Provider A | Ollama `http://127.0.0.1:11434`（服务版本 0.35.1）。模型 **`qwen3:4b`（4.0B, 2.50GB）**：2026-10-08 实测返回结构化 `tool_calls`（`finish_reason: "tool_calls"`）→ **tools 能力通过**。原 `qwen-coder-8k:latest` / `qwen2.5-coder:7b` 不支持（`tool_calls: null`），不得再用作 Agent 验收模型 |
+| Provider B | 待定（BYOK OpenAI Compatible）；Key 必须脱敏 |
+| 构建与包 | 2026-10-08 05:06 生产构建 `pnpm build` 成功（WXT 1.048s）；已核对产物包含本次改动（Options 的 Agent 设置项、`background.js` 中的 `TOOLS_UNSUPPORTED` / `已达到最大步数` 逻辑） |
+| 验证产物 | 封板测试页与计数器见 `e2e/pages/README.md`；手工验收记录表见 `docs/v3-acceptance-runbook.md` 第 3 节 |
+
 ### 必测矩阵
 
 | 维度 | 最小必测组合 |
@@ -78,6 +98,9 @@ Provider 双主路径至少在 Chrome 的两个 UI 入口完成；Edge 至少重
 ### 可控页面要求
 
 在独立本地测试站点准备以下页面；本文未创建测试服务器或页面，不得把「准备要求」标记为已实现。
+
+> **更新 2026-10-08**：T1–T7 已由 `e2e/pages/` 落地（启动方式与用例映射见 `e2e/pages/README.md`）。
+> 页面已就绪，但下面各条用例的「准备 / 观测」勾选项仍须在真实执行时逐条核对与填写。
 
 - **T1 静态表单**：input / textarea / contenteditable / select / checkbox / radio；普通按钮、普通 submit、删除草稿按钮；所有动作只更新页面计数器与虚构结果。
 - **T2 危险页**：支付 / 转账 / 下单 / 充值文案；`/checkout`、`/payment` 等路径；普通文案但 form action 指向支付路径；不访问真实金融服务。
@@ -124,12 +147,12 @@ Provider 双主路径至少在 Chrome 的两个 UI 入口完成；Edge 至少重
 
 所有动作计数器在每条用例开始前归零；用确定的任务目标，不以模型输出文字本身作为 DOM 成功依据。
 
-- [ ] **AG-01 · P1**：干净安装后打开 Agent — 有能力与模型要求说明，设置加载期间不允许启动；默认启用状态以当前决策与默认值为准（当前 `agentPrefs.enabled=true`），但不会自动启动任务。
-- [ ] **AG-02 · P1**：关掉 Agent，再输入目标 / 重开 UI — 无任务启动；开关落盘且与真实可用状态一致。
-- [ ] **AG-03 · P1**：从 Side Panel 启动「填写姓名但不要提交」 — 实际绑定页可见；先显示可读计划，尚未批准时页面写动作计数为 0。
+- [x] **AG-01 · P1**：干净安装后打开 Agent — 有能力与模型要求说明，设置加载期间不允许启动；默认启用状态以当前决策与默认值为准（当前 `agentPrefs.enabled=true`），但不会自动启动任务。　`2026-10-08 Chrome/SidePanel PASS（无留存证据，见 runbook 第 3 节）`
+- [x] **AG-02 · P1**：关掉 Agent，再输入目标 / 重开 UI — 无任务启动；开关落盘且与真实可用状态一致。　`2026-10-08 Chrome/SidePanel PASS（无留存证据）`
+- [x] **AG-03 · P1**：从 Side Panel 启动「填写姓名但不要提交」 — 实际绑定页可见；先显示可读计划，尚未批准时页面写动作计数为 0。　`2026-10-08 Chrome/SidePanel + qwen3:4b PASS（无留存证据）`
 - [ ] **AG-04 · P1**：全页工作台占用活动 Tab 时启动 — 回退到同窗口可读内容页，不操作扩展页；显示页与实际执行页一致。
-- [ ] **AG-05 · P0**：在计划待批准状态等待、切 UI Tab、重复点击开始 — 未批准不写页面；不产生重复任务。
-- [ ] **AG-06 · P1**：拒绝计划 — 显示取消 / 未执行，不显示成功；无后续工具写入，可重新发起任务。
+- [ ] **AG-05 · P0**：在计划待批准状态等待、切 UI Tab、重复点击开始 — 未批准不写页面；不产生重复任务。　`2026-10-08 执行人确认 PASS，但无计数器 / 截图证据 ⇒ 保留未勾选，签收前必须留证复跑`
+- [x] **AG-06 · P1**：拒绝计划 — 显示取消 / 未执行，不显示成功；无后续工具写入，可重新发起任务。　`2026-10-08 Chrome/SidePanel PASS（无留存证据）`
 - [ ] **AG-07 · P1**：批准计划 — 按目标观测、填写、结束；步骤事件顺序可理解，没有无限加载或重复提交。
 - [ ] **AG-08 · P1**：分别执行 type（追加）与 fill（覆盖） — 文本结果符合语义；中文、空格、换行及虚构特殊字符不损坏。
 - [ ] **AG-09 · P1**：填写 React 受控表单、textarea、contenteditable — 页面业务状态和提交前预览与可见值一致；若不支持，明确失败而非声称成功。
@@ -140,7 +163,7 @@ Provider 双主路径至少在 Chrome 的两个 UI 入口完成；Edge 至少重
 - [ ] **AG-14 · P1**：快照元素达到截断上限 — 返回截断提示；模型不猜测未列出的 index，不操作不可见目标。
 - [ ] **AG-15 · P1**：finish 分别返回成功与失败 — UI 明确区分完成 / 未完成；摘要不掩盖被拒绝或失败的步骤。
 - [ ] **AG-16 · P1**：目标为空、全空格、设置读取失败、保存失败 — 不启动无目标任务、不伪装已保存，错误可读且能重试。
-- [ ] **AG-17 · P1**：模型给无效计划或没有 tools 返回 — 不直接执行不受控动作，给出模型能力 / 计划问题提示；不能长时间反复催工具而无明确原因。
+- [x] **AG-17 · P1**：模型给无效计划或没有 tools 返回 — 不直接执行不受控动作，给出模型能力 / 计划问题提示；不能长时间反复催工具而无明确原因。　`2026-10-08 Chrome/SidePanel + qwen-coder-8k（不支持 tools）PASS（无留存证据）`
 - [ ] **AG-18 · P1**：模型支持 tools 但需要多轮纠错 — 有限轮内可恢复；没有把工具失败误当成功，迟到结果不串到新任务。
 - [ ] **AG-19 · P1**：把最大轮数设为小值后构造无法完成目标 — 到上限停止并标未完成。当前 `maxSteps` 限制模型轮次，不是总工具调用数；文案不能承诺「最多 20 个 DOM 动作」。
 
@@ -202,7 +225,7 @@ Provider 双主路径至少在 Chrome 的两个 UI 入口完成；Edge 至少重
 - [ ] **NET-02 · P1**：Ollama 未运行 / host 错误 / 模型不存在 — 可读错误，修正配置后可重试；没有静默切换到别的 Provider。
 - [ ] **NET-03 · P1**：BYOK 缺 Key、错误 Key、错误 Base URL / 模型 — 对应错误可读，不打印凭据；保存正确配置后恢复。
 - [ ] **NET-04 · P1**：模拟 401 / 403 / 429 / 5xx、断网、连接重置与慢响应 — 不无限 loading、不重复发危险工具；未成功的任务不标成功。
-- [ ] **NET-05 · P1**：模型只支持文本，不支持 tools — 明确提示换支持 tools 的模型；不退化成猜测点击或无限重复工具催促。
+- [x] **NET-05 · P1**：模型只支持文本，不支持 tools — 明确提示换支持 tools 的模型；不退化成猜测点击或无限重复工具催促。　`2026-10-08 Chrome/SidePanel + qwen-coder-8k PASS（无留存证据）`
 - [ ] **NET-06 · P1**：模型输出多个 tool calls、空参数、损坏 JSON、未知 function、纯文本回答 — 校验有效；失败可恢复或结束；非法调用不写页面。
 - [ ] **NET-07 · P1**：任务运行时切 Provider / 模型 — 记录实际行为；如新配置导致后续调用失败，应明确结束且不误报成功，不跨任务泄露上下文。
 - [ ] **NET-08 · P1**：自定义 OpenAI Compatible Base URL 与本地 Ollama host — 所有模型请求从 Background 发出，Content Script 无直连模型请求。
@@ -324,6 +347,33 @@ Provider 双主路径至少在 Chrome 的两个 UI 入口完成；Edge 至少重
 ```
 
 若用例触发了错误页面动作，立即停止并保存证据；不要在真实账户环境重试。安全缺陷修复后至少重跑同类危险动作、取消、目标变化、并发与导航用例。
+
+### 已登记缺陷
+
+```text
+缺陷 ID / 等级：DM-V3-001 / 待定（倾向 P1：受控表单上填写不生效；不涉及越权 / 未确认写动作，暂不判 P0）
+关联用例：AG-09（填写 React 受控表单、textarea、contenteditable）
+候选版本 / 浏览器 / UI / Provider：9770b9e（封板起点）；页面机制验证用本机 Chromium（IDE 内浏览器）；
+                                    真实扩展 + 真实模型复现待补
+前置状态与测试页：e2e/pages 的 T7（http://127.0.0.1:4173/t7-react-form），页面**如实复现** React 受控输入的
+                  value tracker 语义（见 e2e/pages/README.md 的「设计取舍」）
+复现步骤：1) 打开 T7；2) 对 #r-name 写入 el.value='李四' 并派发 input/change
+          （等价于 features/agent/executor.ts 的 runFill / runType）；
+          3) 对照页面的「应用状态」与「DOM 可见值」
+期望结果：受控组件收到状态更新，或在无法更新时**明确失败**
+实际结果（计数器 / 网络 / timeline）：计数器 +1「受控:直写被判定为无变化并回写」；
+                                    应用状态仍为「（空）」，DOM 可见值被回写为空；
+                                    而 executor.runFill 返回 ok:true、summary「已填写」→ 静默失败、无任何错误提示。
+                                    对照：原生 setter + input 路径可正常更新（计数器 +1「受控:onChange 触发」）
+出现次数 / 执行次数：1 / 1（页面机制验证）；真实站点与真实模型下出现次数待补
+脱敏截图 / 日志 / trace：本机 Runtime.evaluate 返回 JSON（见提交说明 / 会话记录）；无真实凭据或个人信息
+负责人 / 修复版本：待定
+修复后复测结果 / 相邻路径回归：修复后需重跑 AG-08（type 追加）、AG-09、AG-10、SEC-08（密码 / 文件框仍需危险确认）
+```
+
+> 说明：本缺陷由**封板测试页**在机制层面暴露，尚未在真实扩展 + 真实模型下复现。
+> 在补做真实复现前，不应据此宣称 V3.0 已封板；也不应把它直接标成 P0——
+> 它不构成越权或未确认写动作。
 
 ## 16. 最终签收
 

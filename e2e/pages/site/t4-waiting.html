@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>T4 等待页 · DualMind 封板</title>
+    <link rel="stylesheet" href="/assets/base.css" />
+  </head>
+  <body>
+    <h1>T4 · 等待页</h1>
+    <p class="hint warn">
+      可观测「停止前后到底执行了哪些动作」。对应用例：LIFE-04 / LIFE-06 / AG-12。
+      等待类动作请在页面变化前后对照左下角计数与动作日志。
+    </p>
+
+    <h2>点击计数</h2>
+    <div class="card">
+      <button type="button" id="w-click">点击一次</button>
+      <p class="readout">已点击 <b id="w-click-count">0</b> 次</p>
+    </div>
+
+    <h2>延时出现文本（wait 的 text 模式）</h2>
+    <div class="card">
+      <button type="button" id="w-delay">开始延时（3 秒后出现「延时完成」）</button>
+      <p class="readout">延时状态：<b id="w-delay-state">未开始</b></p>
+      <p id="w-delayed-text" style="display:none">延时完成</p>
+    </div>
+
+    <h2>定时连续变化（用于观察停止后是否仍在动）</h2>
+    <div class="card">
+      <button type="button" id="w-tick-start">开始每 500ms 记数</button>
+      <button type="button" id="w-tick-stop">停止记数</button>
+      <p class="readout">定时记数：<b id="w-tick-count">0</b></p>
+    </div>
+
+    <h2>等待中导航（应使旧任务与确认失效）</h2>
+    <div class="card">
+      <button type="button" id="w-nav">导航到同页不同 query</button>
+      <button type="button" id="w-nav-other">导航到 /checkout</button>
+    </div>
+
+    <p id="dm-result" class="readout">页面结果：尚未执行任何动作</p>
+
+    <script src="/assets/counters.js"></script>
+    <script src="/assets/t4-waiting.js"></script>
+  </body>
+</html>
