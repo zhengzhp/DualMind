@@ -6,11 +6,15 @@ import {
   toChatSessionSummaries,
 } from './chatSessions';
 import {
-  CHAT_PENDING_TTL_MS,
+  evaluateChatPending,
+  type ConsumeChatPendingResult,
+} from './chatPendingEval';
+import {
   DEFAULT_CHAT_PREFS,
   DEFAULT_IMMERSIVE_PREFS,
   DEFAULT_SETTINGS,
   type AppSettings,
+  type ChatPageNavSignal,
   type ChatPendingAction,
   type ChatPrefs,
   type ChatSession,
@@ -18,6 +22,9 @@ import {
   type ImmersivePrefs,
   type PageFabPos,
 } from './types';
+
+export type { ConsumeChatPendingResult };
+export { evaluateChatPending };
 
 /** 设置项存储 key */
 export const settingsItem = storage.defineItem<AppSettings>('local:settings', {
@@ -223,12 +230,27 @@ export async function setChatPending(
 
 /**
  * 取出并清空待执行动作（取过即清，天然幂等）。
- * 超过 TTL 的旧动作直接丢弃，避免面板很久之后打开时突然执行。
+ * 超过 TTL 的旧动作返回 `expired`，由 UI 提示用户再试一次。
  */
-export async function consumeChatPending(): Promise<ChatPendingAction | null> {
+export async function consumeChatPending(): Promise<ConsumeChatPendingResult> {
   const action = await chatPendingItem.getValue();
-  if (!action) return null;
+  if (!action) return { status: 'empty' };
   await chatPendingItem.setValue(null);
-  if (Date.now() - action.createdAt > CHAT_PENDING_TTL_MS) return null;
-  return action;
+  return evaluateChatPending(action);
+}
+
+/** SPA 路由变化信号（网页助手用来提示上下文可能过期） */
+export const chatPageNavItem = storage.defineItem<ChatPageNavSignal | null>(
+  'local:chatPageNav',
+  { fallback: null },
+);
+
+export async function setChatPageNavSignal(
+  signal: Omit<ChatPageNavSignal, 'at'> & { at?: number },
+): Promise<void> {
+  await chatPageNavItem.setValue({
+    url: signal.url,
+    title: signal.title,
+    at: signal.at ?? Date.now(),
+  });
 }

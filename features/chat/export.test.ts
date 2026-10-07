@@ -88,6 +88,29 @@ describe('formatSessionMarkdown', () => {
     expect(md).toContain('> 失败：网络超时');
   });
 
+  it('跨页分隔导出为页面切换小节', () => {
+    const md = formatSessionMarkdown(
+      session({
+        id: 'cross',
+        turns: [
+          turn('t1', 'user', '旧问'),
+          {
+            id: 'pb',
+            role: 'system',
+            kind: 'page-break',
+            content: '之后基于：新页',
+            pageUrl: 'https://example.com/b',
+            createdAt: 1,
+          },
+          turn('t2', 'user', '新问'),
+        ],
+      }),
+    );
+    expect(md).toContain('### —— 页面切换 ——');
+    expect(md).toContain('之后基于：新页');
+    expect(md).toContain('- 地址：https://example.com/b');
+  });
+
   it('缺失标题 / 页面时有回退文案', () => {
     const md = formatSessionMarkdown(
       session({

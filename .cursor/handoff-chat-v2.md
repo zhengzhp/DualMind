@@ -191,7 +191,7 @@ export PATH="$HOME/.nvm/versions/node/v22.23.3/bin:$PATH"   # 本机默认 node 
 ## 9. 下一步（按优先级）
 
 1. ~~实机验收 / V2 封板~~ ✅ 完成。
-2. 可选技术债：侧栏输入框钉底、跨页 turns 混页标注、`selection-toolbar` E2E flake。
+2. ~~五项技术债（钉底 / 跨页分隔 / SPA 提示 / TTL+过期提示 / E2E flake）~~ ✅ 见 `docs/decisions.md`「封板后技术债处理」。
 3. 工程：本地 commits 是否 `git -c http.version=HTTP/1.1 push` 由用户决定。
 4. **V3 / V2.5+**：须先 `/plan-feature` 立项并写入 `docs/decisions.md`；立项后再按 [dualmind-docs-versioning.plan.md](./plans/dualmind-docs-versioning.plan.md) 切档 `*-v2` 并重建活文档。
 5. 发布闸门（compile / 全量 e2e / 提审）仍推迟到 V3 完成后。

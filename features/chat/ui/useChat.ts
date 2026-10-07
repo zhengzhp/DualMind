@@ -6,11 +6,13 @@
  * 避免迟到的 chunk 写到新会话里（同类问题见 `docs/decisions-v1.md` 的残留提示缺陷）。
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { browser } from 'wxt/browser';
 import { formatErrorForUi } from '@/shared/errors';
 import { sendMessage } from '@/shared/messaging/client';
 import { deriveSessionTitle, updateTurn } from '@/shared/storage/chatSessions';
 import type {
   ChatContextScope,
+  ChatPageNavSignal,
   ChatPendingAction,
   ChatPrefs,
   ChatSession,
@@ -25,6 +27,7 @@ import {
   formatAllSessionsMarkdown,
   formatSessionMarkdown,
 } from '../export';
+import { createPageBreakTurn } from '../pageBreak';
 import { isSamePageUrl } from '../pageUrl';
 import { SUMMARY_QUESTION } from '../prompts';
 import type { ChatContextPayload } from '../types';
@@ -72,6 +75,11 @@ export interface ChatController {
   context: ChatContextPayload | null;
   contextLoading: boolean;
   contextError: string;
+  /**
+   * 页面在读取上下文后发生了 SPA / 路由变化：提示用户点「重新读取」。
+   * 不自动静默重读，避免上下文被悄悄换掉。
+   */
+  contextStale: boolean;
   /**
    * 当前将读取 / 已绑定的内容页（经 BG `resolveContentTab`）。
    * 工作台前台时也可能指向同窗口最近可读网页，而非扩展页自身。
@@ -122,6 +130,7 @@ export function useChat(options: UseChatOptions = {}): ChatController {
   const [context, setContext] = useState<ChatContextPayload | null>(null);
   const [contextLoading, setContextLoading] = useState(false);
   const [contextError, setContextError] = useState('');
+  const [contextStale, setContextStale] = useState(false);
   const [boundPage, setBoundPage] = useState<{
     url: string;
     title: string;
@@ -175,6 +184,7 @@ export function useChat(options: UseChatOptions = {}): ChatController {
           scope ? { scope } : {},
         );
         setContext(payload);
+        setContextStale(false);
         if (payload) {
           setBoundPage({ url: payload.url, title: payload.title });
           setContextError('');
@@ -193,6 +203,32 @@ export function useChat(options: UseChatOptions = {}): ChatController {
     },
     [],
   );
+
+  /** 内容页 SPA 导航信号：已有缓存且 URL 变了 → 标 stale，不自动重读 */
+  useEffect(() => {
+    const onNav = (signal: ChatPageNavSignal | null | undefined) => {
+      if (!signal?.url) return;
+      const baseline = context?.url || boundPage?.url || '';
+      if (!baseline) return;
+      if (!isSamePageUrl(baseline, signal.url)) {
+        setContextStale(true);
+      }
+    };
+
+    const listener = (
+      changes: Record<string, { newValue?: unknown }>,
+      area: string,
+    ) => {
+      if (area !== 'local') return;
+      const change = Object.entries(changes).find(([key]) =>
+        key.includes('chatPageNav'),
+      );
+      if (!change) return;
+      onNav(change[1].newValue as ChatPageNavSignal | null);
+    };
+    browser.storage.onChanged.addListener(listener);
+    return () => browser.storage.onChanged.removeListener(listener);
+  }, [boundPage?.url, context?.url]);
 
   useEffect(() => {
     void (async () => {
@@ -400,13 +436,24 @@ export function useChat(options: UseChatOptions = {}): ChatController {
       setMismatchConfirm(null);
       // 先认下当前页作为会话来源：即使随后读不到正文（activeContext 为 null），
       // pageUrl 也已是新页，不会因为回退到旧来源而每次发送都弹确认。
+      // 插入分隔条，避免跨页 turns 在 UI 里糊成一段。
       const base = sessionRef.current;
+      const breakTurn = createPageBreakTurn({
+        id: createId('pb'),
+        url: pending.currentUrl,
+        title: pending.currentTitle,
+      });
       commitSession({
         ...base,
         pageUrl: pending.currentUrl,
         pageTitle: pending.currentTitle || base.pageTitle,
+        turns: [...base.turns, breakTurn],
+        updatedAt: Date.now(),
         ...(options?.remember ? { allowCrossPage: true } : {}),
       });
+      // 换页后旧上下文作废，让 sendNow 按需重读
+      setContext(null);
+      setContextStale(false);
       void sendNow(pending.question);
     },
     [commitSession, mismatchConfirm, sendNow],
@@ -425,6 +472,7 @@ export function useChat(options: UseChatOptions = {}): ChatController {
     commitSession(createSession());
     setContext(null);
     setContextError('');
+    setContextStale(false);
     setError('');
     setMismatchConfirm(null);
   }, [commitSession, interrupt]);
@@ -437,6 +485,7 @@ export function useChat(options: UseChatOptions = {}): ChatController {
         interrupt();
         setError('');
         setContext(null);
+        setContextStale(false);
         setContextError('');
         setMismatchConfirm(null);
         commitSession(loaded);
@@ -550,6 +599,7 @@ export function useChat(options: UseChatOptions = {}): ChatController {
     context,
     contextLoading,
     contextError,
+    contextStale,
     boundPage,
     streaming,
     error,

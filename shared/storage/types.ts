@@ -176,11 +176,20 @@ export const DEFAULT_CHAT_PREFS: ChatPrefs = {
  */
 export interface ChatTurn {
   id: string;
-  role: 'user' | 'assistant';
+  /**
+   * `user` / `assistant`：对话轮次；
+   * `system` + `kind: 'page-break'`：跨页确认后的分隔条（仅 UI / 导出，不入模型历史）。
+   */
+  role: 'user' | 'assistant' | 'system';
   content: string;
   createdAt: number;
   /** 该轮失败时的用户可读文案；如实展示，不伪装成成功（沿用沉浸译的教训） */
   error?: string;
+  /** 跨页分隔标记；老会话无此字段 */
+  kind?: 'page-break';
+  /** 分隔所指向的新页面（`kind: 'page-break'` 时有意义） */
+  pageUrl?: string;
+  pageTitle?: string;
 }
 
 /** 一个聊天会话（全局列表，记录来源页面） */
@@ -222,4 +231,14 @@ export interface ChatPendingAction {
 }
 
 /** 待执行动作的有效期：超过即视为过期，避免面板很久之后打开突然执行旧指令 */
-export const CHAT_PENDING_TTL_MS = 30_000;
+export const CHAT_PENDING_TTL_MS = 120_000;
+
+/**
+ * SPA / 站内路由变化信号（内容脚本 → Background 写入，网页助手 UI 消费）。
+ * 只用于提示「上下文可能过期」，不自动重读。
+ */
+export interface ChatPageNavSignal {
+  url: string;
+  title: string;
+  at: number;
+}

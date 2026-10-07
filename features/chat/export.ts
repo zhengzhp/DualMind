@@ -35,6 +35,12 @@ function formatDisplayTime(timestamp: number): string {
 }
 
 function formatTurn(turn: ChatTurn): string {
+  if (turn.role === 'system' && turn.kind === 'page-break') {
+    const url = turn.pageUrl?.trim() || '';
+    const lines = ['### —— 页面切换 ——', '', turn.content.trim() || '（换页）'];
+    if (url) lines.push('', `- 地址：${url}`);
+    return lines.join('\n');
+  }
   const roleLabel = turn.role === 'user' ? '用户' : '助手';
   const body = turn.content.trim() || '（空）';
   const lines = [`### ${roleLabel}`, '', body];

@@ -46,6 +46,7 @@ import {
   saveImmersivePrefs,
   saveSettings,
   setChatPending,
+  setChatPageNavSignal,
   translateSessionItem,
   upsertChatSession,
 } from '@/shared/storage/settings';
@@ -364,6 +365,11 @@ const handlers: HandlerMap = {
     const tab = await resolveContentTab();
     if (!tab) return null;
     return { url: tab.url ?? '', title: tab.title ?? '' };
+  },
+
+  'chat:page-nav': async (data) => {
+    await setChatPageNavSignal({ url: data.url, title: data.title });
+    return { ok: true as const };
   },
 };
 

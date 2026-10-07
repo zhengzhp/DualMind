@@ -171,8 +171,13 @@ const LONG_ENGLISH_TEXT =
  * 在页面里造一段文本、选中它，并派发 capture 阶段的 mouseup，
  * 触发内容脚本的划词逻辑（见 features/selection-toolbar/mount.ts）。
  * 支持任意语言文本（英文 / 中文 / 混排）。
+ *
+ * 必须先等 `data-dm-toolbar-ready`：宿主元素可能早于 mouseup 监听出现，
+ * 过早派发会导致「浮层未出现」flake（见 selection-toolbar Esc 用例）。
  */
 export async function selectText(page: Page, text: string) {
+  await page.waitForSelector('[data-dm-toolbar-ready="1"]', { timeout: 15_000 });
+
   await page.evaluate((content) => {
     let el = document.getElementById('dm-e2e-source') as HTMLParagraphElement | null;
     if (!el) {

@@ -73,6 +73,8 @@ export function WorkbenchApp({ surface }: { surface: WorkbenchSurface }) {
   /** 右键菜单信箱下发的待执行动作（消费后交给 ChatPanel 执行） */
   const [pendingChatAction, setPendingChatAction] =
     useState<ChatPendingAction | null>(null);
+  /** 信箱过期提示（TTL 内未打开侧栏） */
+  const [pendingExpiredHint, setPendingExpiredHint] = useState('');
   /** 已处理动作的时间戳：初始读取与 storage 监听可能同时命中，靠它去重 */
   const handledPendingRef = useRef(0);
 
@@ -87,10 +89,16 @@ export function WorkbenchApp({ surface }: { surface: WorkbenchSurface }) {
     if (surface !== 'sidepanel') return;
 
     const handle = async () => {
-      const action = await consumeChatPending();
-      if (!action) return;
+      const result = await consumeChatPending();
+      if (result.status === 'empty') return;
+      if (result.status === 'expired') {
+        setPendingExpiredHint('总结请求已过期，请再试一次（右键或悬浮按钮）');
+        return;
+      }
+      const action = result.action;
       if (handledPendingRef.current === action.createdAt) return;
       handledPendingRef.current = action.createdAt;
+      setPendingExpiredHint('');
       // 必须先切到网页助手 Tab，保证 ChatPanel 挂载，否则动作没人执行
       setTab('chat');
       setPendingChatAction(action);
@@ -111,6 +119,12 @@ export function WorkbenchApp({ surface }: { surface: WorkbenchSurface }) {
     browser.storage.onChanged.addListener(listener);
     return () => browser.storage.onChanged.removeListener(listener);
   }, [surface]);
+
+  useEffect(() => {
+    if (!pendingExpiredHint) return;
+    const timer = window.setTimeout(() => setPendingExpiredHint(''), 6_000);
+    return () => window.clearTimeout(timer);
+  }, [pendingExpiredHint]);
 
   const clearPendingChatAction = useCallback(() => {
     setPendingChatAction(null);
@@ -352,12 +366,8 @@ export function WorkbenchApp({ surface }: { surface: WorkbenchSurface }) {
   );
 
   return (
-    // 全页锁定视口高度（h-screen + overflow-hidden），避免文本区撑高把底部按钮挤出屏幕
-    <div
-      className={`flex flex-col bg-[radial-gradient(120%_80%_at_0%_0%,#d9eeff_0%,#f4f7fb_45%,#eef2f7_100%)] ${
-        isPage ? 'h-screen overflow-hidden' : 'min-h-screen'
-      }`}
-    >
+    // 侧栏与全页均锁视口高度，保证网页助手输入区钉底、翻译区内部滚动
+    <div className="flex h-screen flex-col overflow-hidden bg-[radial-gradient(120%_80%_at_0%_0%,#d9eeff_0%,#f4f7fb_45%,#eef2f7_100%)]">
       <header className="border-b border-brand-100/80 bg-white/70 backdrop-blur">
         {/* 全页工作台：内层容器统一 max-w-5xl + px-6，与下方 main 左右严格对齐 */}
         <div
@@ -468,11 +478,26 @@ export function WorkbenchApp({ surface }: { surface: WorkbenchSurface }) {
         className={
           isPage
             ? 'mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col gap-4 px-6 py-5'
-            : 'flex flex-1 flex-col gap-3 p-4'
+            : 'flex min-h-0 flex-1 flex-col gap-3 overflow-hidden p-4'
         }
       >
+        {pendingExpiredHint && surface === 'sidepanel' && (
+          <div
+            role="status"
+            className="shrink-0 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800"
+          >
+            {pendingExpiredHint}
+          </div>
+        )}
+
         {tab === 'translate' && (
-          <>
+          <div
+            className={
+              isPage
+                ? 'flex min-h-0 flex-1 flex-col gap-4'
+                : 'flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto'
+            }
+          >
             {/* 沉浸式全文翻译：只在侧栏提供入口（全页工作台自身不是网页标签页，无法承载该指令） */}
             {surface === 'sidepanel' && <ImmersiveControl />}
 
@@ -578,7 +603,7 @@ export function WorkbenchApp({ surface }: { surface: WorkbenchSurface }) {
                 {error}
               </div>
             )}
-          </>
+          </div>
         )}
 
         {tab === 'chat' && (

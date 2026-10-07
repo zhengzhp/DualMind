@@ -33,6 +33,35 @@ export function mountChatContext(): void {
     }
     return undefined;
   });
+
+  // SPA / hash 导航 → 通知 BG 写信号；网页助手只提示「可能过期」，不自动重读
+  let lastNotified = '';
+  const notifyNav = () => {
+    const url = location.href;
+    if (url === lastNotified) return;
+    lastNotified = url;
+    void sendMessage('chat:page-nav', {
+      url,
+      title: document.title || '',
+    }).catch(() => {
+      /* SW 休眠或扩展重载时忽略 */
+    });
+  };
+
+  window.addEventListener('popstate', notifyNav);
+  window.addEventListener('hashchange', notifyNav);
+
+  const wrapHistory = (method: 'pushState' | 'replaceState') => {
+    const original = history[method].bind(history);
+    history[method] = ((...args: Parameters<History['pushState']>) => {
+      const result = original(...args);
+      // URL 在调用后才稳定，放到微任务
+      void Promise.resolve().then(notifyNav);
+      return result;
+    }) as History['pushState'];
+  };
+  wrapHistory('pushState');
+  wrapHistory('replaceState');
 }
 
 /**

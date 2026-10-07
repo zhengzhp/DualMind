@@ -75,6 +75,8 @@ export function buildChatMessages(
 
   const history = options.history.slice(-MAX_HISTORY_TURNS);
   for (const turn of history) {
+    // 跨页分隔等 system 轮次只给 UI / 导出，不喂给模型
+    if (turn.role === 'system') continue;
     if (!turn.content.trim()) continue;
     if (turn.role === 'assistant' && turn.error) continue;
     messages.push({ role: turn.role, content: turn.content });

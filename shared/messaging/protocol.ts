@@ -139,6 +139,14 @@ export type ProtocolMap = {
     data: undefined;
     return: { ok: true; open: boolean };
   };
+  /**
+   * 内容脚本：页面发生 SPA / hash 导航。Background 只写入 `local:chatPageNav`，
+   * 网页助手 UI 提示「上下文可能过期」，**不**自动重读。
+   */
+  'chat:page-nav': {
+    data: { url: string; title: string };
+    return: { ok: true };
+  };
 };
 
 /** Side Panel 生命周期 Port：用于判断是否已打开、以及请求自关闭 */

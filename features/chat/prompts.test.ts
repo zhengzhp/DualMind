@@ -44,6 +44,29 @@ describe('formatContext', () => {
 });
 
 describe('buildChatMessages', () => {
+  it('跳过跨页分隔等 system 历史轮次', () => {
+    const messages = buildChatMessages({
+      context,
+      history: [
+        userTurn('1', '旧页问题'),
+        {
+          id: 'pb',
+          role: 'system',
+          kind: 'page-break',
+          content: '之后基于：新页',
+          createdAt: 0,
+        },
+        assistantTurn('2', '旧答'),
+      ],
+      question: '新问题',
+    });
+    expect(messages.map((m) => m.content)).not.toContain('之后基于：新页');
+    expect(messages.filter((m) => m.role === 'user').map((m) => m.content)).toEqual([
+      '旧页问题',
+      '新问题',
+    ]);
+  });
+
   it('结构为：角色 system → 上下文 system → 历史 → 本次提问', () => {
     const messages = buildChatMessages({
       context,

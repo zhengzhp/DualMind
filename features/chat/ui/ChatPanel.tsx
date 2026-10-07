@@ -12,6 +12,7 @@ import type {
   ChatPendingAction,
   ChatTurn,
 } from '@/shared/storage/types';
+import { isPageBreakTurn } from '../pageBreak';
 import { SessionList } from './SessionList';
 import { useChat } from './useChat';
 
@@ -108,11 +109,24 @@ export function ChatPanel({
             type="button"
             onClick={() => void chat.refreshContext()}
             disabled={chat.contextLoading || chat.streaming}
-            className="shrink-0 rounded-md px-2 py-0.5 text-[11px] font-medium text-brand-600 hover:bg-brand-50 disabled:opacity-50"
+            className={`shrink-0 rounded-md px-2 py-0.5 text-[11px] font-medium hover:bg-brand-50 disabled:opacity-50 ${
+              chat.contextStale
+                ? 'bg-amber-100 text-amber-800 ring-1 ring-amber-300'
+                : 'text-brand-600'
+            }`}
           >
             重新读取
           </button>
         </div>
+
+        {chat.contextStale && (
+          <p
+            data-testid="chat-context-stale"
+            className="mt-1.5 text-[11px] leading-relaxed text-amber-700"
+          >
+            页面已变化，上下文可能过期。请点「重新读取」后再提问。
+          </p>
+        )}
 
         {chat.boundPage?.url && (
           <p
@@ -221,12 +235,11 @@ export function ChatPanel({
         </div>
       )}
 
-      {/* 消息区：全页有固定视口高度，可 flex-1 撑满；侧栏外层高度由内容决定，
-          故用 max-h 限高，避免消息一多就把输入框挤出屏幕 */}
+      {/* 消息区：侧栏与全页均锁视口，消息列表 flex-1 滚动，输入区钉底 */}
       <div
         ref={scrollRef}
-        className={`space-y-3 overflow-y-auto rounded-xl border border-brand-100/80 bg-white/70 p-3 ${
-          isPage ? 'min-h-0 flex-1 text-sm' : 'max-h-[46vh] min-h-[14rem] text-xs'
+        className={`min-h-0 flex-1 space-y-3 overflow-y-auto rounded-xl border border-brand-100/80 bg-white/70 p-3 ${
+          isPage ? 'text-sm' : 'min-h-[10rem] text-xs'
         }`}
       >
         {turns.length === 0 ? (
@@ -236,12 +249,18 @@ export function ChatPanel({
             或在下方直接提问（基于当前网页内容作答）。
           </p>
         ) : (
-          turns.map((turn) => <TurnBubble key={turn.id} turn={turn} />)
+          turns.map((turn) =>
+            isPageBreakTurn(turn) ? (
+              <PageBreakDivider key={turn.id} turn={turn} />
+            ) : (
+              <TurnBubble key={turn.id} turn={turn} />
+            ),
+          )
         )}
       </div>
 
-      {/* 输入区 */}
-      <div className="flex items-end gap-2">
+      {/* 输入区（钉在面板底部） */}
+      <div className="flex shrink-0 items-end gap-2">
         <textarea
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
@@ -275,6 +294,23 @@ export function ChatPanel({
           </button>
         )}
       </div>
+    </div>
+  );
+}
+
+/** 跨页分隔：居中细条，非气泡 */
+function PageBreakDivider({ turn }: { turn: ChatTurn }) {
+  return (
+    <div
+      data-testid="chat-turn-page-break"
+      className="flex flex-col items-center gap-0.5 py-1"
+      title={turn.pageUrl}
+    >
+      <div className="h-px w-full bg-brand-100" />
+      <p className="max-w-full truncate px-2 text-center text-[10px] font-medium text-brand-700/60">
+        {turn.content}
+      </p>
+      <div className="h-px w-full bg-brand-100" />
     </div>
   );
 }

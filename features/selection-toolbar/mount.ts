@@ -366,8 +366,12 @@ export async function mountSelectionToolbar(
 
   attachDismissHandlers();
 
+  // E2E / 实机：custom element 可能先于 mouseup 监听挂上；就绪标记表示划词链路已可响应
+  document.documentElement.setAttribute('data-dm-toolbar-ready', '1');
+
   // 页面上下文失效（导航 / 扩展更新）时清理跟随与请求
   ctx.onInvalidated(() => {
+    document.documentElement.removeAttribute('data-dm-toolbar-ready');
     tracker?.stop();
     tracker = null;
     abortController?.abort();

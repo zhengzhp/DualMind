@@ -137,10 +137,12 @@
 | 禁用站点右键菜单置灰 | ✅ |
 | `pnpm zip` / 提审 / 全量 e2e / compile 闸门 | ⏸ 仍按「发布与验证节奏」后置到 V3 完成后 |
 
-### 封板后仍存在的已知缺口（不阻塞）
+### 封板后技术债处理（2026-10-07）
 
-- 侧栏消息区 `max-h-[46vh]`、输入框未钉底（跨 Tab 改滚动行为）
-- 跨页确认后 `turns` 混页无分隔标注
-- SPA 路由切换不自动重读上下文（须点「重新读取」）
-- `selection-toolbar` E2E「流式中 Esc 收起」偶发 flake
-- `chatPending` TTL 30s：侧栏打开过慢会丢右键动作
+| 项 | 结论 |
+|----|------|
+| 侧栏输入框钉底 | Side Panel 与工作台统一 `h-screen overflow-hidden`；Chat 消息区 `flex-1` 滚动 |
+| 跨页 turns 分隔 | 确认跨页时插入 `role: system` + `kind: page-break`（不入模型历史） |
+| SPA 上下文 | 内容脚本上报 `chat:page-nav` → 状态行提示过期 + 高亮「重新读取」，**不**自动重读 |
+| `chatPending` TTL | `30s → 120s`；过期时侧栏提示「请再试一次」 |
+| selection-toolbar E2E flake | 挂载完成后写 `data-dm-toolbar-ready`，`selectText` 等待后再派发 mouseup |
