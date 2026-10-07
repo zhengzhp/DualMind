@@ -58,9 +58,9 @@
 | --- | --- |
 | ✅ 单测记账 | 13 条（SEC-01~06 · 09 · 12~16 · 19）—— `pnpm test features/agent` 7 文件 / 54 例全绿 |
 | ✅ 静态核对 | **SEC-18**（无 `debugger` / `scripting`）· **SEC-20**（content 产物已 tree-shake 掉 `getSettings`，无 `Authorization`/`Bearer`，唯一 `apiKey` 为空串默认值） |
-| ✅ 人工 | **SEC-08**（B3b PASS：`type` 走键盘通道也弹确认卡；文件上传可读失败、不绕过、不虚构） |
+| ✅ 人工 | **SEC-08**（B3b PASS：`type` 走键盘通道也弹确认卡；文件上传可读失败、不绕过、不虚构）· **SEC-07 金融分支**（B3a PASS：金融目标硬拦截、URL 未变；附带已知边界 `DM-V3-LIMIT-01`：JS 驱动导航目标在 DOM 中不可见） |
 | 🆕 夹具 | **`t8-injection`** 已建（SEC-17 用），登记进 `index.html` |
-| ⬜ 待人工 | **SEC-07**（B3a 导航）· **SEC-10**（B3c 隐藏/禁用）· **SEC-11**（B3d 旧 index）· **SEC-17**（B3e 注入） |
+| ⬜ 待人工 | **SEC-10**（B3c 隐藏/禁用）· **SEC-11**（B3d 旧 index）· **SEC-17**（B3e 注入） |
 | ⬜ 待你 | **SEC-20** 网络面板捞一次请求 |
 
 **记账口径限定**（须向签发人明示）：单测只锁**分类与授权逻辑**，**SEC-01 的「UI 无绕过路径」属 UI 断言、未被覆盖**；SEC-18 的「不操作其他 Tab」属行为断言。
