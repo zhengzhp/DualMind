@@ -48,12 +48,12 @@ describe('classifyDanger', () => {
     expect(r.reasons[0]).toMatch(/金融|支付/);
   });
 
-  it('提交 / 支付文案 → dangerous', () => {
+  it('普通提交需确认，支付文案不可确认放行', () => {
     expect(
       classifyDanger({
         tool: 'click',
         args: { tool: 'click', index: 1 },
-        element: el({ tag: 'button', name: '提交订单', inputType: 'submit' }),
+        element: el({ tag: 'button', name: '提交反馈', inputType: 'submit' }),
         pageUrl: 'https://shop.example.com/cart',
       }).level,
     ).toBe('dangerous');
@@ -65,7 +65,25 @@ describe('classifyDanger', () => {
         element: el({ tag: 'button', name: '立即支付' }),
         pageUrl: 'https://shop.example.com/cart',
       }).level,
-    ).toBe('dangerous');
+    ).toBe('blocked');
+  });
+
+  it.each(['立即购买', '下单', '转账', '充值', 'checkout', 'pay now'])('非金融域的 %s 仍阻断', (name) => {
+    expect(classifyDanger({
+      tool: 'click', args: { tool: 'click', index: 0 },
+      element: el({ name }), pageUrl: 'https://example.com/',
+    }).level).toBe('blocked');
+  });
+
+  it('普通商品浏览不误判为支付，指向支付页的链接拒绝', () => {
+    const element = el({ tag: 'a', name: '查看商品', href: 'https://shop.example.com/products/1' });
+    expect(classifyDanger({ tool: 'click', args: {}, element, pageUrl: element.href }).level).toBe('safe');
+    expect(classifyDanger({ tool: 'click', args: {}, element: { ...element, href: 'https://shop.example.com/checkout' }, pageUrl: element.href }).level).toBe('blocked');
+  });
+
+  it('普通文案不能掩盖支付提交地址与支付选项', () => {
+    expect(classifyDanger({ tool: 'click', args: {}, element: el({ name: '继续', formAction: 'https://example.com/payment' }), pageUrl: 'https://example.com/form' }).level).toBe('blocked');
+    expect(classifyDanger({ tool: 'select', args: { value: '立即支付' }, element: el({ tag: 'select', name: '操作方式' }), pageUrl: 'https://example.com/form' }).level).toBe('blocked');
   });
 
   it('删除文案 → dangerous', () => {

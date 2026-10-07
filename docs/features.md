@@ -11,6 +11,8 @@
 - **运行态**：单次任务的计划 / 步骤轨迹 / 中止标志以内存为主（是否落 storage 在实现时补决策）
 - **禁止**复用 `translateSession` / `chat:*`：Agent 属独立 feature，见下表
 - 操作目标页经 `resolveContentTab` 解析；`disabledHosts` 命中则不可用
+- 同页单任务；`content:agent-task`（begin / cancel）完成绑定与释放，`content:agent-execute` 必须携带任务 / 文档 / URL / 快照版本、截止时间与预期元素；危险确认仅授权本次目标未变化的动作。仅主 frame 执行；请求过期、导航或文档变化返回 fatal 并终止任务。
+- Port 新增 `bound_page` 回传实际目标；导航失效返回可读错误；`done.cancelled` 表示计划被取消。UI 卸载主动取消，已结束与非当前任务消息丢弃，完成结果区分成功 / 未完成 / 取消。
 
 ## V3 Feature 一览
 

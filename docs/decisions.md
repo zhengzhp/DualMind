@@ -44,6 +44,7 @@
 | Tool-calling 环 | Background 编排：观测 → LLM tools → 执行 → 再观测；默认上限约 **20 轮 / 任务**；单工具超时（如 15s）；Port 支持 abort |
 | 模型前提 | 需支持 tool / function calling；Options 与 Agent 空态标明；不支持时明确提示，不静默退化成乱点 |
 | 内容页绑定 | 复用 `resolveContentTab`（与 Chat 同语义）；尊重 `disabledHosts`（整站不注入则 Agent 不可用） |
+| 安全加固（2026-10-08） | 同一内容页只允许一个 Agent 任务；启动握手绑定任务 / 文档 / URL，快照携带版本。执行前在内容页复核真实目标与危险等级；支付 / 转账动作在非金融域也拒绝。停止、超时、断连及 URL / 文档变化使旧任务与确认失效；已发生的同步动作不可撤销。UI 使用 Background 回传的实际绑定页，卸载主动取消，丢弃已结束 / 非当前任务消息。 |
 | storage | `local:agentPrefs`（启用开关、最大步数、确认策略只读展示等）；V3.0 会话可先内存，是否持久化跟实现时最小需求再定（不定则写进本表补丁） |
 | 入口 | Side Panel / 全页工作台 **Agent** Tab（替换占位）；（可选）`page-fab` 注册「请 Agent 操作本页」→ 开侧栏 + 切 Tab（可复用 pending 信箱模式，前缀独立） |
 | 与 Chat 边界 | Chat = 只读摘要 / 问答；Agent = 可写 DOM；禁止把操作工具塞进 `features/chat/` |

@@ -9,7 +9,11 @@ import {
   MAX_WAIT_MS,
   parseAgentToolCall,
 } from './tools';
+import { classifyDanger } from './danger';
+import { AgentPageSession, type AgentPageTask } from './session';
 import type {
+  AgentExecuteMessage,
+  AgentTaskReply,
   AgentToolArgs,
   AgentToolName,
   AgentToolResult,
@@ -44,6 +48,29 @@ const MAX_OPTIONS = 12;
 
 /** 最近一次 snapshot 的实节点（与返回的 index 对齐） */
 let lastNodes: Element[] = [];
+let lastSignatures: string[] = [];
+let lastSnapshotId = '';
+const session = new AgentPageSession(crypto.randomUUID());
+
+export function beginAgentPageTask(taskId: string, expectedUrl: string): AgentTaskReply {
+  session.invalidate(location.href);
+  const reply = session.begin(taskId, expectedUrl, location.href, document.title || '');
+  if (reply.ok) resetAgentSnapshotForTests();
+  return reply;
+}
+
+export function cancelAgentPageTask(taskId: string): void {
+  if (session.cancel(taskId)) resetAgentSnapshotForTests();
+}
+
+export function stopAgentPageTask(): void {
+  session.stop();
+  resetAgentSnapshotForTests();
+}
+
+export function invalidateAgentPageTask(): void {
+  session.invalidate(location.href);
+}
 
 function truncate(s: string, max: number): string {
   const t = s.replace(/\s+/g, ' ').trim();
@@ -63,9 +90,9 @@ function isVisible(el: Element): boolean {
   return rect.width > 0 && rect.height > 0;
 }
 
-function accessibleName(el: Element): string {
+function accessibleName(el: Element, maxChars = MAX_NAME_CHARS): string {
   const aria = el.getAttribute('aria-label');
-  if (aria?.trim()) return truncate(aria, MAX_NAME_CHARS);
+  if (aria?.trim()) return truncate(aria, maxChars);
 
   const labelledBy = el.getAttribute('aria-labelledby');
   if (labelledBy) {
@@ -73,7 +100,7 @@ function accessibleName(el: Element): string {
       .split(/\s+/)
       .map((id) => document.getElementById(id)?.textContent ?? '')
       .join(' ');
-    if (parts.trim()) return truncate(parts, MAX_NAME_CHARS);
+    if (parts.trim()) return truncate(parts, maxChars);
   }
 
   if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
@@ -81,16 +108,16 @@ function accessibleName(el: Element): string {
       const lab = Array.from(el.labels)
         .map((l) => l.textContent ?? '')
         .join(' ');
-      if (lab.trim()) return truncate(lab, MAX_NAME_CHARS);
+      if (lab.trim()) return truncate(lab, maxChars);
     }
   }
 
   if (el instanceof HTMLElement && el.title?.trim()) {
-    return truncate(el.title, MAX_NAME_CHARS);
+    return truncate(el.title, maxChars);
   }
 
   const text = el.textContent ?? '';
-  if (text.trim()) return truncate(text, MAX_NAME_CHARS);
+  if (text.trim()) return truncate(text, maxChars);
   return '';
 }
 
@@ -137,11 +164,30 @@ function describeElement(el: Element, index: number): SnapshotElement {
     stub.inputType = stub.inputType ?? 'contenteditable';
   }
 
+  if ((el instanceof HTMLButtonElement || el instanceof HTMLInputElement) && el.form) {
+    stub.formAction = truncate(el.getAttribute('formaction') ? el.formAction : el.form.action, 120);
+  }
+
   return stub;
 }
 
 function fail(tool: AgentToolName, error: string): AgentToolResult {
   return { ok: false, tool, summary: error, error };
+}
+
+/** 完整属性仅在内容页比较，不把长 URL 或密码明文发给模型。 */
+function nodeSignature(element: Element): string {
+  const attributes = Array.from(element.attributes)
+    .filter((attribute) => attribute.name !== 'value')
+    .map((attribute) => [attribute.name, attribute.value]);
+  const value = element instanceof HTMLInputElement
+    ? element.type === 'password' ? '' : element.value
+    : element instanceof HTMLTextAreaElement || element instanceof HTMLSelectElement
+      ? element.value : '';
+  const form = element instanceof HTMLButtonElement || element instanceof HTMLInputElement
+    ? element.form : null;
+  const formAttributes = form ? Array.from(form.attributes).map((attribute) => [attribute.name, attribute.value]) : null;
+  return JSON.stringify([element.tagName, attributes, element.textContent, value, formAttributes]);
 }
 
 function resolveNode(
@@ -170,6 +216,9 @@ function resolveNode(
       result: fail(tool, `index ${index} 对应节点已从文档移除，请重新 snapshot`),
     };
   }
+  if (nodeSignature(el) !== lastSignatures[index]) {
+    return { ok: false, result: fail(tool, '目标属性已变化，请重新 snapshot，旧确认不可复用') };
+  }
   return { ok: true, el, meta: describeElement(el, index) };
 }
 
@@ -185,9 +234,12 @@ function runSnapshot(maxElements = MAX_SNAPSHOT_ELEMENTS): AgentToolResult {
   );
   const sliced = all.slice(0, cap);
   lastNodes = sliced;
+  lastSignatures = sliced.map(nodeSignature);
+  lastSnapshotId = crypto.randomUUID();
 
   const elements = sliced.map((el, i) => describeElement(el, i));
   const payload: SnapshotPayload = {
+    snapshotId: lastSnapshotId,
     url: location.href,
     title: document.title || '',
     elements,
@@ -211,7 +263,6 @@ function runClick(index: number): AgentToolResult {
     return fail('click', `index ${index} 已禁用`);
   }
   try {
-    if (el instanceof HTMLElement) el.focus();
     if (typeof (el as HTMLElement).click === 'function') {
       (el as HTMLElement).click();
     } else {
@@ -239,11 +290,9 @@ function runType(index: number, text: string): AgentToolResult {
   const { el, meta } = resolved;
   try {
     if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
-      el.focus();
       el.value = `${el.value}${text}`;
       dispatchInputEvents(el);
     } else if (el instanceof HTMLElement && el.isContentEditable) {
-      el.focus();
       el.textContent = `${el.textContent ?? ''}${text}`;
       dispatchInputEvents(el);
     } else {
@@ -266,11 +315,9 @@ function runFill(index: number, value: string): AgentToolResult {
   const { el, meta } = resolved;
   try {
     if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
-      el.focus();
       el.value = value;
       dispatchInputEvents(el);
     } else if (el instanceof HTMLElement && el.isContentEditable) {
-      el.focus();
       el.textContent = value;
       dispatchInputEvents(el);
     } else {
@@ -341,12 +388,28 @@ function runScroll(
   };
 }
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+function sleep(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(new Error('任务已停止'));
+      return;
+    }
+    const onAbort = () => {
+      clearTimeout(timer);
+      signal?.removeEventListener('abort', onAbort);
+      reject(new Error('任务已停止'));
+    };
+    const timer = setTimeout(() => {
+      signal?.removeEventListener('abort', onAbort);
+      resolve();
+    }, ms);
+    signal?.addEventListener('abort', onAbort, { once: true });
+  });
 }
 
 async function runWait(
   args: Extract<AgentToolArgs, { tool: 'wait' }>,
+  signal?: AbortSignal,
 ): Promise<AgentToolResult> {
   if (args.text) {
     const timeout = Math.min(
@@ -364,12 +427,12 @@ async function runWait(
           summary: `已出现文本「${truncate(needle, 40)}」`,
         };
       }
-      await sleep(200);
+      await sleep(200, signal);
     }
     return fail('wait', `等待文本超时（${timeout}ms）：${truncate(needle, 40)}`);
   }
   const ms = Math.min(MAX_WAIT_MS, args.ms ?? DEFAULT_WAIT_MS);
-  await sleep(ms);
+  await sleep(ms, signal);
   return { ok: true, tool: 'wait', summary: `已等待 ${ms}ms` };
 }
 
@@ -418,8 +481,9 @@ function runFinish(
 /**
  * 执行已校验的工具（args 为 parseAgentToolCall 的结果）
  */
-export async function executeAgentTool(
+async function runAgentTool(
   args: AgentToolArgs,
+  signal: AbortSignal,
 ): Promise<AgentToolResult> {
   switch (args.tool) {
     case 'snapshot':
@@ -435,7 +499,7 @@ export async function executeAgentTool(
     case 'scroll':
       return runScroll(args);
     case 'wait':
-      return runWait(args);
+      return runWait(args, signal);
     case 'extract_text':
       return runExtractText(args);
     case 'finish':
@@ -447,12 +511,81 @@ export async function executeAgentTool(
   }
 }
 
+/** 同步复核到实际 DOM 写入之间不 await，避免确认与执行使用不同目标。 */
+export async function executeAgentTool(
+  args: AgentToolArgs,
+  message: AgentExecuteMessage,
+): Promise<AgentToolResult> {
+  let task: AgentPageTask;
+  try {
+    if (!Number.isFinite(message.expiresAt) || Date.now() >= message.expiresAt) {
+      session.cancel(message.taskId);
+      throw new Error('工具请求已超时，任务已失效');
+    }
+    task = session.get(message.taskId, message.binding, location.href);
+  } catch (error) {
+    return { ...fail(args.tool, error instanceof Error ? error.message : '任务失效'), fatal: true };
+  }
+  if (task.executing) return fail(args.tool, '工具仍在执行，请勿并发调用');
+
+  let element: SnapshotElement | null = null;
+  if ('index' in args && args.index !== undefined) {
+    if (!message.guard.snapshotId || message.guard.snapshotId !== lastSnapshotId) {
+      return fail(args.tool, '快照已失效，请重新 snapshot');
+    }
+    const resolved = resolveNode(args.index, args.tool);
+    if (!resolved.ok) return resolved.result;
+    if (!isVisible(resolved.el) || resolved.meta.disabled) {
+      return fail(args.tool, '目标已隐藏或禁用，请重新 snapshot');
+    }
+    element = resolved.meta;
+    if (JSON.stringify(element) !== JSON.stringify(message.guard.expectedElement)) {
+      return fail(args.tool, '目标元素已变化，旧确认不可复用，请重新 snapshot');
+    }
+    // 安全判断使用完整文案 / 链接，不让模型快照的截断掩盖支付语境。
+    element = { ...element, name: accessibleName(resolved.el, Number.MAX_SAFE_INTEGER) };
+    if (resolved.el instanceof HTMLAnchorElement) element.href = resolved.el.href;
+    if ((resolved.el instanceof HTMLButtonElement || resolved.el instanceof HTMLInputElement) && resolved.el.form) {
+      element.formAction = resolved.el.getAttribute('formaction') ? resolved.el.formAction : resolved.el.form.action;
+    }
+    if (args.tool === 'select' && resolved.el instanceof HTMLSelectElement) {
+      const selected = Array.from(resolved.el.options).find(
+        (option) => option.value === args.value || option.text.trim() === args.value.trim(),
+      );
+      element.name = `${element.name ?? ''} ${selected?.text ?? ''}`;
+    }
+  }
+
+  const danger = classifyDanger({ tool: args.tool, args, element, pageUrl: location.href });
+  if (danger.level === 'blocked') return fail(args.tool, danger.reasons.join('；'));
+  if (danger.level === 'dangerous' && !message.guard.dangerConfirmed) {
+    return fail(args.tool, '真实目标需要危险动作确认，请重新观测并确认');
+  }
+
+  task.executing = true;
+  const deadline = setTimeout(() => cancelAgentPageTask(message.taskId), message.expiresAt - Date.now());
+  try {
+    const result = await runAgentTool(args, task.controller.signal);
+    session.get(message.taskId, message.binding, location.href);
+    return result;
+  } catch (error) {
+    return {
+      ...fail(args.tool, error instanceof Error ? error.message : '执行失败'),
+      fatal: task.controller.signal.aborted || location.href !== task.binding.url,
+    };
+  } finally {
+    clearTimeout(deadline);
+    task.executing = false;
+  }
+}
+
 /**
  * 从原始 name + arguments JSON 执行（内容脚本入口也可直接用）
  */
 export async function executeAgentToolRaw(
   name: string,
   argumentsJson: string,
+  message: AgentExecuteMessage,
 ): Promise<AgentToolResult> {
   const parsed = parseAgentToolCall(name, argumentsJson);
   if (!parsed.ok) {
@@ -461,10 +594,12 @@ export async function executeAgentToolRaw(
       : 'snapshot';
     return { ok: false, tool, summary: parsed.error, error: parsed.error };
   }
-  return executeAgentTool(parsed.args);
+  return executeAgentTool(parsed.args, message);
 }
 
 /** 测试 / 调试：清空 snapshot 缓存 */
 export function resetAgentSnapshotForTests(): void {
   lastNodes = [];
+  lastSignatures = [];
+  lastSnapshotId = '';
 }

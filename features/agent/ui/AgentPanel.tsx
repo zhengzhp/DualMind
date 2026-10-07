@@ -54,7 +54,7 @@ export function AgentPanel({
       ]
         .filter(Boolean)
         .join(' · ')
-    : '未绑定可读网页（请先打开 http(s) 页面）';
+    : agent.phase === 'planning' ? '正在绑定目标网页…' : '未绑定可读网页（请先打开 http(s) 页面）';
 
   const enabled = agent.prefs?.enabled !== false;
 
@@ -151,6 +151,11 @@ export function AgentPanel({
         </div>
       )}
 
+      {agent.result && (
+        <p className={`shrink-0 rounded-lg px-3 py-2 text-xs ${agent.result === 'success' ? 'bg-emerald-50 text-emerald-800' : 'bg-amber-50 text-amber-900'}`}>
+          {agent.result === 'success' ? '任务成功完成' : agent.result === 'cancelled' ? '任务已取消；已发生的页面动作无法撤销' : '任务未完成，请查看步骤记录后重试'}
+        </p>
+      )}
       {/* 危险确认：理由过长时可滚，操作按钮始终可见 */}
       {agent.danger && (
         <div className="flex shrink-0 flex-col rounded-xl border border-amber-300 bg-amber-50 p-3">
@@ -225,7 +230,7 @@ export function AgentPanel({
           className="min-h-[64px] w-full resize-none rounded-lg border border-brand-100 bg-white px-2.5 py-2 text-sm text-brand-900 outline-none focus:border-brand-300"
           placeholder="例如：把联系人表单填上张三和 test@example.com，不要提交"
           value={goal}
-          disabled={agent.busy || !enabled}
+          disabled={agent.busy || !enabled || !agent.prefs}
           onChange={(e) => setGoal(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
@@ -253,7 +258,7 @@ export function AgentPanel({
               <button
                 type="button"
                 className="rounded-lg bg-brand-700 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-40"
-                disabled={!goal.trim() || !enabled}
+                disabled={!goal.trim() || !enabled || !agent.prefs}
                 onClick={() => agent.start(goal)}
               >
                 开始

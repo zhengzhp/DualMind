@@ -118,6 +118,19 @@ export function classifyDanger(input: ClassifyDangerInput): DangerAssessment {
 
   const label = elementLabel(element);
 
+  const selectedValue = tool === 'select' && typeof input.args === 'object' && 'value' in input.args
+    ? String(input.args.value) : '';
+  if (PAY_RE.test(label) || PAY_RE.test(selectedValue)) {
+    return { level: 'blocked', reasons: ['目标疑似支付 / 下单 / 转账，V3.0 不允许确认放行'] };
+  }
+
+  if (tool === 'click' && element?.href && isFinancialContext(element.href)) {
+    return { level: 'blocked', reasons: ['目标链接疑似金融 / 支付页面，V3.0 拒绝自动进入'] };
+  }
+  if (tool === 'click' && element?.formAction && isFinancialContext(element.formAction)) {
+    return { level: 'blocked', reasons: ['表单提交目标疑似金融 / 支付页面，V3.0 拒绝自动提交'] };
+  }
+
   if (tool === 'click') {
     const inputType = element?.inputType?.toLowerCase();
     // input[type=submit] 或 button 默认 type=submit → 可能提交表单
@@ -129,7 +142,6 @@ export function classifyDanger(input: ClassifyDangerInput): DangerAssessment {
     ) {
       reasons.push('可能提交表单的 button');
     }
-    if (PAY_RE.test(label)) reasons.push('文案疑似支付 / 下单');
     if (SUBMIT_RE.test(label)) reasons.push('文案疑似提交 / 登录');
     if (DELETE_RE.test(label)) reasons.push('文案疑似删除 / 清空');
     if (isExternalNavigation(pageUrl, element?.href)) {
@@ -147,11 +159,6 @@ export function classifyDanger(input: ClassifyDangerInput): DangerAssessment {
     if (DELETE_RE.test(label)) reasons.push('目标文案疑似清空 / 删除');
   }
 
-  if (tool === 'select' && PAY_RE.test(label)) {
-    reasons.push('下拉项语境疑似支付');
-  }
-
-  // 支付文案在非金融域仍为 dangerous（二次确认），不升为 blocked
   if (reasons.length > 0) {
     return { level: 'dangerous', reasons };
   }

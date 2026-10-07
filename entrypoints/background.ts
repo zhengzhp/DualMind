@@ -16,9 +16,13 @@ import {
 } from '@/features/chat/resolveContentTab';
 import {
   AGENT_EXECUTE_MESSAGE,
+  AGENT_TASK_MESSAGE,
+  type AgentExecutionGuard,
+  type AgentPageBinding,
+  type AgentTaskReply,
   type AgentToolResult,
 } from '@/features/agent/types';
-import { runAgentTask } from '@/features/agent/service';
+import { runAgentTask, TOOL_TIMEOUT_MS, withTimeout } from '@/features/agent/service';
 import { answerQuestion } from '@/features/chat/service';
 import { createProviderFromSettings } from '@/providers/registry';
 import { softenDevTabReloads } from '@/shared/dev/softenTabReload';
@@ -413,21 +417,29 @@ const handlers: HandlerMap = {
 /** 向内容页执行 Agent 工具（单工具超时由 service 侧 race） */
 async function executeAgentToolOnTab(
   tabId: number,
+  taskId: string,
+  binding: AgentPageBinding,
   tool: string,
   args: Record<string, unknown>,
+  guard: AgentExecutionGuard,
 ): Promise<AgentToolResult> {
   try {
     const result = (await browser.tabs.sendMessage(tabId, {
       type: AGENT_EXECUTE_MESSAGE,
+      taskId,
+      binding,
+      guard,
+      expiresAt: Date.now() + TOOL_TIMEOUT_MS,
       tool,
       args,
-    })) as AgentToolResult | undefined;
+    }, { frameId: 0 })) as AgentToolResult | undefined;
     if (!result || typeof result !== 'object') {
       return {
         ok: false,
         tool: tool as AgentToolResult['tool'],
         summary: '内容脚本无响应，请刷新页面后重试',
         error: '内容脚本无响应',
+        fatal: true,
       };
     }
     return result;
@@ -439,7 +451,21 @@ async function executeAgentToolOnTab(
       tool: tool as AgentToolResult['tool'],
       summary: message,
       error: message,
+      fatal: true,
     };
+  }
+}
+
+/** 跨 Port 互斥，避免侧栏与工作台共用索引时串任务。 */
+const agentTabTasks = new Map<number, { taskId: string; invalidate: () => void }>();
+
+async function cancelAgentToolOnTab(tabId: number, taskId: string): Promise<void> {
+  try {
+    await withTimeout(browser.tabs.sendMessage(tabId, {
+      type: AGENT_TASK_MESSAGE, action: 'cancel', taskId,
+    }, { frameId: 0 }), 2000, new AbortController().signal);
+  } catch {
+    /* 文档已销毁或内容脚本不可用时不再重试。 */
   }
 }
 
@@ -452,6 +478,8 @@ function attachAgentPort(port: {
   onDisconnect: { addListener: (cb: () => void) => void };
 }) {
   const controllers = new Map<string, AbortController>();
+  const taskTabs = new Map<string, number>();
+  let disconnected = false;
   const planWaiters = new Map<
     string,
     (v: 'approved' | 'rejected' | 'aborted') => void
@@ -462,6 +490,7 @@ function attachAgentPort(port: {
   >();
 
   const post = (msg: AgentPortServerMessage) => {
+    if (disconnected) return;
     try {
       port.postMessage(msg);
     } catch {
@@ -518,10 +547,19 @@ function attachAgentPort(port: {
 
     if (message.type !== 'start') return;
 
-    controllers.get(message.taskId)?.abort();
-    clearTaskWaiters(message.taskId, true);
+    if (disconnected || typeof message.taskId !== 'string' || typeof message.goal !== 'string') return;
+    if (controllers.size) {
+      post({ type: 'error', taskId: message.taskId, code: 'UNKNOWN', message: '当前连接已有任务，请先停止' });
+      return;
+    }
+
     const controller = new AbortController();
     controllers.set(message.taskId, controller);
+    const cancelContent = () => {
+      const tabId = taskTabs.get(message.taskId);
+      if (tabId !== undefined) void cancelAgentToolOnTab(tabId, message.taskId);
+    };
+    controller.signal.addEventListener('abort', cancelContent, { once: true });
 
     void (async () => {
       try {
@@ -537,6 +575,7 @@ function attachAgentPort(port: {
         }
 
         const tab = await resolveContentTab();
+        if (controller.signal.aborted) return;
         if (!tab?.id) {
           post({
             type: 'error',
@@ -546,6 +585,36 @@ function attachAgentPort(port: {
           });
           return;
         }
+
+        const settings = await getSettings();
+        if (controller.signal.aborted) return;
+        if (isHostDisabled(settings.disabledHosts, hostnameFromUrl(tab.url ?? ''))) {
+          throw new Error('当前站点已停用 DualMind，请先在 Options 中启用');
+        }
+
+        if (agentTabTasks.has(tab.id)) {
+          throw new Error('本页已有 Agent 任务，请先停止侧栏或工作台中的原任务');
+        }
+        taskTabs.set(message.taskId, tab.id);
+        agentTabTasks.set(tab.id, {
+          taskId: message.taskId,
+          invalidate: () => {
+            post({ type: 'error', taskId: message.taskId, code: 'UNKNOWN', message: '目标页已导航、刷新或关闭，旧计划与确认已失效，请重新启动任务' });
+            controller.abort();
+            clearTaskWaiters(message.taskId, true);
+          },
+        });
+
+        const reply = await withTimeout(
+          browser.tabs.sendMessage(tab.id, {
+            type: AGENT_TASK_MESSAGE, action: 'begin', taskId: message.taskId, expectedUrl: tab.url ?? '',
+          }, { frameId: 0 }) as Promise<AgentTaskReply>,
+          TOOL_TIMEOUT_MS, controller.signal,
+        );
+        if (controller.signal.aborted) return;
+        if (!reply?.ok) throw new Error(reply?.error || '无法绑定内容页，请刷新页面后重试');
+        const binding = reply.binding;
+        post({ type: 'bound_page', taskId: message.taskId, url: binding.url, title: binding.title });
 
         const goal = message.goal.trim();
         if (!goal) {
@@ -561,23 +630,31 @@ function attachAgentPort(port: {
         await runAgentTask({
           taskId: message.taskId,
           goal,
-          pageUrl: tab.url ?? '',
-          pageTitle: tab.title ?? '',
+          pageUrl: binding.url,
+          pageTitle: binding.title,
           maxSteps: prefs.maxSteps,
           signal: controller.signal,
           post,
           gate: {
             waitPlanApproval: () =>
+              controller.signal.aborted ? Promise.resolve('aborted' as const) :
               new Promise((resolve) => {
                 planWaiters.set(message.taskId, resolve);
               }),
             waitDangerConfirm: (stepId) =>
+              controller.signal.aborted ? Promise.resolve('aborted' as const) :
               new Promise((resolve) => {
                 dangerWaiters.set(message.taskId, { stepId, resolve });
               }),
           },
-          executeTool: (tool, args) =>
-            executeAgentToolOnTab(tab.id!, tool, args),
+          executeTool: async (tool, args, guard) => {
+            const latestSettings = await getSettings();
+            if (controller.signal.aborted) throw new Error('任务已停止');
+            if (isHostDisabled(latestSettings.disabledHosts, hostnameFromUrl(binding.url))) {
+              throw new Error('当前站点已停用，Agent 任务已停止');
+            }
+            return executeAgentToolOnTab(tab.id!, message.taskId, binding, tool, args, guard);
+          },
         });
       } catch (err) {
         if (controller.signal.aborted) {
@@ -596,6 +673,13 @@ function attachAgentPort(port: {
           message: formatErrorForUi(normalized),
         });
       } finally {
+        controller.signal.removeEventListener('abort', cancelContent);
+        const tabId = taskTabs.get(message.taskId);
+        if (tabId !== undefined) {
+          await cancelAgentToolOnTab(tabId, message.taskId);
+          if (agentTabTasks.get(tabId)?.taskId === message.taskId) agentTabTasks.delete(tabId);
+          taskTabs.delete(message.taskId);
+        }
         controllers.delete(message.taskId);
         clearTaskWaiters(message.taskId, false);
       }
@@ -603,6 +687,7 @@ function attachAgentPort(port: {
   });
 
   port.onDisconnect.addListener(() => {
+    disconnected = true;
     for (const [taskId, controller] of controllers) {
       controller.abort();
       clearTaskWaiters(taskId, true);
@@ -1047,6 +1132,9 @@ export default defineBackground(() => {
     })();
   });
   browser.tabs?.onUpdated.addListener((tabId, changeInfo, tab) => {
+    if (changeInfo.url || changeInfo.status === 'loading') {
+      agentTabTasks.get(tabId)?.invalidate();
+    }
     if (changeInfo.url || changeInfo.status === 'complete') {
       // 仅活动标签推进「最近可读」，避免后台页加载完成抢占缓存
       if (tab.active) {
@@ -1060,6 +1148,7 @@ export default defineBackground(() => {
     }
   });
   browser.tabs?.onRemoved.addListener((tabId) => {
+    agentTabTasks.get(tabId)?.invalidate();
     contentTabTracker.forgetTab(tabId);
   });
   browser.storage.onChanged.addListener((changes, area) => {

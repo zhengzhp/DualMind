@@ -29,6 +29,7 @@ export interface AgentController {
   timeline: AgentTimelineItem[];
   danger: DangerPrompt | null;
   error: string;
+  result: 'success' | 'incomplete' | 'cancelled' | null;
   busy: boolean;
   setEnabled: (enabled: boolean) => Promise<void>;
   refreshPage: () => Promise<void>;
@@ -54,6 +55,10 @@ export function useAgent(options?: {
   const [timeline, setTimeline] = useState<AgentTimelineItem[]>([]);
   const [danger, setDanger] = useState<DangerPrompt | null>(null);
   const [error, setError] = useState('');
+  const [result, setResult] = useState<AgentController['result']>(null);
+  const activeTaskIdRef = useRef<string | null>(null);
+  const mountedRef = useRef(true);
+  const pageRequestRef = useRef(0);
   const handlesRef = useRef<AgentTaskHandles | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const handledPendingRef = useRef(0);
@@ -65,23 +70,38 @@ export function useAgent(options?: {
     phase === 'awaiting_danger';
 
   const refreshPage = useCallback(async () => {
+    if (activeTaskIdRef.current) return;
+    const request = ++pageRequestRef.current;
     try {
       const info = await sendMessage('chat:page-info', undefined);
-      setBoundPage(info);
+      if (mountedRef.current && !activeTaskIdRef.current && request === pageRequestRef.current) setBoundPage(info);
     } catch {
-      setBoundPage(null);
+      if (mountedRef.current && !activeTaskIdRef.current && request === pageRequestRef.current) setBoundPage(null);
     }
   }, []);
 
   useEffect(() => {
+    mountedRef.current = true;
     void (async () => {
       try {
-        setPrefs(await sendMessage('agent:prefs:get', undefined));
+        const next = await sendMessage('agent:prefs:get', undefined);
+        if (mountedRef.current) setPrefs(next);
       } catch {
-        setPrefs(null);
+        if (mountedRef.current) {
+          setPrefs(null);
+          setError('读取 Agent 设置失败，请重新打开面板');
+        }
       }
       await refreshPage();
     })();
+    return () => {
+      mountedRef.current = false;
+      activeTaskIdRef.current = null;
+      handlesRef.current?.abort();
+      abortRef.current?.abort();
+      handlesRef.current = null;
+      abortRef.current = null;
+    };
   }, [refreshPage]);
 
   const resetTaskUi = () => {
@@ -89,9 +109,15 @@ export function useAgent(options?: {
     setTimeline([]);
     setDanger(null);
     setError('');
+    setResult(null);
   };
 
   const onMessage = useCallback((msg: AgentPortServerMessage) => {
+    if (!mountedRef.current || msg.taskId !== activeTaskIdRef.current) return;
+    if (msg.type === 'bound_page') {
+      setBoundPage({ url: msg.url, title: msg.title });
+      return;
+    }
     if (msg.type === 'phase') {
       setPhase(msg.phase);
       return;
@@ -117,6 +143,7 @@ export function useAgent(options?: {
     }
     if (msg.type === 'done') {
       setPhase('done');
+      setResult(msg.cancelled ? 'cancelled' : msg.success ? 'success' : 'incomplete');
       setDanger(null);
       setTimeline((prev) => [
         ...prev,
@@ -129,6 +156,7 @@ export function useAgent(options?: {
       ]);
       handlesRef.current = null;
       abortRef.current = null;
+      activeTaskIdRef.current = null;
       return;
     }
     if (msg.type === 'error') {
@@ -137,23 +165,26 @@ export function useAgent(options?: {
       setError(msg.message);
       handlesRef.current = null;
       abortRef.current = null;
+      activeTaskIdRef.current = null;
     }
   }, []);
 
   const stop = useCallback(() => {
+    activeTaskIdRef.current = null;
     handlesRef.current?.abort();
     abortRef.current?.abort();
     handlesRef.current = null;
     abortRef.current = null;
     setPhase('aborted');
+    setResult('cancelled');
     setDanger(null);
   }, []);
 
   const start = useCallback(
     (goal: string) => {
       const trimmed = goal.trim();
-      if (!trimmed || busy) return;
-      if (prefs && !prefs.enabled) {
+      if (!trimmed || busy || activeTaskIdRef.current) return;
+      if (!prefs || !prefs.enabled) {
         setError('Agent 已在设置中关闭，请先启用');
         setPhase('error');
         return;
@@ -162,17 +193,26 @@ export function useAgent(options?: {
       stop();
       resetTaskUi();
       setPhase('planning');
-      void refreshPage();
+      ++pageRequestRef.current;
+      setBoundPage(null);
 
       const controller = new AbortController();
       abortRef.current = controller;
-      handlesRef.current = startAgentTask({
-        goal: trimmed,
-        onMessage,
-        signal: controller.signal,
-      });
+      try {
+        handlesRef.current = startAgentTask({
+          goal: trimmed,
+          onMessage,
+          signal: controller.signal,
+        });
+        activeTaskIdRef.current = handlesRef.current.taskId;
+      } catch {
+        controller.abort();
+        abortRef.current = null;
+        setError('无法连接 Background，请 Reload 扩展后重试');
+        setPhase('error');
+      }
     },
-    [busy, prefs, stop, onMessage, refreshPage],
+    [busy, prefs, stop, onMessage],
   );
 
   // FAB 信箱：切到 Agent 后仅刷新页面信息（目标由用户填写）
@@ -194,10 +234,15 @@ export function useAgent(options?: {
     timeline,
     danger,
     error,
+    result,
     busy,
     setEnabled: async (enabled) => {
-      const next = await sendMessage('agent:prefs:save', { enabled });
-      setPrefs(next);
+      try {
+        const next = await sendMessage('agent:prefs:save', { enabled });
+        if (mountedRef.current) setPrefs(next);
+      } catch {
+        if (mountedRef.current) setError('保存 Agent 设置失败，请重试');
+      }
     },
     refreshPage,
     start,

@@ -41,6 +41,7 @@ export interface SnapshotElement {
   /** 当前值（截断；密码不回传明文） */
   value?: string;
   href?: string;
+  formAction?: string;
   disabled?: boolean;
   checked?: boolean;
   /** select 的 option 文案（截断条数） */
@@ -48,6 +49,7 @@ export interface SnapshotElement {
 }
 
 export interface SnapshotPayload {
+  snapshotId: string;
   url: string;
   title: string;
   elements: SnapshotElement[];
@@ -82,6 +84,7 @@ export interface AgentToolResult {
   /** 给人与模型读的短摘要 */
   summary: string;
   error?: string;
+  fatal?: boolean;
   /** snapshot / extract 等结构化数据 */
   data?: unknown;
   /** 若执行涉及某快照元素，带回便于 BG 侧复核 */
@@ -91,8 +94,34 @@ export interface AgentToolResult {
 /** 内容脚本消息：Background → 页内执行已校验工具 */
 export const AGENT_EXECUTE_MESSAGE = 'content:agent-execute' as const;
 
+export const AGENT_TASK_MESSAGE = 'content:agent-task' as const;
+
+export interface AgentPageBinding {
+  documentToken: string;
+  url: string;
+  title: string;
+}
+
+export interface AgentExecutionGuard {
+  snapshotId?: string;
+  expectedElement?: SnapshotElement;
+  dangerConfirmed?: boolean;
+}
+
+export type AgentTaskMessage =
+  | { type: typeof AGENT_TASK_MESSAGE; action: 'begin'; taskId: string; expectedUrl: string }
+  | { type: typeof AGENT_TASK_MESSAGE; action: 'cancel'; taskId: string };
+
+export type AgentTaskReply =
+  | { ok: true; binding: AgentPageBinding }
+  | { ok: false; error: string };
+
 export interface AgentExecuteMessage {
   type: typeof AGENT_EXECUTE_MESSAGE;
+  taskId: string;
+  binding: AgentPageBinding;
+  guard: AgentExecutionGuard;
+  expiresAt: number;
   tool: AgentToolName;
   /** 已通过 tools.parseAgentToolCall 校验的参数（去掉 tool 判别字段，扁平传入） */
   args: Record<string, unknown>;

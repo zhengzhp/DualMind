@@ -5,11 +5,19 @@
 import { browser } from 'wxt/browser';
 import { sendMessage } from '@/shared/messaging/client';
 import type { PageFabApi } from '../page-fab/types';
-import { executeAgentTool } from './executor';
+import {
+  beginAgentPageTask,
+  cancelAgentPageTask,
+  executeAgentTool,
+  invalidateAgentPageTask,
+  stopAgentPageTask,
+} from './executor';
 import { parseAgentToolCall } from './tools';
 import {
   AGENT_EXECUTE_MESSAGE,
+  AGENT_TASK_MESSAGE,
   type AgentExecuteMessage,
+  type AgentTaskMessage,
   type AgentToolResult,
 } from './types';
 
@@ -19,7 +27,8 @@ export const AGENT_FAB_ACTION_ID = 'agent-open';
 function isExecuteMessage(raw: unknown): raw is AgentExecuteMessage {
   if (!raw || typeof raw !== 'object') return false;
   const m = raw as AgentExecuteMessage;
-  return m.type === AGENT_EXECUTE_MESSAGE && typeof m.tool === 'string';
+  return m.type === AGENT_EXECUTE_MESSAGE && typeof m.tool === 'string' &&
+    typeof m.taskId === 'string' && !!m.binding && !!m.guard;
 }
 
 /**
@@ -27,7 +36,27 @@ function isExecuteMessage(raw: unknown): raw is AgentExecuteMessage {
  * 与 chat 上下文一样：disabledHosts 早退时本文件不会被挂载。
  */
 export function mountAgentExecutor(): void {
-  browser.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  window.addEventListener('popstate', invalidateAgentPageTask);
+  window.addEventListener('hashchange', invalidateAgentPageTask);
+  const navTimer = setInterval(invalidateAgentPageTask, 200);
+  window.addEventListener('pagehide', () => {
+    stopAgentPageTask();
+    clearInterval(navTimer);
+  });
+
+  browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (sender.id !== browser.runtime.id || sender.tab) return undefined;
+    if (message?.type === AGENT_TASK_MESSAGE) {
+      const taskMessage = message as AgentTaskMessage;
+      if (typeof taskMessage.taskId !== 'string') return undefined;
+      if (taskMessage.action === 'cancel') {
+        cancelAgentPageTask(taskMessage.taskId);
+        sendResponse({ ok: true });
+      } else if (taskMessage.action === 'begin' && typeof taskMessage.expectedUrl === 'string') {
+        sendResponse(beginAgentPageTask(taskMessage.taskId, taskMessage.expectedUrl));
+      }
+      return undefined;
+    }
     if (!isExecuteMessage(message)) return undefined;
 
     void (async () => {
@@ -46,7 +75,7 @@ export function mountAgentExecutor(): void {
             error: parsed.error,
           };
         } else {
-          result = await executeAgentTool(parsed.args);
+          result = await executeAgentTool(parsed.args, message);
         }
       } catch (err) {
         result = {

@@ -40,10 +40,11 @@ export function startAgentTask(
 ): AgentTaskHandles {
   const port = browser.runtime.connect({ name: AGENT_PORT });
   seq += 1;
-  const taskId = `dmagent-${Date.now().toString(36)}-${seq}`;
+  const taskId = `dmagent-${crypto.randomUUID()}-${seq}`;
   let settled = false;
 
   const post = (message: AgentPortClientMessage) => {
+    if (settled) return;
     try {
       port.postMessage(message);
     } catch {
@@ -85,6 +86,7 @@ export function startAgentTask(
   }
 
   port.onMessage.addListener((raw: unknown) => {
+    if (settled) return;
     const message = raw as AgentPortServerMessage;
     if (!message || typeof message !== 'object') return;
     if (!('taskId' in message) || message.taskId !== taskId) return;

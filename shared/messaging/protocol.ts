@@ -256,6 +256,12 @@ export type AgentPortClientMessage =
 /** Agent：Background → Client */
 export type AgentPortServerMessage =
   | {
+      type: 'bound_page';
+      taskId: string;
+      url: string;
+      title: string;
+    }
+  | {
       type: 'phase';
       taskId: string;
       phase: import('@/features/agent/types').AgentTaskPhase;
@@ -284,6 +290,7 @@ export type AgentPortServerMessage =
       taskId: string;
       summary: string;
       success: boolean;
+      cancelled?: boolean;
     }
   | {
       type: 'error';

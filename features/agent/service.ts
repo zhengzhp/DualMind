@@ -17,6 +17,7 @@ import {
   parseAgentToolCall,
 } from './tools';
 import type {
+  AgentExecutionGuard,
   AgentTimelineItem,
   AgentToolArgs,
   AgentToolName,
@@ -48,6 +49,7 @@ export interface RunAgentTaskOptions {
   executeTool: (
     tool: AgentToolName,
     args: Record<string, unknown>,
+    guard: AgentExecutionGuard,
   ) => Promise<AgentToolResult>;
 }
 
@@ -71,7 +73,7 @@ function throwIfAborted(signal: AbortSignal): void {
   }
 }
 
-async function withTimeout<T>(
+export async function withTimeout<T>(
   promise: Promise<T>,
   ms: number,
   signal: AbortSignal,
@@ -153,6 +155,7 @@ export async function runAgentTask(options: RunAgentTaskOptions): Promise<void> 
       taskId,
       summary: '用户未批准计划',
       success: false,
+      cancelled: true,
     });
     return;
   }
@@ -168,6 +171,7 @@ export async function runAgentTask(options: RunAgentTaskOptions): Promise<void> 
   });
 
   let lastElements: SnapshotElement[] = [];
+  let snapshotId: string | undefined;
   let currentUrl = pageUrl;
 
   for (let round = 0; round < maxSteps; round += 1) {
@@ -215,6 +219,7 @@ export async function runAgentTask(options: RunAgentTaskOptions): Promise<void> 
         taskId,
         currentUrl,
         lastElements,
+        snapshotId,
         signal,
         gate,
         post,
@@ -231,6 +236,7 @@ export async function runAgentTask(options: RunAgentTaskOptions): Promise<void> 
 
       if (outcome.snapshotElements) {
         lastElements = outcome.snapshotElements;
+        snapshotId = outcome.snapshotId;
       }
       if (outcome.pageUrl) currentUrl = outcome.pageUrl;
 
@@ -262,6 +268,7 @@ interface ToolCallOutcome {
   finishSummary?: string;
   finishSuccess?: boolean;
   snapshotElements?: SnapshotElement[];
+  snapshotId?: string;
   pageUrl?: string;
 }
 
@@ -270,6 +277,7 @@ async function handleOneToolCall(ctx: {
   taskId: string;
   currentUrl: string;
   lastElements: SnapshotElement[];
+  snapshotId?: string;
   signal: AbortSignal;
   gate: AgentTaskGate;
   post: (msg: AgentPortServerMessage) => void;
@@ -353,17 +361,19 @@ async function handleOneToolCall(ctx: {
     ctx.emitPhase('running');
   }
 
-  let execResult: AgentToolResult;
-  try {
-    execResult = await withTimeout(
-      ctx.executeTool(args.tool, flattenToolArgs(args)),
-      TOOL_TIMEOUT_MS,
-      ctx.signal,
-    );
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    ctx.emitTimeline(item('error', message, { tool: args.tool }));
-    return { toolPayload: { ok: false, error: message } };
+  throwIfAborted(ctx.signal);
+  const execResult = await withTimeout(
+    ctx.executeTool(args.tool, flattenToolArgs(args), {
+      snapshotId: ctx.snapshotId,
+      expectedElement: element ?? undefined,
+      dangerConfirmed: danger.level === 'dangerous',
+    }),
+    TOOL_TIMEOUT_MS,
+    ctx.signal,
+  );
+  throwIfAborted(ctx.signal);
+  if (execResult.fatal) {
+    throw new AppError(execResult.error || execResult.summary, 'UNKNOWN');
   }
 
   ctx.emitTimeline(
@@ -384,6 +394,7 @@ async function handleOneToolCall(ctx: {
   if (args.tool === 'snapshot' && execResult.ok && execResult.data) {
     const data = execResult.data as SnapshotPayload;
     outcome.snapshotElements = data.elements;
+    outcome.snapshotId = data.snapshotId;
     if (data.url) outcome.pageUrl = data.url;
   }
 
