@@ -120,9 +120,9 @@ Provider 双主路径至少在 Chrome 的两个 UI 入口完成；Edge 至少重
 
 ### 可观测与安全前置
 
-- [ ] **ENV-01 · P1**：每个动作显示独立计数器，并有可重置测试数据 — 能证明「没有执行」和「执行一次」，不只看 Agent 的自然语言摘要。
-- [ ] **ENV-02 · P0**：使用虚构姓名、假密码、假 token 与测试 Key — 截图、日志、trace、模型请求中没有生产秘密。
-- [ ] **ENV-03 · P1**：记录模型请求次数、工具事件、页面动作和时间 — 可以区分模型慢、DOM 失败、超时、停止与未加载脚本。
+- [x] **ENV-01 · P1**：每个动作显示独立计数器，并有可重置测试数据 — 能证明「没有执行」和「执行一次」，不只看 Agent 的自然语言摘要。　`2026-10-08 【**已满足（方法项）**】全部测试页共享 `assets/counters.js`，左下角「动作计数（ENV-01）+ 动作日志（ENV-03）」面板，对外暴露 `dmTest.bump/reset/state`（`counters.js:94-110`），并有**页面内「重置计数」按钮**。本轮**每条用例前后均以 `state()` 导出客观计数**（如 AG-19 `input:dm-name=1`、SEC-11 `目标点击=1`/`插入的危险按钮点击` 缺失）⇒「没有执行」与「执行一次」均可区分，且**不依赖模型自述**（模型自述已明确列为不作判据）`
+- [x] **ENV-02 · P0**：使用虚构姓名、假密码、假 token 与测试 Key — 截图、日志、trace、模型请求中没有生产秘密。　`2026-10-08 【**已满足（方法项）**】全部测试数据为虚构：姓名「赵六 / 王五 / 李四 / 张三」、密码框 `#dm-password` / `#pay-secret`（页面标注「虚构密码即可」）、Chat/Agent 目标文案均为占位文本；BYOK Key 为**用户真实配置**但**仅存于 Background 设置**（SEC-20 已验证不进入 Content Script / DOM / 工具结果 / 错误文案，且未出现于任何请求 URL）。**网络面板反向搜 `sk-` 与 Key 前缀 ⇒ 0 命中** ⇒ 截图 / 日志 / 请求中无生产秘密`
+- [x] **ENV-03 · P1**：记录模型请求次数、工具事件、页面动作和时间 — 可以区分模型慢、DOM 失败、超时、停止与未加载脚本。　`2026-10-08 【**已满足（方法项）**】三层可区分：① **页面动作 + 时间戳** —— `counters.js` 的 actions 数组记 `{name, detail, at}`（毫秒），本轮多次据此**否决了貌似通过的跑次**（如 B3d-b 首跑变异比点击晚 74.1 秒）；② **工具事件** —— Agent 面板 timeline 记 `PLAN / TOOL / RESULT / phase`（如 AG-19 的 `fill [#0]`→`fill [#1]`→触上限）；③ **模型请求** —— Background SW 的 DevTools Network 可见 `chat/completions` 轮次（SEC-20 核对时已用）。三者叠加可区分模型慢 / DOM 失败 / 超时 / 停止 / 未加载脚本`
 - [ ] **ENV-04 · P1**：更新扩展后执行 Reload 扩展 + 刷新内容页 — 当前页面运行新 Content Script；旧页面不能作为失败或通过证据。
 - [ ] **ENV-05 · P1**：检查现有 E2E 的 Ollama 环境 — `e2e/fixtures.ts` 当前要求 `http://127.0.0.1:11434`、`qwen-coder-8k:latest`；若模型不可用则记录 BLOCKED，不绕过用例。
 - [x] **ENV-06 · P1**：另行确认 Agent 使用的模型支持 tools — 既有翻译 E2E 模型能翻译，不等于能可靠完成 Agent 工具调用。　`2026-10-08 **PASS（Provider A / Ollama）**：`qwen3:4b`（本地 Ollama，host 127.0.0.1:11434）在 /t1-static-form 跑通完整工具链：`PLAN 计划 3 步` → `计划已批准` → `TOOL snapshot`→`RESULT 快照 20/20` → `TOOL click [#3]`→`RESULT 已点击 [#3] 预填内容` → `TOOL fill [#3]`→`RESULT fill 已写 ["ABC"]`；计数器 `input:dm-prefill=1`、`change:dm-prefill=1`（单次写入），字段由默认「原有内容」被覆盖为 **ABC**。另在 curl 层已确认其返回结构化 `tool_calls` / `finish_reason: "tool_calls"`（原 `qwen-coder-8k:latest` / `qwen2.5-coder:7b` 为 `tool_calls: null`，留作 NET-05 负面样本）`

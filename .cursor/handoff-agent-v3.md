@@ -91,6 +91,8 @@
 | Agent 最小单测（danger / tools / prompts / session / service / executor / client） | ✅ 2026-10-08：7 个文件 / 51 个用例通过；`git diff --check` 通过。`pnpm test features/agent` 因 pnpm 9.5.1 镜像获取失败，改用已安装的 `node node_modules/vitest/vitest.mjs run features/agent`，未修改依赖或配置 |
 | A 功能补口单测（service tool-calling 判定） | ✅ 2026-10-08：`features/agent` **7 文件 / 54 用例通过**（`pnpm test features/agent`）。Options 为 UI 改动，未跑命令，待人工验 |
 | 封板测试页 T1–T7 | ✅ 2026-10-08：已建并冒烟（`node e2e/pages/serve.mjs`；全部路由 200、跨源 4174 可达、路径穿越 404、JS 全部 `node --check` 通过）。用例本身**未执行** |
+| §4 ENV 方法前置（ENV-01/02/03） | ✅ 2026-10-08：确认为**本轮已实际满足**并补记 —— ENV-01 计数面板 `dmTest.bump/reset/state` 全程在用；ENV-02 全虚构数据且 `sk-` 反查 0 命中；ENV-03 页面动作时间戳 + 面板 timeline + SW Network 三层可区分 |
+| §6 AG-16 / AG-18（§6 最后 2 条） | ⬜ **执行单已就绪**：AG-16 四子项**代码锁定**（`AgentPanel.tsx:261` / `useAgent.ts:89-94,185-186,208-213,243-245`），其中空 / 全空格 1&2 待人工确认（约 2 分钟），设置读 / 写失败 3&4 以代码锁定记账；AG-18 **确定性陷阱**设计完成（`/t3-dynamic`「先移除 `#dm-target` 再点击它」，不依赖时序抢点），待跑 |
 | AG-09 机制验证（缺陷候选 DM-V3-001） | ⚠️ 2026-10-08：T7 上以 Runtime.evaluate 对比两种写入路径，确认 `el.value=x` 不更新受控状态且不报错。**尚未**在真实扩展 + 真实模型下复现 |
 | 实机验收 | ⬜ 见下方 |
 
