@@ -34,7 +34,9 @@
 - 教训（已写入 runbook）：目标框只写「要达成什么」，**不要把操作步骤粘进去**（AG-13 首轮因此作废）
 - AG-13 首轮尝试**未达成**：目标框被填成多步说明 → Agent 自行改计划 → 未走到「复用旧 index 应被拒绝」判定点；已记部分覆盖，需单步干净目标重跑
 - **AG-05（P0）已留证复跑 PASS**（2026-10-08）：/t1-static-form 待批准态势截图 + 终态 state()（`input:dm-name=1` / `change:dm-name=1`，同一毫秒）⇒ 全会话仅一次页面写入，批准前零写入且无重复任务。残留：截图时点存疑（姓名框已含终态值），「批准前为 0」系由 state() 反推
-- B2 剩余待补：AG-09（T7 受控 textarea / contenteditable）、AG-12（待 DM-V3-002 复测）、AG-04、AG-13、AG-19；以及 Provider A（`qwen3:4b`）主路径
+- **Provider A（Ollama `qwen3:4b`）主路径已跑通（ENV-06 PASS，2026-10-08，B2h）**：`/t1-static-form` 上 snapshot → click [#3] → fill [#3] 全链路真实落盘，计数器 `input:dm-prefill=1` / `change:dm-prefill=1`；附带证得 index 跨调用复用可用、`fill` 为覆盖语义
+- **未定位的环境噪声（B2h 附带发现）**：`/t1-static-form` 控制台出现 `content.css` `net::ERR_FAILED` + CSP `style-src` 拒绝 + `runtime.lastError: Could not establish connection`；Agent 主路径未受影响，但与 `content.ts:15` 的 `cssInjectionMode: 'ui'` 有关，是否影响 `page-fab` 样式待单独排查
+- B2 剩余待补：AG-09（T7 受控 textarea / contenteditable）、AG-12（待 DM-V3-002 复测，需先 `pnpm build`）、AG-04、AG-13、AG-19
 
 ## 下一步
 

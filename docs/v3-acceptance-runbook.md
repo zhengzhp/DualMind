@@ -299,6 +299,27 @@ curl -s http://127.0.0.1:11434/api/tags | head -c 300
 
 **已知环境风险**：`qwen3:4b` 为推理型小模型，规划阶段可能偶发 `EMPTY_RESPONSE`（在 BYOK 强模型上也出现过，见 B2a 行）；单次失败不足以判定「不支持 tools」，需与 `tool_calls: null` 的负面样本区分。
 
+### B2h · Provider A（Ollama）主路径（ENV-06，2026-10-08 · **PASS**）
+
+| 用例 ID | 批次 | 页面 / UI / Provider | 结果 | 证据（计数器 / 日志 / 截图） | 备注 |
+| --- | --- | --- | --- | --- | --- |
+| ENV-06 | B2h | `/t1-static-form` / Side Panel / **本地 Ollama `qwen3:4b`** | **PASS** | 截图 timeline：`PLAN 计划 3 步…` → `INFO 计划已批准` → `TOOL 准备 snapshot` → `RESULT 快照 20/20 个可交互元素` → `TOOL 准备 click [#3]` → `RESULT 已点击 [#3] 预填内容` → `TOOL 准备 fill [#3]` → `RESULT fill 已写 ["ABC"] (3 字)`；计数器 `input:dm-prefill=1`、`change:dm-prefill=1`（同为 06:20:42） | 页面事实一致：`dm-prefill` 由默认「原有内容」被**覆盖**为 **ABC**。**附带证得**：① `#3` 在 snapshot 后跨 `click` / `fill` 两次调用复用仍命中 → 正常路径下签名校验不误杀（AG-13 相邻机制）；② `fill` 覆盖语义成立 → 补齐 AG-08 的 fill 分支 |
+
+**本地环境前置（已预检）**：`ollama list` 有 `qwen3:4b`（2.5 GB）；`127.0.0.1:11434` 可达；负面样本 `qwen-coder-8k:latest` / `qwen2.5-coder:7b` 仍在位。
+
+### B2h 附带发现（**未定位，不计入 ENV-06 结论**）
+
+`/t1-static-form` 控制台出现三类报错，Agent 主路径**未观察到受影响**：
+
+| 现象 | 已核实的线索 | 未决 |
+| --- | --- | --- |
+| `net::ERR_FAILED` 加载 `chrome-extension://…/content-scripts/content.css` | manifest 的 `content_scripts` **只声明 js、无 css**；但产物 `content.js` 中**有 1 处**引用该路径 ⇒ 属**运行时动态注入** | 为何加载失败（路径 / 时机 / MV3 资源可访问性） |
+| `Refused to apply stylesheet … not included in the style-src directive` | 测试页中**仅** `t6-csp.html` 带 meta CSP，**T1 无**；`serve.mjs:79-80` 也只设 `Content-Type` | 被谁施加（页面 CSP / Shadow DOM 上下文 / Chrome 策略） |
+| `Uncaught runtime.lastError: Could not establish connection. Receiving end does not exist.` | 典型「向不存在的内容脚本发消息」；但 Agent 本身工作正常 | 发送方是谁（page-fab / 生命周期 / 卸载后的 Tab） |
+
+> 与 `entrypoints/content.ts:15` 的 `cssInjectionMode: 'ui'` 行为吻合。**是否影响 `page-fab` 样式需单独看一眼**；
+> 建议单列一条排查项（不阻塞 ENV-06）。
+
 ### B2 判定标准（供重跑参考）
 
 - **AG-10 未知选项**：对 `#dm-city` 请求 value/文案为「火星」→ 期望**失败且 `选择城市` 计数不增加**，页面停在原选项。
