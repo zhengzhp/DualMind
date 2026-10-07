@@ -493,7 +493,7 @@ document.querySelector('#dm-target').addEventListener(
 | 15 | 无 taskId / 过期 deadline | 单测 `executor` ×3 + `service` |
 | 16 | 完整属性变化但截断相同 | 单测 `executor`（完整属性改变但截断文案不变也拒绝） |
 | 17 | 提示注入 | **已闭合（B3e PASS，策略层）**：三处注入串被模型视为噪声、零动作、`KEY 落盘`=0。**⚠️ 闸门层未被直接压测**（模型未产出危险工具调用），该子句由 SEC-01~05 + SEC-10/11 组合覆盖 |
-| 18 | 跨 Tab / debugger / CAPTCHA / MCP | **静态已完成**（下方）+ 行为断言人工缺口 |
+| 18 | 跨 Tab / debugger / CAPTCHA / MCP | **静态已完成**（权限无 `debugger` / `scripting`）+ **行为断言待验（B-1/B-2/B-3）**。机制更正：`pickContentTab` **优先活动可读页**（`resolveContentTab.ts:43`），仅当活动页不可读才回退 ⇒ 双可读 Tab 场景下写操作**只落活动 Tab**（预期 PASS）；「无硬限定」的表述不准确 |
 | 19 | 误报（普通操作可用） | 单测 `danger`（普通商品不误判 / 普通输入 safe） |
 | 20 | 密钥不泄露 | **静态已完成**（下方）+ 网络面板人工缺口 |
 
@@ -547,6 +547,10 @@ document.querySelector('#dm-target').addEventListener(
    故「0 命中」证明的是 **Key 未混入 URL**（有力但不充分）；header 级泄漏须由第 1 项目视补足。
 3. **Ollama 的「请求标头」在截图中被截断**（仅见 `Accept` / `Accept-Encoding` / `Accept-Language`），
    「无 `Authorization`」尚需下滚确认（代码层面 `ollama.ts:102` 只设 `Content-Type`，故预期为空）。
+
+**✅ 上述两项残留已由执行人目视补足并确认（2026-10-08）** ⇒ **SEC-20 网络面板核对 PASS**：
+请求标头检查通过（认证头仅出现在所配置 Provider 域名下；Ollama 无 `Authorization`）；
+域名清单无第三方；`sk-` / key 前缀反向搜索 0 命中。
 
 #### 人工执行单（仅缺口）
 
