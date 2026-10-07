@@ -307,9 +307,7 @@ curl -s http://127.0.0.1:11434/api/tags | head -c 300
 
 **本地环境前置（已预检）**：`ollama list` 有 `qwen3:4b`（2.5 GB）；`127.0.0.1:11434` 可达；负面样本 `qwen-coder-8k:latest` / `qwen2.5-coder:7b` 仍在位。
 
-### B2h 附带发现（**未定位，不计入 ENV-06 结论**）
-
-`/t1-static-form` 控制台出现三类报错，Agent 主路径**未观察到受影响**：
+### B2h 附带发现（**未定位，不计入 ENV-06 结论**）`/t1-static-form` 控制台出现三类报错，Agent 主路径**未观察到受影响**：
 
 | 现象 | 已核实的线索 | 未决 |
 | --- | --- | --- |
@@ -319,6 +317,22 @@ curl -s http://127.0.0.1:11434/api/tags | head -c 300
 
 > 与 `entrypoints/content.ts:15` 的 `cssInjectionMode: 'ui'` 行为吻合。**是否影响 `page-fab` 样式需单独看一眼**；
 > 建议单列一条排查项（不阻塞 ENV-06）。
+>
+> **假设（2026-10-08）：这串噪声可能只是 dev 构建的产物。** 依据：dev manifest 的
+> `content_security_policy.extension_pages` 含 `http://localhost:3000`（HMR 服务器），
+> 且 `runtime.lastError: Could not establish connection` 是 HMR / Service Worker 重载时的典型症状。
+> **判别方法（便宜）**：改从 **prod 产物** `.output/chrome-mv3` 加载扩展再看控制台 —— 噪声消失即为 dev-only。
+
+### 产物来源登记（dev vs prod，2026-10-08）
+
+| 目录 | 构建时间 | `MAX_WAIT_MS` 实测 | 说明 |
+| --- | --- | --- | --- |
+| `.output/chrome-mv3`（**prod，规则推荐的验证产物**） | 05:06 | `b=15e3` = **15000（旧）** | **不含** DM-V3-002 修复 |
+| `.output/chrome-mv3-dev`（dev） | **06:08:14** | `MAX_WAIT_MS = 1e4` = **10000（新）** | 含 DM-V3-002 修复；06:08:14 与 `tools.ts` 修改时刻吻合 ⇒ 有 dev watcher 自动重建 |
+
+> ⚠️ **证据来源须记录**：若本轮（含 AG-05 / ENV-06 / AG-09）是在 **dev 构建**上执行的，
+> 则证据绑定的是 dev 产物 —— **功能结论仍成立**，但封板签收时应择关键条目在 **prod 产物**上复核。
+> **AG-12 / AG-13 / AG-19 只在含修复的产物上才有复测意义**：先确认 Chrome 实际加载的是哪一个目录。
 
 ### B2i · AG-09 剩余分支（受控 textarea / contenteditable，2026-10-08 · **PASS**）
 
