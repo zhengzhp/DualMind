@@ -63,7 +63,7 @@
 - **会话容量**：50 会话 / 每会话 200 条，超限淘汰最旧。纯逻辑在 `shared/storage/chatSessions.ts`（可单测）。
 - **上下文预算**：`maxContextChars` 默认 12000，按段累加截断（不切半段；首段超预算至少保留一段）。
 - **会话切换与在途流式**：新建 / 切换会话**中断**在途流式；所有异步回写先比对会话 id，**迟到回包直接丢弃**。
-- **右键菜单入口**：Background 写信箱 `local:chatPending`（消费即清 + TTL 30s），由**常驻的 `WorkbenchApp`** 消费并切到聊天 Tab 再下发 —— `ChatPanel` 仅在聊天 Tab 挂载，用户停在「翻译」Tab 时会漏事件。
+- **右键菜单入口**：Background 写信箱 `local:chatPending`（消费即清 + TTL 120s），由**常驻的 `WorkbenchApp`** 消费并切到网页助手 Tab 再下发。`ChatPanel` **常驻挂载**（非当前 Tab `hidden`），切翻译再回来不丢当前会话。
 
 > 新增了 5 条决策到 `docs/decisions.md`（上下文读取时机 / 会话切换与迟到回包 / 右键菜单信箱 / 会话与页面绑定 / 右键菜单按站点置灰），改契约时同步更新。
 
