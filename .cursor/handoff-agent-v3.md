@@ -58,10 +58,11 @@
 | --- | --- |
 | ✅ 单测记账 | 13 条（SEC-01~06 · 09 · 12~16 · 19）—— `pnpm test features/agent` 7 文件 / 54 例全绿 |
 | ✅ 静态核对 | **SEC-18**（无 `debugger` / `scripting`）· **SEC-20**（content 产物已 tree-shake 掉 `getSettings`，无 `Authorization`/`Bearer`，唯一 `apiKey` 为空串默认值） |
-| ✅ 人工 | **SEC-08**（B3b PASS）· **SEC-07 金融分支**（B3a PASS，附带已知边界 `DM-V3-LIMIT-01`）· **SEC-11**（B3d-b PASS：插入危险按钮后旧 index 仍指向原目标，并实证确认暂停冻结 index） |
-| 🆕 夹具 | **`t8-injection`** 已建（SEC-17 用），登记进 `index.html` |
-| ⬜ 待人工 | **SEC-10**（B3c 隐藏/禁用，上次漏点第 5 步需重跑）· **SEC-17**（B3e 注入） |
-| ⚙️ 方法 | SEC-10 用「**危险确认暂停 = 无时限窗口**」（`element` 在 `service.ts:311` 取自快照、早于 `waitDangerConfirm`）。该法已在 SEC-11 上成熟：**确认暂停会冻结 index**。**v1 的 8 秒 `wait` 窗口已废弃**（B3d-b 首跑中变异比点击**晚 74.1 秒**，计数"符合预期"却无证据力） |
+| ✅ 人工 | **SEC-08**（B3b PASS）· **SEC-07 金融分支**（B3a PASS，附带已知边界 `DM-V3-LIMIT-01`）· **SEC-11**（B3d-b PASS：插入危险按钮后旧 index 仍指向原目标，并实证确认暂停冻结 index）· **SEC-10**（B3c PASS：`disabled` 变化触发签名层 + 禁用层双重拒绝，`目标点击=0`） |
+| 🆕 夹具 | **`t8-injection`** 已建（SEC-17 用），登记进 `index.html`，**尚未在浏览器加载过** |
+| ⬜ 待人工 | **SEC-17**（B3e 注入，唯一剩余的人工项） |
+| ⚙️ 方法 | SEC-10 / SEC-11 用「**危险确认暂停 = 无时限窗口**」（`element` 在 `service.ts:311` 取自快照、早于 `waitDangerConfirm`）。该法已两次成熟验证：**确认暂停会冻结 index**（SEC-11）· 确认期修改被抓（SEC-10）。**v1 的 8 秒 `wait` 窗口已废弃**（首跑中变异比点击**晚 74.1 秒**，计数"符合预期"却无证据力） |
+| ✅ B3 现状 | 20 条中 **17 条已闭合**（13 单测 + 2 静态 + 4 人工，其中 SEC-07/10/11 兼有人工与单测）；仅剩 **SEC-17** 一条人工 |
 | ⬜ 待你 | **SEC-20** 网络面板捞一次请求 |
 
 **记账口径限定**（须向签发人明示）：单测只锁**分类与授权逻辑**，**SEC-01 的「UI 无绕过路径」属 UI 断言、未被覆盖**；SEC-18 的「不操作其他 Tab」属行为断言。
