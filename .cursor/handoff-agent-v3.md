@@ -20,12 +20,15 @@
 - A 功能补口（2026-10-08）：Options 新增 Agent 设置区（启用 / 最大步数 / 只读说明）；tool 环连续两轮零 `tool_calls` 判定模型不支持 tools 并明确失败（新增错误码 `TOOLS_UNSUPPORTED`）；文档收口「运行态仅内存、不持久化」
 - 封板测试页 T1–T7（2026-10-08）：`e2e/pages/`（`serve.mjs` + `site/`，主站 4173 / 跨源 4174），含共享动作计数器与日志；映射见 `e2e/pages/README.md`
 - 封板期缺陷候选 DM-V3-001（2026-10-08）：原判「受控表单 fill/type 静默失败」，**经真实扩展实测已撤回（误报）**。根因：内容脚本在隔离世界，绕过主世界的 React value tracker，行为等价原生 setter → 受控组件正常更新。撤回记录见 `docs/v3-release-test-plan.md` 第 15 节
-- B2b 受控表单人工验收（2026-10-08）：真实扩展 + qwen3:4b 在 T7 受控 input 填入「李四」→ 应用状态与 DOM 可见值均为「李四」，AG-09 受控 input **部分 PASS**（T7 的 textarea / contenteditable 未测）
+- B2b 受控表单人工验收（2026-10-08）：真实扩展 + deepseek-flash（BYOK）在 T7 受控 input 填入「李四」→ 应用状态与 DOM 可见值均为「李四」，AG-09 受控 input **部分 PASS**（T7 的 textarea / contenteditable 未测）
 - 教训（已写入 runbook 与 `e2e/pages/README.md`）：测试页无法模拟隔离世界；受控组件真伪只能由真实扩展判定；`snapshot` 读 DOM value，不能用于判定受控写入
 - 人工验收 runbook（2026-10-08）：`docs/v3-acceptance-runbook.md`（8 个批次 + 页面路由 + 记录表）
 - 模型前提已解决（2026-10-08）：原两模型不支持 tool calling，已拉取 `qwen3:4b` 并复测通过（结构化 `tool_calls`）；工具段用例（B2/B3/B4/B5/B7）现已可执行
 - B1 计划闸门人工验收（2026-10-08）：Chrome + Side Panel，AG-01/02/03/06 PASS、AG-17/NET-05（qwen-coder-8k 负面样本）PASS，计划闸门另在 BYOK 与 qwen3:4b 下重跑通过；**全部无留存证据**，AG-05（P0）保留未勾选待留证复跑。已登记 DM-V3-ENV-05；结论见 `docs/v3-acceptance-runbook.md` 第 3 节
-- B2a 执行主路径人工验收（2026-10-08）：Chrome + Side Panel + qwen3:4b，页面 `/t1-static-form`。AG-07 / AG-08 / AG-11 PASS（有计数器 JSON）；AG-10 部分 PASS（「未知选项」分支未测）；AG-15 BLOCKED（该次规划阶段 `EMPTY_RESPONSE`）。**首次证明 Agent 主链路走通**：计划 → 批准 → runChatWithTools → 真实 DOM 写入，工具行为与页面事实一致。观察：qwen3:4b 规划偶发失败，产品可读报错且零写入，但无自动重试
+- B2a 执行主路径人工验收（2026-10-08）：Chrome + Side Panel + **deepseek-flash（BYOK）**，页面 `/t1-static-form`。AG-07 / AG-08 / AG-11 PASS（有计数器 JSON）；AG-10 部分 PASS（「未知选项」分支未测）；AG-15 BLOCKED（该次规划阶段 `EMPTY_RESPONSE`）。**首次证明 Agent 主链路走通**：计划 → 批准 → runChatWithTools → 真实 DOM 写入，工具行为与页面事实一致。观察：规划偶发失败（EMPTY_RESPONSE，发生在能力较强的 BYOK 模型上，属计划输出稳健性），产品可读报错且零写入但无自动重试
+- **归因更正（2026-10-08）**：B2 全批原误记为 `qwen3:4b`，实为 BYOK `deepseek-flash`。⇒ **Provider A（Ollama）的 Agent 主路径尚未实跑**，NET-01 目前仅覆盖 Provider B 且未到 finish（登记 DM-V3-ENV-06）
+- B2d 截断与只读观测（2026-10-08）：`/t2-danger` snapshot 80/111 提示截断、超限 31 个元素零试探点击、计数器无动作 ⇒ AG-14 **PASS**
+- 新发现（低危，V1/V2 范围）：产物缺 `content-scripts/content.css`，每次挂载 Shadow UI 产生一次失败请求 + WXT 警告；两个挂载点自带内联样式，**不影响正确性**，非 V3.0 阻塞
 - 下一步：补测 AG-10「未知选项失败」、重跑 AG-15；然后 AG-09（T7，预期命中 DM-V3-001）、AG-12 / AG-13 / AG-14 / AG-19 / AG-04；再进 B3 安全红线
 
 ## 下一步

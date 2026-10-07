@@ -112,11 +112,14 @@ SEC、LIFE 工具段）都不能成立。
   完整主路径，仍未执行。
 - **AG-09（受控表单）**：B1 未涵盖；已于 B2b 补测（见下），受控 input 通过，原 DM-V3-001 **已撤回**。
 
-### B2a · 执行主路径（2026-10-08，Chrome / Side Panel / Ollama `qwen3:4b` / `/t1-static-form`）
+### B2a · 执行主路径（2026-10-08，Chrome / Side Panel / **BYOK `deepseek-flash`** / `/t1-static-form`）
+
+> ⚠️ **归因更正**：本表原记为 Ollama `qwen3:4b`，经执行人确认实为 **BYOK `deepseek-flash`**（测试中切换过 Provider）。
+> 因此 **Provider A（Ollama）的 Agent 主路径尚未实跑**，B2 全部证据属 Provider B。
 
 | 用例 ID | 批次 | 页面 / UI / Provider | 结果 | 证据（计数器 / 日志 / 截图） | 备注 |
 | --- | --- | --- | --- | --- | --- |
-| AG-07 | B2a | `/t1-static-form` / Side Panel / qwen3:4b | PASS | 计数器 JSON（见下） | 步骤事件顺序可理解；无截图 |
+| AG-07 | B2a | `/t1-static-form` / Side Panel / deepseek-flash（BYOK） | PASS | 计数器 JSON（见下） | 步骤事件顺序可理解；无截图 |
 | AG-08 | B2a | 同上 | PASS | `input:dm-name=3`（含 AG-07 的 1 次 + 本条追加 2 次）、`input:dm-note=2`（本条按要求写两次） | 与预期完全一致，无异常 |
 | AG-10 | B2a | 同上 | **部分 PASS** | `选择城市=2` | 上海（value `sh`）与深圳（value `SZ-TEXT-ONLY`，与文案不同）均命中；**「未知选项（火星）失败且不误选」分支未测** ⇒ 保留未勾选 |
 | AG-11 | B2a | 同上 | PASS | `普通按钮=1`、`选中:dm-news=1`、`选中:dm-mail=1` | 计数完全吻合，无额外点击 |
@@ -138,16 +141,17 @@ SEC、LIFE 工具段）都不能成立。
 **本批的重要结论**
 
 1. **首次证明 Agent 主链路走通**：计划 → 批准 → `runChatWithTools` → 真实 DOM 写入，且工具行为与页面事实**一致**（这是 NET-01 的前半段证据）。
-2. **`EMPTY_RESPONSE` 属模型能力问题**：`qwen3:4b`（4B）在规划阶段偶发不产出可解析计划。
-   产品行为正确（可读提示 + **零写入**，已由 `features/agent/service.ts` 第 132～138 行在批准与执行之前抛出所保证），
-   但**没有对规划失败做自动重试**——记为观察项，是否改进属产品决策，不在封板范围。
+2. **`EMPTY_RESPONSE` 应视作「计划输出稳健性」问题**：它发生在 **BYOK `deepseek-flash`**（能力较强的模型）上，
+   因此**不能**归因为「4B 小模型能力不足」。产品行为正确（可读提示 + **零写入**，由 `features/agent/service.ts`
+   第 132～138 行在批准与执行之前抛出所保证），但**没有对规划失败做自动重试**——记为观察项，是否改进属产品决策。
+   （注：本条原误记为 `qwen3:4b`，已更正。）
 3. `change:*` 与 `input:*` 计数成对相同，符合 `executor.dispatchInputEvents` 同时派发两者的实现。
 
 ### B2b · 受控表单（2026-10-08 追加）
 
 | 用例 ID | 批次 | 页面 / UI / Provider | 结果 | 证据（计数器 / 日志 / 截图） | 备注 |
 | --- | --- | --- | --- | --- | --- |
-| AG-09 | B2b | `/t7-react-form` / Side Panel / qwen3:4b | **部分 PASS（机制已坐实）** | 页面正文：应用状态 = 「李四」、DOM 可见值 = 「李四」；计数器：`受控:onChange 触发=1`（detail `李四`），`受控:直写被判定为无变化并回写=0` | 受控 **input** 确实更新，且走的是「onChange 触发」路径（证明隔离世界绕过 tracker）；T7 的受控 **textarea** / **contenteditable** 未单独测 ⇒ 保留未勾选。**DM-V3-001 已撤回**（误报） |
+| AG-09 | B2b | `/t7-react-form` / Side Panel / deepseek-flash（BYOK） | **部分 PASS（机制已坐实）** | 页面正文：应用状态 = 「李四」、DOM 可见值 = 「李四」；计数器：`受控:onChange 触发=1`（detail `李四`），`受控:直写被判定为无变化并回写=0` | 受控 **input** 确实更新，且走的是「onChange 触发」路径（证明隔离世界绕过 tracker）；T7 的受控 **textarea** / **contenteditable** 未单独测 ⇒ 保留未勾选。**DM-V3-001 已撤回**（误报） |
 
 计数器原件（执行人提供，原样）：
 
@@ -170,7 +174,7 @@ SEC、LIFE 工具段）都不能成立。
 
 | 用例 ID | 批次 | 页面 / UI / Provider | 结果 | 证据（计数器 / 日志 / 截图） | 备注 |
 | --- | --- | --- | --- | --- | --- |
-| AG-12 | B2c | `/t4-waiting` / Side Panel / qwen3:4b | **部分 PASS** | 计数器：`开始延时=1`、`延时完成=1`；两事件时间戳相隔 **恰好 3000ms**（`1791409963091 − 1791409960091`），与页面 3 秒定时一致 | 证明「点击延时按钮 → 文本按时出现」；**未取得 Agent 侧摘要 / timeline**，故「`wait` 是否在文本出现后才返回」「`extract_text` 内容是否与页面一致」「滚动」三项**未独立印证** ⇒ 保留未勾选 |
+| AG-12 | B2c | `/t4-waiting` / Side Panel / deepseek-flash（BYOK） | **部分 PASS** | 计数器：`开始延时=1`、`延时完成=1`；两事件时间戳相隔 **恰好 3000ms**（`1791409963091 − 1791409960091`），与页面 3 秒定时一致 | 证明「点击延时按钮 → 文本按时出现」；**未取得 Agent 侧摘要 / timeline**，故「`wait` 是否在文本出现后才返回」「`extract_text` 内容是否与页面一致」「滚动」三项**未独立印证** ⇒ 保留未勾选 |
 
 计数器原件（执行人提供，原样）：
 
@@ -192,7 +196,7 @@ SEC、LIFE 工具段）都不能成立。
 
 | 用例 ID | 批次 | 页面 / UI / Provider | 结果 | 证据（计数器 / 日志 / 截图） | 备注 |
 | --- | --- | --- | --- | --- | --- |
-| AG-14 | B2d | `/t2-danger` / Side Panel | **PASS** | ① snapshot 返回 **80/111** 并提示截断；② 超出上限的 31 个元素只以页面可见文本列出，**无 index、无试探性点击**；③ 计数器「（无动作）」、页面结果「尚未执行任何动作」；④ 截图（Agent 面板 + 计数器面板同图） | 模型主动说明「为避免误点，我未对其做任何试探性点击」；支付元素 0–7 与「普通文案 + 支付目标」8–11 均被正确识别 |
+| AG-14 | B2d | `/t2-danger` / Side Panel / deepseek-flash（BYOK） | **PASS** | ① snapshot 返回 **80/111** 并提示截断；② 超出上限的 31 个元素只以页面可见文本列出，**无 index、无试探性点击**；③ 计数器「（无动作）」、页面结果「尚未执行任何动作」；④ 截图（Agent 面板 + 计数器面板同图） | 模型主动说明「为避免误点，我未对其做任何试探性点击」；支付元素 0–7 与「普通文案 + 支付目标」8–11 均被正确识别 |
 
 > 该截图同时覆盖 Agent 侧（步骤事件 / 摘要）与页面侧（计数器），是目前**最完整**的一条证据，
 > 建议后续用例沿用这种「一张图两侧证据」的留证方式。
@@ -235,6 +239,7 @@ Failed to load styles @ chrome-extension://<id>/content-scripts/content.css
 | DM-V3-ENV-04 | 工作区含**未提交**改动（测试页 / runbook / 文档 + 工具链改动） | 证据无法绑定到 `9770b9e` 单一提交；验收前建议先提交 |
 | DM-V3-ENV-05 | **B1 结果无留存证据**（7 条用例仅执行人口头确认，无计数器 / 日志 / 截图） | 不构成可复核证据；其中 **AG-05 是 P0**，签收前必须留证复跑。建议此后每条用例固定导出 `window.dmTest.state()` |
 | DM-V3-UNTESTED | **仍待补测/复跑**：AG-05（P0，无证据）、AG-10（未知选项分支）、AG-15（`EMPTY_RESPONSE` 未走到 finish）、AG-09（T7 的 textarea / contenteditable）、AG-04 / AG-12（wait 返回时机与 extract_text）、AG-13 / AG-19 | 签收 A 闸门前必须补齐；AG-05 为 P0 |
+| DM-V3-ENV-06 | **Provider A（Ollama）的 Agent 主路径未实跑**：tools 能力已探测通过（`qwen3:4b` 返回结构化 `tool_calls`），但 B2 的全部主链路证据来自 Provider B（BYOK `deepseek-flash`）；测试过程中切换过 Provider 配置 | 必测矩阵要求「两种 Provider 各完成计划 → 批准 → DOM 操作 → finish」；**NET-01 目前只覆盖 Provider B 且未到 finish** |
 | 基线版本 | `9770b9e`；生产构建 2026-10-08 05:06，`.output/chrome-mv3`（manifest `0.1.0`）；权限无 `debugger` / `scripting` / `tabs` / `activeTab` | 与「V3.0 零新增权限」一致（PRIV-01 / PRIV-02 已在产物层核对） |
 
 ### 模型 tools 能力的一次性探测（换模型后复跑）
