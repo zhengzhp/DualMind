@@ -4,10 +4,9 @@
 > 用途：开新会话只带本文件即可接着干，无需回读上一会话记录。
 > 上一会话完整记录：`agent-transcripts/65765c36-a4d0-4614-a93c-a0e4e0c215f1.jsonl`（可按关键词检索回溯）。
 
-> **当前进度**：V2 主链路（摘要 + 问答 + 会话持久化 + 右键入口）代码全部落地，`tsc` / 单测双绿。
-> 第 5 节两个未决产品问题已拍板并实现（见第 3 节与 `docs/decisions.md`）；chat E2E 已编写并**实跑通过**。
-> **未做**：实机人工验收（见第 6 节）。**7 个提交已 push**（见第 1 节）。
-> 权威契约以 `docs/features.md` 为准，决策以 `docs/decisions.md` 为准；本文件只是导航 + 坑位。
+> **当前进度**：**V2 已封板**（2026-10-07）。用户按第 6 节清单**实机验收全过**；封板快照见 `docs/decisions.md`「V2 封板 · 验收快照」。
+> 主链路代码 / chat E2E 此前已绿。权威契约以 `docs/features.md` 为准，决策以 `docs/decisions.md` 为准；本文件只是导航 + 坑位。
+> **未做（不阻塞）**：完整文档切档 `*-v2`（等 V3 立项按 SOP）；可选技术债见第 8～9 节。
 
 ## 1. 当前状态
 
@@ -17,8 +16,9 @@
 | Vitest | ✅ **21 文件 / 182 用例**（chat 相关：`chatSessions` 18 / `prompts` 7 / `budget` 7 / `pageUrl` 8 / `siteAccess` 5） |
 | `wxt build` | ✅ 已跑（2026-10-07），产物 `.output/chrome-mv3` 已更新 |
 | E2E | ✅ **chat 7/7、workspace 2/2 通过**；selection-toolbar + immersive **15/16**（1 条既有 flake，见第 7 节） |
-| 实机（Chrome）验收 | ⬜ **未做** —— 见第 6 节「请用户验证」 |
-| git | 工作区**干净**；`main` 与 `origin/main` **已同步**（本轮 3 个提交已 push） |
+| 实机（Chrome）验收 | ✅ **全过**（2026-10-07，用户确认） |
+| V2 封板文档 | ✅ `decisions` / `features` / `architecture-v2` / `AGENTS` 已标「已封板」 |
+| git | 封板提交见本轮；是否 push 由用户决定 |
 
 ### 提交清单（本轮，最新在上）
 
@@ -186,12 +186,12 @@ export PATH="$HOME/.nvm/versions/node/v22.23.3/bin:$PATH"   # 本机默认 node 
 | 侧栏消息区限高 `max-h-[46vh]` | Side Panel 外层是 `min-h-screen`（无固定视口高度），`flex-1` 会被内容撑开。想「输入框钉底」需改成 `h-screen overflow-hidden`，但那会连带改翻译 Tab 的滚动行为 —— 属跨 Tab 改动，未擅自做 |
 | 上下文每会话只读一次 | 页面中途变化（SPA 路由切换）不会自动重读，需用户点「重新读取」 |
 | `ChatPendingAction` TTL 30s | 值是我拍的；若侧栏打开慢于 30s 会被判过期而丢弃，表现为「右键没反应」 |
-| V2 里程碑 | `docs/architecture-v2.md` 仍标「进行中」；封板时记得连同 `docs/store-listing.md` 的权限用途一起复核 |
+| V2 里程碑 | ✅ 已勾选；`store-listing` 权限复核仍随 V3 发布闸门 |
 
 ## 9. 下一步（按优先级）
 
-1. **实机人工验收**（第 6 节）—— **当前阻塞项**；通过前不封板、不开 V3。
-2. 验收通过后 → **V2 封板**：勾选 `docs/architecture-v2.md` 里程碑；按 [dualmind-docs-versioning.plan.md](./plans/dualmind-docs-versioning.plan.md) 归档 `-v2`。
-3. 可选技术债：侧栏输入框钉底、跨页 turns 混页标注、`selection-toolbar` E2E flake。
-4. 工程：效率文档包已提交 `5264b5d`（`/verify` + 最小验证表）；**未 push**，需要时再 `git -c http.version=HTTP/1.1 push`。
-5. V2.5+ / V3（Agent 等）须先 `/plan-feature`，勿提前开工。
+1. ~~实机验收 / V2 封板~~ ✅ 完成。
+2. 可选技术债：侧栏输入框钉底、跨页 turns 混页标注、`selection-toolbar` E2E flake。
+3. 工程：本地 commits 是否 `git -c http.version=HTTP/1.1 push` 由用户决定。
+4. **V3 / V2.5+**：须先 `/plan-feature` 立项并写入 `docs/decisions.md`；立项后再按 [dualmind-docs-versioning.plan.md](./plans/dualmind-docs-versioning.plan.md) 切档 `*-v2` 并重建活文档。
+5. 发布闸门（compile / 全量 e2e / 提审）仍推迟到 V3 完成后。

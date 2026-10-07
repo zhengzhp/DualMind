@@ -9,10 +9,10 @@ alwaysApply: true
 
 与用户交流默认使用 **简体中文**。代码默认 TypeScript；UI 优先 Tailwind。
 
-## 产品边界（V1）
+## 产品边界（当前 = V2 已封板）
 
-- **做**：划词翻译、Side Panel 翻译工作台、BYOK 设置（OpenAI Compatible / Ollama）
-- **不做**：全文沉浸译、PDF、自有后端、Browser Operator / 重度自动化
+- **已做**：划词翻译、沉浸译、Side Panel / 工作台、网页助手（摘要 / 问答）、BYOK、共享 `page-fab`
+- **不做（未立项）**：PDF、自有后端、Browser Operator / Agent 自动化、扩大已封板 V2 范围
 - 参考 Monica 的分层入口；禁止 All-in-One 堆功能
 
 ## 架构铁律
@@ -20,7 +20,7 @@ alwaysApply: true
 - **仅 Background** 可调用 LLM / Ollama；禁止 Content Script 持有 API Key 或直连模型
 - Provider 适配层（`providers/`）**永不碰 DOM**
 - 新能力放 `features/<name>/`，勿把逻辑塞进 `TranslateService`
-- Side Panel：Translate 可用；Chat / Agent 仅占位，除非用户明确要求实现
+- Side Panel：Translate + 网页助手可用；**Agent 仅占位**，除非用户明确要求并先更新 decisions
 
 ## 技术栈
 
@@ -30,8 +30,8 @@ alwaysApply: true
 
 ## 文档
 
-改架构或产品边界前先读并更新（当前版本 = V2）：
+改架构或产品边界前先读并更新（当前权威 = V2 已封板）：
 
-- `docs/decisions.md`（V2 决策）
+- `docs/decisions.md`（V2 决策 + 封板快照）
 - `docs/architecture-v2.md`（V2 架构）
-- V1 / V1.5 归档（已封板）：`docs/decisions-v1.md`、`docs/architecture-v1.md`
+- V1 / V1.5 归档：`docs/decisions-v1.md`、`docs/architecture-v1.md`

@@ -96,7 +96,7 @@ Windows：多数将 `⌘` 换成 `Ctrl`。
 |------|------|------|
 | `/review` | `review.md` | 代码审查（含 DualMind 架构检查） |
 | `/explain` | `explain.md` | 解释代码与调用链 |
-| `/plan-feature` | `plan-feature.md` | 按当前 `docs/decisions.md`（V2）边界规划功能 |
+| `/plan-feature` | `plan-feature.md` | 按当前 `docs/decisions.md`（V2 已封板）边界规划；新能力须先立项 |
 | `/verify` | `verify.md` | 按改动类型给出最小验证菜单（Ask first，默认不执行） |
 | `/fix` | `fix.md` | 排查并最小修复 |
 | `/add-provider` | `add-provider.md` | 新增 AI Provider |
@@ -134,7 +134,7 @@ Windows：多数将 `⌘` 换成 `Ctrl`。
 | 快捷键 | `⌘R` `⌘S` 或搜 Keyboard Shortcuts |
 | 项目规则 | `.cursor/rules/*.mdc`（始终 / 按 glob 注入） |
 | 代理入口 | `AGENTS.md`（优先级、Always / Ask first / Never、完成报告） |
-| 决策 / 架构 | `docs/decisions.md`、`docs/architecture-v2.md`（当前 V2）；`docs/decisions-v1.md`、`docs/architecture-v1.md`（V1 / V1.5 归档） |
+| 决策 / 架构 | `docs/decisions.md`、`docs/architecture-v2.md`（当前权威 = V2 已封板）；`docs/decisions-v1.md`、`docs/architecture-v1.md`（V1 / V1.5 归档） |
 | 自定义 `/` 命令 | `.cursor/commands/*.md` |
 
 ---

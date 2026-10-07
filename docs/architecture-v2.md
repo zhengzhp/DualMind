@@ -1,9 +1,10 @@
-# DualMind 浏览器插件 · 技术架构（V2 · 进行中）
+# DualMind 浏览器插件 · 技术架构（V2 · 已封板）
 
-> 生效版本：**V2（网页摘要 / 网页问答，进行中）**。  
-> V1 / V1.5 架构（已封板）见 [architecture-v1.md](./architecture-v1.md)。  
+> 状态：**V2 已封板（功能冻结，仅修 bug）**；下一版本立项前本文件为当前权威架构。  
+> V1 / V1.5 架构见 [architecture-v1.md](./architecture-v1.md)。  
 > 决策摘要见 [decisions.md](./decisions.md)；契约表见 [features.md](./features.md)。  
-> 代理入口（边界与汇报约定）见 [AGENTS.md](../AGENTS.md)。
+> 代理入口（边界与汇报约定）见 [AGENTS.md](../AGENTS.md)。  
+> 完整切档为 `architecture` 下一版文件，等 V3（或下一版本）立项后按版本化 SOP 执行。
 
 ## 定位
 
@@ -88,8 +89,8 @@ flowchart LR
 
 ## 里程碑状态（V2 / V3）
 
-- [ ] V2 摘要 / 聊天（`features/chat/` + 共享 `features/page-content/`，独立 `chat:*` 消息前缀）—— 进行中（2026-10-07）
-- [ ] V3 浏览器 Agent（独立 feature + 强确认 + 独立权限说明）
+- [x] V2 摘要 / 聊天（`features/chat/` + 共享 `features/page-content/` + `page-fab`，独立 `chat:*` 消息前缀）—— **已封板**（2026-10-07 实机验收全过，见 [decisions.md](./decisions.md)「V2 封板 · 验收快照」）
+- [ ] V3 浏览器 Agent（独立 feature + 强确认 + 独立权限说明）—— 未立项
 
 ### 发布闸门（V3 完成后统一执行）
 
