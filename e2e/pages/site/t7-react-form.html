@@ -11,6 +11,14 @@
       对应用例：AG-09。用于验证 <code>fill</code> / <code>type</code> 是否**真的更新了应用状态**，
       而不是只改了 DOM 外观被浏览器短暂显示、随后被框架回写覆盖。
     </p>
+    <p class="hint warn">
+      ⚠️ <b>读法警告（曾导致误报 DM-V3-001，已撤回）</b>：本页脚本在<b>主世界</b>，扩展内容脚本在
+      <b>隔离世界</b>。React 的 value tracker 装在主世界的节点包装对象上，隔离世界的
+      <code>node.value = x</code> 碰不到它，会落到原生 setter，于是 tracker 滞后、框架判定「有变化」并触发
+      onChange —— <b>行为等价原生 setter 路径</b>。
+      所以在本页控制台里手工直写会「失败」，但<b>真实扩展的 fill 会成功</b>。
+      本页只用于观察机制，<b>不可</b>据本页结论判产品缺陷。
+    </p>
     <p class="hint">
       实现说明：本页用原生 JS **精确复现** React 受控输入的关键机制 —— 框架在节点上定义
       <code>value</code> 访问器并维护一个「框架认为的值」。直接 <code>node.value = x</code>

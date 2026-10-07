@@ -1,17 +1,23 @@
 /**
  * T7 受控表单：复现 React controlled input 的 value tracker 语义（AG-09）。
  *
- * 为什么不用真实 React：
- *   本仓库不引前端运行时到测试页（避免新增依赖 / 打包步骤），但 AG-09 关心的是
- *   **受控输入的判定机制**，而不是 React 本体。React 的 `inputValueTracking`
- *   在节点上定义 value 访问器 + 闭包 current，事件系统比较
- *   `current === node.value` 来决定是否触发 onChange —— 下面如实复现该行为。
+ * 实现说明：本页用原生 JS **复现** React 受控输入的关键机制 —— 框架在节点上定义
+ *   `value` 访问器并维护一个「框架认为的值」。**但请先读下面的局限警告**。
  *
- * 两种写入路径的差异：
- *   - `node.value = x`（内容脚本 fill/type 的做法）→ 命中节点访问器 → current 同步
+ * ⚠️ 局限（曾导致误报 DM-V3-001，2026-10-08 已撤回）：
+ *   本脚本运行在**主世界**，而扩展内容脚本运行在**隔离世界**。主世界在**主世界的节点包装对象**
+ *   上定义访问器；隔离世界的 `node.value = x` 碰不到该属性，会落到原生 prototype setter，
+ *   于是本页的 `current` 记录滞后 → 判定「有变化」→ 触发 onChange。
+ *   换言之：**隔离世界写入等价于「原生 setter 路径」**，真实扩展的 fill 是有效的。
+ *   因此两处「受控:直写被判定为无变化并回写」计数只代表**主世界机制演示**，
+ *   不能作为「扩展 fill 失效」的证据。
+ *
+ * 两条路径的差异（**均指主世界内**）：
+ *   - 主世界 `node.value = x`（如本页控制台、Runtime.evaluate）→ 命中节点访问器 → current 同步
  *     → 判定「无变化」→ onChange 不触发 → 回写受控值（视觉上被覆盖）
- *   - `nativeSetter.call(node, x)`（真实输入 / 键盘）→ 绕过节点访问器 → current 落后
+ *   - 主世界 `nativeSetter.call(node, x)` / 真实键盘输入 → 绕过节点访问器 → current 落后
  *     → 判定「有变化」→ onChange 触发 → setState → 重新渲染
+ *   - 隔离世界（扩展内容脚本）`node.value = x` → **等价于上面的原生 setter 路径**（见上警告）
  */
 (function () {
   const bump = (name, detail) => window.dmTest?.bump(name, detail);

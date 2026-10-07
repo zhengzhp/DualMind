@@ -19,7 +19,9 @@
 - 安全加固：支付动作不可确认放行；同页单任务 / 文档绑定 / 快照版本 / 内容页执行前复核；停止与超时取消等待，导航使旧授权失效；UI 实际绑定页回传、卸载清理与迟到消息过滤（Agent 单测通过，Background / React UI 实机仍待验）
 - A 功能补口（2026-10-08）：Options 新增 Agent 设置区（启用 / 最大步数 / 只读说明）；tool 环连续两轮零 `tool_calls` 判定模型不支持 tools 并明确失败（新增错误码 `TOOLS_UNSUPPORTED`）；文档收口「运行态仅内存、不持久化」
 - 封板测试页 T1–T7（2026-10-08）：`e2e/pages/`（`serve.mjs` + `site/`，主站 4173 / 跨源 4174），含共享动作计数器与日志；映射见 `e2e/pages/README.md`
-- 封板期缺陷候选 DM-V3-001（2026-10-08）：受控表单上 `executor` 的 `fill`/`type` 静默失败（写 `el.value` 不触发框架 onChange）；已登记在 `docs/v3-release-test-plan.md` 第 15 节，待决定是否修
+- 封板期缺陷候选 DM-V3-001（2026-10-08）：原判「受控表单 fill/type 静默失败」，**经真实扩展实测已撤回（误报）**。根因：内容脚本在隔离世界，绕过主世界的 React value tracker，行为等价原生 setter → 受控组件正常更新。撤回记录见 `docs/v3-release-test-plan.md` 第 15 节
+- B2b 受控表单人工验收（2026-10-08）：真实扩展 + qwen3:4b 在 T7 受控 input 填入「李四」→ 应用状态与 DOM 可见值均为「李四」，AG-09 受控 input **部分 PASS**（T7 的 textarea / contenteditable 未测）
+- 教训（已写入 runbook 与 `e2e/pages/README.md`）：测试页无法模拟隔离世界；受控组件真伪只能由真实扩展判定；`snapshot` 读 DOM value，不能用于判定受控写入
 - 人工验收 runbook（2026-10-08）：`docs/v3-acceptance-runbook.md`（8 个批次 + 页面路由 + 记录表）
 - 模型前提已解决（2026-10-08）：原两模型不支持 tool calling，已拉取 `qwen3:4b` 并复测通过（结构化 `tool_calls`）；工具段用例（B2/B3/B4/B5/B7）现已可执行
 - B1 计划闸门人工验收（2026-10-08）：Chrome + Side Panel，AG-01/02/03/06 PASS、AG-17/NET-05（qwen-coder-8k 负面样本）PASS，计划闸门另在 BYOK 与 qwen3:4b 下重跑通过；**全部无留存证据**，AG-05（P0）保留未勾选待留证复跑。已登记 DM-V3-ENV-05；结论见 `docs/v3-acceptance-runbook.md` 第 3 节

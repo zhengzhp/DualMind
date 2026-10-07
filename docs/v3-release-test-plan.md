@@ -42,7 +42,7 @@
 | 模型 tool calling 前提（ENV-06） | ⚠️ 2026-10-08 实测：本机原有 `qwen-coder-8k:latest` 与 `qwen2.5-coder:7b` 均返回 `tool_calls: null`（把工具调用当纯文本输出，Ollama 0.35.1）；同日拉取 **`qwen3:4b`** 复测返回结构化 `tool_calls` / `finish_reason: "tool_calls"` | 证明当前环境**已具备** Agent DOM 操作主路径的模型前提（Provider A）；原两个模型可作为 NET-05 的负面样本 |
 | B1 计划闸门人工验收 | 2026-10-08，Chrome + Side Panel：AG-01 / AG-02 / AG-03 / AG-06 PASS；AG-17 / NET-05 用 `qwen-coder-8k`（不支持 tools）PASS；计划闸门另在 BYOK 与 `qwen3:4b` 下分别重跑通过。**全部无留存证据**；AG-05（P0）仅执行人确认 | 证明计划闸门在三种 Provider 配置下可用，且不支持 tools 的模型能给出可读提示；**不**证明 tools 主路径（NET-01）、不证明 AG-09；**AG-05 不足以关闭 P0**，签收前须留证复跑 |
 | B2a 执行主路径人工验收 | 2026-10-08，Chrome + Side Panel + `qwen3:4b`，页面 `/t1-static-form`：AG-07 / AG-08 / AG-11 PASS（有计数器 JSON）；AG-10 部分 PASS（未知选项分支未测）；AG-15 BLOCKED（该次规划阶段即 `EMPTY_RESPONSE`）。计数器：`input:dm-name=3`、`input:dm-note=2`、`选择城市=2`、`普通按钮=1`、`选中:dm-news=1`、`选中:dm-mail=1` | **首次证明 Agent 主链路走通**：计划 → 批准 → `runChatWithTools` → 真实 DOM 写入，工具行为与页面事实一致。**不**证明：`finish` 成功 / 失败区分、AG-09 受控表单。另暴露 qwen3:4b 规划偶发失败（`EMPTY_RESPONSE`，产品可读报错且零写入，但无自动重试） |
-| T7 受控输入实测（缺陷候选） | 2026-10-08 于 `http://127.0.0.1:4173/t7-react-form` 以 Runtime.evaluate 两种写入路径对比：`el.value=x` + `input/change`（= `executor.runFill` 的做法）**不更新应用状态且不报错**；原生 setter + `input` 正常更新 | 指向 AG-09 缺陷候选：受控表单上 `fill`/`type` 静默失败（详见第 15 节缺陷记录）。仅为单页机制验证，仍需真实站点与真实模型复现 |
+| T7 受控输入实测（**缺陷候选已撤回**） | 2026-10-08 两次对照：① 主世界 `Runtime.evaluate` 用 `el.value=x` + `input/change` → 应用状态**不更新**；② 隔离世界（真实扩展 `runFill`，同一写入方法）→ 应用状态 **= 李四**，正常更新 | **DM-V3-001 系误报，已撤回**（详见第 15 节）。根因是 T7/我的验证都从**主世界**写入，命中 React 的 value tracker；内容脚本在**隔离世界**，绕过 tracker，行为等价原生 setter → 受控组件正常收到更新。结论：受控表单上 `fill` **有效** |
     39|| 既有 Playwright E2E | 翻译、划词、沉浸译、Options、工作台、Chat 有用例 | 当前没有专门的 Agent E2E 文件；必须人工执行第 6～10 节，不能用全量 E2E 绿灯推断 Agent 浏览器主链路通过 |
 | compile / 全量 test / build / E2E | 本次安全修复后尚未执行 | 发布前必须补齐 |
 | 上架材料 | `docs/store-listing.md` 仍有 V1 口径，未完整披露 Chat 历史与 Agent DOM 写操作 | 正式发布前必须修订和复核，不可直接粘贴提交 |
@@ -156,7 +156,7 @@ Provider 双主路径至少在 Chrome 的两个 UI 入口完成；Edge 至少重
 - [x] **AG-06 · P1**：拒绝计划 — 显示取消 / 未执行，不显示成功；无后续工具写入，可重新发起任务。　`2026-10-08 Chrome/SidePanel PASS（无留存证据）`
 - [x] **AG-07 · P1**：批准计划 — 按目标观测、填写、结束；步骤事件顺序可理解，没有无限加载或重复提交。　`2026-10-08 Chrome/SidePanel + qwen3:4b PASS（执行人确认步骤事件与结束；无截图）`
 - [x] **AG-08 · P1**：分别执行 type（追加）与 fill（覆盖） — 文本结果符合语义；中文、空格、换行及虚构特殊字符不损坏。　`2026-10-08 PASS：计数器 input:dm-name=3（AG-07 的 1 次 + 本条 type 追加 2 次）、input:dm-note=2（本条按要求写两次），与预期完全一致`
-- [ ] **AG-09 · P1**：填写 React 受控表单、textarea、contenteditable — 页面业务状态和提交前预览与可见值一致；若不支持，明确失败而非声称成功。
+- [ ] **AG-09 · P1**：填写 React 受控表单、textarea、contenteditable — 页面业务状态和提交前预览与可见值一致；若不支持，明确失败而非声称成功。　`2026-10-08 部分 PASS：真实扩展 + qwen3:4b 在 T7 受控 input 上填入「李四」→ 应用状态与 DOM 可见值**均为「李四」**（受控状态确实更新）；T7 的受控 textarea / contenteditable 未单独测 ⇒ 保留未勾选。注：DM-V3-001（原判受控表单填写不生效）**已撤回**，根因为隔离世界，见第 15 节`
 - [ ] **AG-10 · P1**：select 按 value 与显示文案选择 — 命中目标选项，未知选项失败且不误选；支付选项走第 7 节拒绝路径。　`2026-10-08 部分 PASS：上海（value=sh）与深圳（value=SZ-TEXT-ONLY，与文案不同）均命中，计数器 选择城市=2；但「未知选项（火星）失败且不误选」分支未测 ⇒ 保留未勾选`
 - [x] **AG-11 · P1**：点击普通按钮、checkbox、radio — 页面动作计数与 UI 状态一致，正常操作不产生额外点击。　`2026-10-08 PASS：计数器 普通按钮=1 / 选中:dm-news=1 / 选中:dm-mail=1，完全吻合且无额外点击`
 - [ ] **AG-12 · P1**：滚动页面 / 指定元素、等待文本出现、抽取文本 — 工具结果与页面事实一致；超出能力范围给出可读结果。
@@ -352,29 +352,23 @@ Provider 双主路径至少在 Chrome 的两个 UI 入口完成；Edge 至少重
 ### 已登记缺陷
 
 ```text
-缺陷 ID / 等级：DM-V3-001 / 待定（倾向 P1：受控表单上填写不生效；不涉及越权 / 未确认写动作，暂不判 P0）
-关联用例：AG-09（填写 React 受控表单、textarea、contenteditable）
-候选版本 / 浏览器 / UI / Provider：9770b9e（封板起点）；页面机制验证用本机 Chromium（IDE 内浏览器）；
-                                    真实扩展 + 真实模型复现待补
-前置状态与测试页：e2e/pages 的 T7（http://127.0.0.1:4173/t7-react-form），页面**如实复现** React 受控输入的
-                  value tracker 语义（见 e2e/pages/README.md 的「设计取舍」）
-复现步骤：1) 打开 T7；2) 对 #r-name 写入 el.value='李四' 并派发 input/change
-          （等价于 features/agent/executor.ts 的 runFill / runType）；
-          3) 对照页面的「应用状态」与「DOM 可见值」
-期望结果：受控组件收到状态更新，或在无法更新时**明确失败**
-实际结果（计数器 / 网络 / timeline）：计数器 +1「受控:直写被判定为无变化并回写」；
-                                    应用状态仍为「（空）」，DOM 可见值被回写为空；
-                                    而 executor.runFill 返回 ok:true、summary「已填写」→ 静默失败、无任何错误提示。
-                                    对照：原生 setter + input 路径可正常更新（计数器 +1「受控:onChange 触发」）
-出现次数 / 执行次数：1 / 1（页面机制验证）；真实站点与真实模型下出现次数待补
-脱敏截图 / 日志 / trace：本机 Runtime.evaluate 返回 JSON（见提交说明 / 会话记录）；无真实凭据或个人信息
-负责人 / 修复版本：待定
-修复后复测结果 / 相邻路径回归：修复后需重跑 AG-08（type 追加）、AG-09、AG-10、SEC-08（密码 / 文件框仍需危险确认）
+缺陷 ID / 等级：DM-V3-001 / 【已撤回 · 误报】原判 P1（受控表单填写不生效）
+撤回日期：2026-10-08
+撤回原因：真实扩展 + 真实模型复现显示**不成立**。同一写入方法（executor.runFill 的
+          `el.value = x` + 派发 input/change）在真实扩展中使 T7 的应用状态正常更新为
+          「李四」；而此前的失败结论来自**主世界**写入（Runtime.evaluate 与测试页自身）。
+          根因是 Chrome 扩展内容脚本运行在**隔离世界**：主世界在**主世界的节点包装对象**上
+          安装了 React 的 value tracker，隔离世界的 `node.value = x` 碰不到该属性，
+          落到原生 prototype setter，于是 tracker 记录滞后、框架判定「有变化」并触发
+          onChange —— 行为等价于「原生 setter 路径」。
+关联用例：AG-09（真实扩展下受控 input 部分 PASS；T7 的受控 textarea / contenteditable 未测）
+原错误证据：本机主世界 Runtime.evaluate 对比（同世界内 tracker 生效 → 判「无变化」）
+正确证据：真实扩展（隔离世界）写入 → 应用状态「李四」、DOM 可见值「李四」（执行人实测）
+教训：测试页无法模拟隔离世界；**受控组件的真伪只能靠真实扩展判定**，
+      测试页中「受控:直写被判定为无变化并回写」仅是主世界机制的演示，**不能**用来判产品缺陷。
 ```
 
-> 说明：本缺陷由**封板测试页**在机制层面暴露，尚未在真实扩展 + 真实模型下复现。
-> 在补做真实复现前，不应据此宣称 V3.0 已封板；也不应把它直接标成 P0——
-> 它不构成越权或未确认写动作。
+> 本项为**误报**，不构成 V3.0 缺陷。撤回记录保留在此，用于避免后续重复误判。
 
 ## 16. 最终签收
 
