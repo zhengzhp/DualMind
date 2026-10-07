@@ -320,30 +320,11 @@ curl -s http://127.0.0.1:11434/api/tags | head -c 300
 > 与 `entrypoints/content.ts:15` 的 `cssInjectionMode: 'ui'` 行为吻合。**是否影响 `page-fab` 样式需单独看一眼**；
 > 建议单列一条排查项（不阻塞 ENV-06）。
 
-### B2i · AG-09 剩余分支（受控 textarea / contenteditable，待执行）
+### B2i · AG-09 剩余分支（受控 textarea / contenteditable，2026-10-08 · **PASS**）
 
-**页面**：`/t7-react-form`（先点「重置计数」）
-
-**页面元素**（已核实，勿找错）：`#r-note`（受控 textarea，读数 `#r-note-state` 应用状态 / `#r-note-dom` DOM 可见值）；`#r-bio`（contenteditable，**非受控、仅镜像**，读数 `#r-bio-state` 镜像文本）。
-
-**实现前提（已核实）**：`executor.ts:319-322` 的 `runFill` 对 contenteditable 走 `el.textContent = value` **且派发 `input`**（`input`/`textarea` 分支同理走直写 + 派发）。
-
-**目标（单步、干净，两字段一次跑完）**：
-
-```text
-把备注填写为「多行第一行」，把简介填写为「这是一段简介」
-```
-
-**判定**：
-
-| 观察点 | 期望 |
-| --- | --- |
-| `#r-note-state` | `多行第一行`（应用状态真的更新） |
-| `#r-note-dom` | `多行第一行`（与可见值一致） |
-| `#r-bio-state` | `这是一段简介`（镜像被 `input` 驱动） |
-| 计数 `受控:onChange 触发` | ≥1（detail 含「多行第一行」） |
-| 计数 `contenteditable input` | ≥1 |
-| 计数 `受控:直写被判定为无变化并回写` | **必须为 0**（>0 说明未绕过 tracker） |
+| 用例 ID | 批次 | 页面 / UI / Provider | 结果 | 证据（页面事实 / 计数器 / 截图） | 备注 |
+| --- | --- | --- | --- | --- | --- |
+| AG-09 | B2i | `/t7-react-form` / Side Panel / **`qwen3:4b`（Provider A）** | **PASS** | 页面：`应用状态：多行第一行`、`DOM 可见值：多行第一行`、`镜像文本：这是一段简介`；`state()`：`受控:onChange 触发=1`（detail 「多行第一行」）、`contenteditable input=1`，且 **`受控:直写被判定为无变化并回写` 未出现（=0）**；timeline：`任务成功完成` → `已点击 [#2] 简介` → `已填写 [#2]（6 字）` → `finish` | 六项判据**逐条命中**，其中「直写被判定为无变化并回写 = 0」是关键：证明内容脚本确在**隔离世界**、绕过 React value tracker。受控 textarea 的**应用状态**与 DOM 可见值一致 ⇒ 不是「只改了 DOM 而状态没动」。本轮同时覆盖 Provider A 的受控表单表现 |
 
 ### B2j · AG-04（工作台占用活动 Tab，待执行）
 

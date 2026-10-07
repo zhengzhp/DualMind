@@ -36,7 +36,8 @@
 - **AG-05（P0）已留证复跑 PASS**（2026-10-08）：/t1-static-form 待批准态势截图 + 终态 state()（`input:dm-name=1` / `change:dm-name=1`，同一毫秒）⇒ 全会话仅一次页面写入，批准前零写入且无重复任务。残留：截图时点存疑（姓名框已含终态值），「批准前为 0」系由 state() 反推
 - **Provider A（Ollama `qwen3:4b`）主路径已跑通（ENV-06 PASS，2026-10-08，B2h）**：`/t1-static-form` 上 snapshot → click [#3] → fill [#3] 全链路真实落盘，计数器 `input:dm-prefill=1` / `change:dm-prefill=1`；附带证得 index 跨调用复用可用、`fill` 为覆盖语义
 - **未定位的环境噪声（B2h 附带发现）**：`/t1-static-form` 控制台出现 `content.css` `net::ERR_FAILED` + CSP `style-src` 拒绝 + `runtime.lastError: Could not establish connection`；Agent 主路径未受影响，但与 `content.ts:15` 的 `cssInjectionMode: 'ui'` 有关，是否影响 `page-fab` 样式待单独排查
-- B2 剩余待补：AG-09（T7 受控 textarea / contenteditable）、AG-12（待 DM-V3-002 复测，需先 `pnpm build`）、AG-04、AG-13、AG-19
+- **AG-09 已全量通过（2026-10-08，B2i）**：受控 input / textarea + contenteditable 三种控件均真实更新（应用状态与 DOM 可见值一致），`受控:直写被判定为无变化并回写=0` ⇒ 隔离世界绕过 tracker 坐实；同时覆盖 Provider A
+- B2 剩余待补：AG-04（工作台回退，执行单见 B2j）、AG-12 / AG-13 / AG-19（**这三条均需先 `pnpm build`**：AG-12 复测 DM-V3-002 修复、AG-13 重跑、AG-19 需调小 `maxSteps`）
 
 ## 下一步
 
