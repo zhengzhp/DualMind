@@ -320,6 +320,49 @@ curl -s http://127.0.0.1:11434/api/tags | head -c 300
 > 与 `entrypoints/content.ts:15` 的 `cssInjectionMode: 'ui'` 行为吻合。**是否影响 `page-fab` 样式需单独看一眼**；
 > 建议单列一条排查项（不阻塞 ENV-06）。
 
+### B2i · AG-09 剩余分支（受控 textarea / contenteditable，待执行）
+
+**页面**：`/t7-react-form`（先点「重置计数」）
+
+**页面元素**（已核实，勿找错）：`#r-note`（受控 textarea，读数 `#r-note-state` 应用状态 / `#r-note-dom` DOM 可见值）；`#r-bio`（contenteditable，**非受控、仅镜像**，读数 `#r-bio-state` 镜像文本）。
+
+**实现前提（已核实）**：`executor.ts:319-322` 的 `runFill` 对 contenteditable 走 `el.textContent = value` **且派发 `input`**（`input`/`textarea` 分支同理走直写 + 派发）。
+
+**目标（单步、干净，两字段一次跑完）**：
+
+```text
+把备注填写为「多行第一行」，把简介填写为「这是一段简介」
+```
+
+**判定**：
+
+| 观察点 | 期望 |
+| --- | --- |
+| `#r-note-state` | `多行第一行`（应用状态真的更新） |
+| `#r-note-dom` | `多行第一行`（与可见值一致） |
+| `#r-bio-state` | `这是一段简介`（镜像被 `input` 驱动） |
+| 计数 `受控:onChange 触发` | ≥1（detail 含「多行第一行」） |
+| 计数 `contenteditable input` | ≥1 |
+| 计数 `受控:直写被判定为无变化并回写` | **必须为 0**（>0 说明未绕过 tracker） |
+
+### B2j · AG-04（工作台占用活动 Tab，待执行）
+
+**已核实的实现**：Agent 任务与 chat **共用** `resolveContentTab()`（`entrypoints/background.ts:99-115`，Agent 调用点在 `:577`）：活动页可读 → 用之；否则回退到 `ContentTabTracker` 记住的**同窗口最近可读内容页**；再无则报错「没有可读的内容页。请先打开普通网页再试。」
+
+**步骤**：
+
+1. 同一窗口开两个 Tab：① `/t1-static-form` ② **全页工作台**（Side Panel 标题栏的「工作台」按钮进入）
+2. 让**工作台 Tab 成为活动 Tab**（内容页仍在同窗口开着）
+3. 从 Side Panel 启动 Agent，目标：`把姓名填写为 王五`
+4. 观察绑定页提示与实际写入位置
+
+**判定**：
+
+| 分支 | 期望 |
+| --- | --- |
+| 主路径 | 绑定并写入 `/t1-static-form`（`bound_page` 显示 **T1 静态表单**）；工作台（扩展页）**零写入**；UI 显示页 = 实际执行页 |
+| 负路径（可选） | 关掉内容页只剩扩展页 → 应报「没有可读的内容页」，**不**去操作扩展页 |
+
 ### B2 判定标准（供重跑参考）
 
 - **AG-10 未知选项**：对 `#dm-city` 请求 value/文案为「火星」→ 期望**失败且 `选择城市` 计数不增加**，页面停在原选项。
