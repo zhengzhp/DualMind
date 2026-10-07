@@ -266,6 +266,39 @@ Failed to load styles @ chrome-extension://<id>/content-scripts/content.css
 > 因此「批准前面板读数 = 0」目前由 **state() 反推**而非截图直读。
 > 若要消除该疑点，按「重置计数 → 提目标 → **立刻截图面板（须 0 变更）** → 再操作并批准 → 导出 state()」重跑一次即可。
 
+### B2h · Provider A（Ollama）主路径（ENV-06，2026-10-08 待执行）
+
+**目的**：证明 Agent 的模型前提（结构化 `tool_calls`）在**本地 Ollama** 这条链路上也成立 —— 既有翻译 E2E 模型能翻译，**不等于**能可靠完成 Agent 工具调用。
+
+**Provider 解析**（已核实，非猜测）：Agent 与 Chat **共用**同一份设置，无独立 Agent 模型项。
+`providers/registry.ts:9-31`：`settings.providerType === 'ollama'` → 用 `settings.ollama.host` + `settings.ollama.model`；否则走 `settings.openai.baseUrl/apiKey`。
+
+**前置检查**（命令由你执行）：
+
+```bash
+ollama list | grep qwen3            # 确认 qwen3:4b 在位
+curl -s http://127.0.0.1:11434/api/tags | head -c 300
+```
+
+**步骤**：
+
+1. 在 Options / 设置里把服务商切到**本地 Ollama**，模型填 `qwen3:4b`，host `http://127.0.0.1:11434`
+2. 打开 `/t1-static-form`，点左下角**「重置计数」**
+3. 提一个**单步**目标（见下方书写纪律），**避免**任何依赖 `wait` 的目标
+   —— DM-V3-002 的最小修复尚未重新打包，跑 `wait` 会踩旧行为
+4. 计划闸门出现 → 批准 → 观察 timeline 是否出现 `TOOL` 步骤且真实落盘
+5. 留证：`copy(JSON.stringify(window.dmTest.state(), null, 1))` + 截图
+
+**判定**：
+
+| 观察点 | 期望 |
+| --- | --- |
+| 模型输出 | timeline 出现结构化工具步骤（而非把工具名当纯文本吐出来） |
+| 页面事实 | `state()` 计数与计划声明一致（页面计数器 = 事实） |
+| 失败姿态 | 若不支持 tools → 应给**可读提示**（对应 AG-17 / NET-05），而不是静默失败 |
+
+**已知环境风险**：`qwen3:4b` 为推理型小模型，规划阶段可能偶发 `EMPTY_RESPONSE`（在 BYOK 强模型上也出现过，见 B2a 行）；单次失败不足以判定「不支持 tools」，需与 `tool_calls: null` 的负面样本区分。
+
 ### B2 判定标准（供重跑参考）
 
 - **AG-10 未知选项**：对 `#dm-city` 请求 value/文案为「火星」→ 期望**失败且 `选择城市` 计数不增加**，页面停在原选项。
