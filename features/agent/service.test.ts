@@ -94,11 +94,22 @@ describe('runAgentTask 安全编排', () => {
     expect(task.executeTool).toHaveBeenCalledTimes(1);
   });
 
-  it('内容页致命错误终止任务，达到轮数上限报告未完成', async () => {
+  it('内容页致命错误终止任务', async () => {
     await expect(runAgentTask(options({ executeTool: async () => ({ ok: false, fatal: true, tool: 'finish', summary: '页面已变化' }) }))).rejects.toThrow(/变化/);
-    runChatWithTools.mockResolvedValue({ content: '继续观察', tool_calls: [] });
+  });
+
+  it('达到轮数上限报告未完成', async () => {
+    // 一直调用工具但从不 finish：耗尽轮数后应报告未完成
+    runChatWithTools.mockResolvedValue({ content: '', tool_calls: [call('snapshot')] });
     const messages: AgentPortServerMessage[] = [];
     await runAgentTask(options({ maxSteps: 2, post: (message) => messages.push(message) }));
     expect(messages.at(-1)).toMatchObject({ type: 'done', success: false, summary: expect.stringContaining('最大步数') });
+  });
+
+  it('连续两轮零 tool_calls 判定为不支持 tools，明确失败不再催促', async () => {
+    // 模型只回文本、不调工具：应第二次即失败，而不是反复催促到轮数上限
+    runChatWithTools.mockResolvedValue({ content: '我不知道该怎么做', tool_calls: [] });
+    await expect(runAgentTask(options({ maxSteps: 5 }))).rejects.toMatchObject({ code: 'TOOLS_UNSUPPORTED' });
+    expect(runChatWithTools).toHaveBeenCalledTimes(2);
   });
 });

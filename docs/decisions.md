@@ -42,10 +42,10 @@
 | 金融 / 支付域 | 默认**拒绝**自动执行（或整任务阻断并提示人工），不靠「确认」放行 |
 | 工具集（V3.0） | `snapshot`（可交互元素索引 / a11y 风格）、`click`、`type`/`fill`、`select`、`scroll`、`wait`、`extract_text`、`finish`；元素以快照 **index** 为主，避免脆弱 CSS |
 | Tool-calling 环 | Background 编排：观测 → LLM tools → 执行 → 再观测；默认上限约 **20 轮 / 任务**；单工具超时（如 15s）；Port 支持 abort |
-| 模型前提 | 需支持 tool / function calling；Options 与 Agent 空态标明；不支持时明确提示，不静默退化成乱点 |
+| 模型前提 | 需支持 tool / function calling；Options 与 Agent 空态标明。**探测（2026-10-08 落地）**：tool 环中连续两轮零 `tool_calls` 即判定模型不支持并明确失败（错误码 `TOOLS_UNSUPPORTED`），不静默退化成乱点或反复催促到轮数上限 |
 | 内容页绑定 | 复用 `resolveContentTab`（与 Chat 同语义）；尊重 `disabledHosts`（整站不注入则 Agent 不可用） |
 | 安全加固（2026-10-08） | 同一内容页只允许一个 Agent 任务；启动握手绑定任务 / 文档 / URL，快照携带版本。执行前在内容页复核真实目标与危险等级；支付 / 转账动作在非金融域也拒绝。停止、超时、断连及 URL / 文档变化使旧任务与确认失效；已发生的同步动作不可撤销。UI 使用 Background 回传的实际绑定页，卸载主动取消，丢弃已结束 / 非当前任务消息。 |
-| storage | `local:agentPrefs`（启用开关、最大步数、确认策略只读展示等）；V3.0 会话可先内存，是否持久化跟实现时最小需求再定（不定则写进本表补丁） |
+| storage | `local:agentPrefs`（启用开关、最大步数；确认策略固定，Options 仅只读说明）；`local:agentPending`（FAB 信箱）。**收口（2026-10-08）**：V3.0 运行态（计划 / 步骤轨迹 / 中止标志）**仅内存、不持久化** —— SW 重启或刷新后不恢复、不重放页面操作，须重新发起并重新批准 |
 | 入口 | Side Panel / 全页工作台 **Agent** Tab（替换占位）；（可选）`page-fab` 注册「请 Agent 操作本页」→ 开侧栏 + 切 Tab（可复用 pending 信箱模式，前缀独立） |
 | 与 Chat 边界 | Chat = 只读摘要 / 问答；Agent = 可写 DOM；禁止把操作工具塞进 `features/chat/` |
 | 商店口径 | 提审时表述为「翻译 + 阅读助手 + **可选本页操作 Agent**」；Agent 默认可关；单一用途说明与 [store-listing.md](./store-listing.md) 在发布闸门一并复核 |

@@ -17,12 +17,13 @@
 - Background 环 + Port `dualmind-agent` + `AgentPanel` 替换占位
 - 可选 `page-fab`「请 Agent 操作本页」+ `local:agentPending`
 - 安全加固：支付动作不可确认放行；同页单任务 / 文档绑定 / 快照版本 / 内容页执行前复核；停止与超时取消等待，导航使旧授权失效；UI 实际绑定页回传、卸载清理与迟到消息过滤（Agent 单测通过，Background / React UI 实机仍待验）
+- A 功能补口（2026-10-08）：Options 新增 Agent 设置区（启用 / 最大步数 / 只读说明）；tool 环连续两轮零 `tool_calls` 判定模型不支持 tools 并明确失败（新增错误码 `TOOLS_UNSUPPORTED`）；文档收口「运行态仅内存、不持久化」
 
 ## 下一步
 
 1. ~~tool-calling / agent tools+executor / BG 环+UI~~ ✅
-2. Agent 相关单测已通过，下一步实机验收（见下）；按需修边角：Options 里 Agent 说明、模型不支持 tools 的探测提示
-3. 发布闸门（compile / 全量 test / e2e / 提审）仍后置
+2. ~~修边角：Options 里 Agent 说明 / 模型不支持 tools 的探测提示~~ ✅（2026-10-08，见「已完成」）；下一步实机验收（见下）
+3. 按 `docs/v3-release-test-plan.md` 完成封板人工验收；发布闸门（compile / 全量 test / e2e / 提审）仍后置，逐项登记证据与签收
 
 ## 勿动清单
 
@@ -38,6 +39,7 @@
 | 文档 / 主链路代码 | ✅ 已落地 |
 | 单测（tool-calling / agent tools·danger·plan / pending） | ⬜ 已写，待用户同意后 `pnpm test` |
 | Agent 最小单测（danger / tools / prompts / session / service / executor / client） | ✅ 2026-10-08：7 个文件 / 51 个用例通过；`git diff --check` 通过。`pnpm test features/agent` 因 pnpm 9.5.1 镜像获取失败，改用已安装的 `node node_modules/vitest/vitest.mjs run features/agent`，未修改依赖或配置 |
+| A 功能补口单测（service tool-calling 判定） | ✅ 2026-10-08：`features/agent` 7 文件 / 53 用例通过（较此前 51 增 2：拆分轮数上限用例 + 新增零 tool_calls 判定用例），用本地 `node node_modules/vitest/vitest.mjs run features/agent`。Options 为 UI 改动，未跑命令，待人工验 |
 | 实机验收 | ⬜ 见下方 |
 
 ## 请用户验证

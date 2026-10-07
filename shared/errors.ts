@@ -15,6 +15,8 @@ export type ErrorCode =
   | 'ABORTED'
   | 'CHAT_FAILED'
   | 'LIST_MODELS_FAILED'
+  /** 模型未返回任何工具调用，判定为不支持 tool calling（Agent 专用） */
+  | 'TOOLS_UNSUPPORTED'
   | 'UNKNOWN';
 
 /** 带错误码的应用错误 */
@@ -54,6 +56,8 @@ const USER_MESSAGES: Record<ErrorCode, string> = {
   ABORTED: '已取消',
   CHAT_FAILED: '模型请求失败，请检查 Provider 设置后重试',
   LIST_MODELS_FAILED: '拉取模型列表失败，请检查连接配置',
+  TOOLS_UNSUPPORTED:
+    '当前模型未返回任何工具调用，可能不支持 tool calling。请在设置中换用支持 tools 的模型后重试。',
   UNKNOWN: '出错了，请稍后重试',
 };
 

@@ -173,6 +173,13 @@ export async function runAgentTask(options: RunAgentTaskOptions): Promise<void> 
   let lastElements: SnapshotElement[] = [];
   let snapshotId: string | undefined;
   let currentUrl = pageUrl;
+  /**
+   * 连续「模型未返回任何 tool_calls」的轮数。
+   * 模型不支持 tool calling 时（例如把 tools 当纯文本忽略），会一直给文本而
+   * 不调用工具；此处只容忍一次（用于「先思考再行动」的模型），连续两次即判定
+   * 不支持并明确失败，避免无意义地反复催促到轮数上限。
+   */
+  let noToolRounds = 0;
 
   for (let round = 0; round < maxSteps; round += 1) {
     throwIfAborted(signal);
@@ -193,7 +200,12 @@ export async function runAgentTask(options: RunAgentTaskOptions): Promise<void> 
 
     const toolCalls = result.tool_calls ?? [];
     if (toolCalls.length === 0) {
-      // 无工具：催促继续或结束
+      noToolRounds += 1;
+      if (noToolRounds >= 2) {
+        // 连续两轮零 tool_calls：判定模型不支持 tools，明确失败而非无限催促
+        throw new AppError(toUserMessage('TOOLS_UNSUPPORTED'), 'TOOLS_UNSUPPORTED');
+      }
+      // 首次无工具：催促一次，给「先思考再行动」的模型一个机会
       messages.push({
         role: 'assistant',
         content: result.content || '',
@@ -205,6 +217,7 @@ export async function runAgentTask(options: RunAgentTaskOptions): Promise<void> 
       });
       continue;
     }
+    noToolRounds = 0;
 
     messages.push({
       role: 'assistant',

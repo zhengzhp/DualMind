@@ -83,6 +83,8 @@ flowchart LR
 - Background 按内容 tab 互斥；启动握手获得文档标识与 URL，再回传 UI。内容页同样只接受当前任务，任务结束清空快照。
 - 工具请求绑定 `taskId` / 文档标识 / URL / `snapshotId`，附带预期元素与本次危险确认。内容页执行前重新分类；目标变化拒绝该次动作，支付动作不可确认放行。
 - 停止 / 超时 / Port 断开取消内容页等待并使后续请求失效；刷新、导航、SPA URL 变化终止旧任务（包括等待确认）。超时终止整个任务，避免与迟到工具重叠。
+- 运行态（计划 / 步骤轨迹 / 中止标志）**仅内存、不持久化**：SW 重启或刷新后不恢复、不重放页面操作，须重新发起并重新批准
+- 模型能力探测：tool 环中连续两轮零 `tool_calls` 判定为不支持 tool calling，明确失败（`TOOLS_UNSUPPORTED`），不反复催促或乱点
 - Shadow DOM / 跨域 iframe / 严 CSP：V3.0 声明限制，失败可读提示
 
 ## 里程碑
@@ -95,6 +97,7 @@ flowchart LR
 ### 发布闸门（V3 完成后统一执行）
 
 > 决定见 [decisions.md](./decisions.md)「发布与验证节奏」。
+> 详细用例、环境矩阵与签收表见 [V3 封板与正式版发布测试清单](./v3-release-test-plan.md)。
 
 - [ ] `pnpm compile`（tsc --noEmit）
 - [ ] `pnpm test`（Vitest 全量）

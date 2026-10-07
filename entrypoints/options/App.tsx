@@ -5,6 +5,7 @@ import {
   PROVIDER_HINT,
   PROVIDER_OPTIONS,
   TARGET_LANGUAGES,
+  type AgentPrefs,
   type AppSettings,
   type ImmersiveDisplayMode,
   type ImmersivePrefs,
@@ -44,6 +45,8 @@ export default function App() {
   const [immersivePrefs, setImmersivePrefs] = useState<ImmersivePrefs | null>(
     null,
   );
+  /** V3 本页 Agent 偏好：独立 storage 键，改动即时保存（无草稿） */
+  const [agentPrefs, setAgentPrefs] = useState<AgentPrefs | null>(null);
   const [models, setModels] = useState<string[]>([]);
   const [status, setStatus] = useState('');
   const [error, setError] = useState('');
@@ -61,19 +64,21 @@ export default function App() {
 
   useEffect(() => {
     void (async () => {
-      const [s, prefs] = await Promise.all([
+      const [s, prefs, agent] = await Promise.all([
         sendMessage('settings:get', undefined),
         sendMessage('immersive:prefs:get', undefined),
+        sendMessage('agent:prefs:get', undefined),
       ]);
       setSettings(s);
       baselineRef.current = s;
       setDisabledHostsText(s.disabledHosts.join('\n'));
       setPageFabHiddenHostsText(s.pageFabHiddenHosts.join('\n'));
       setImmersivePrefs(prefs);
+      setAgentPrefs(agent);
     })();
   }, []);
 
-  if (!settings || !immersivePrefs) {
+  if (!settings || !immersivePrefs || !agentPrefs) {
     return (
       <div className="p-8 text-sm text-brand-700">加载设置中…</div>
     );
@@ -116,6 +121,19 @@ export default function App() {
     try {
       const next = await sendMessage('immersive:prefs:save', patch);
       setImmersivePrefs(next);
+      setStatus('已保存');
+      window.setTimeout(() => setStatus(''), 1500);
+    } catch (err) {
+      setError(formatErrorForUi(err));
+    }
+  }
+
+  /** Agent 偏好即时保存（与 immersivePrefs 一致，不走「保存设置」草稿） */
+  async function persistAgentPrefs(patch: Partial<AgentPrefs>) {
+    setError('');
+    try {
+      const next = await sendMessage('agent:prefs:save', patch);
+      setAgentPrefs(next);
       setStatus('已保存');
       window.setTimeout(() => setStatus(''), 1500);
     } catch (err) {
@@ -419,6 +437,49 @@ export default function App() {
               </Field>
             </>
           )}
+
+          <hr className="border-brand-50" />
+
+          {/* V3 本页 Agent：开关与轮次上限即时保存；确认策略固定，不提供降级开关 */}
+          <label className="flex items-center gap-2 text-sm text-brand-900">
+            <input
+              type="checkbox"
+              checked={agentPrefs.enabled}
+              onChange={(e) =>
+                void persistAgentPrefs({ enabled: e.target.checked })
+              }
+            />
+            启用本页操作 Agent
+          </label>
+
+          <Field
+            label="单任务最大步数"
+            hint="模型往返轮次上限，1～40；步数越多越可能完成复杂目标，也越慢、越费 token"
+          >
+            {/* 失焦时落盘；Background 侧会把值夹到 1～40 并回传修正值 */}
+            <input
+              type="number"
+              min={1}
+              max={40}
+              value={agentPrefs.maxSteps}
+              onChange={(e) => {
+                const n = Number(e.target.value);
+                if (!Number.isFinite(n)) return;
+                setAgentPrefs({ ...agentPrefs, maxSteps: Math.trunc(n) });
+              }}
+              onBlur={() =>
+                void persistAgentPrefs({ maxSteps: agentPrefs.maxSteps })
+              }
+              className={fieldClass}
+              data-testid="agent-max-steps"
+            />
+          </Field>
+
+          <p className="text-xs leading-relaxed text-brand-700/60">
+            需使用<b>支持 tool calling</b> 的模型（Ollama / OpenAI 兼容）。
+            Agent 会先在侧栏展示计划，经你批准后才操作本页；提交 / 删除等危险动作执行前会再次确认，
+            支付 / 转账类动作一律拒绝自动执行。不支持 Shadow DOM 与跨域 iframe。
+          </p>
 
           <div className="flex flex-wrap items-center gap-2 pt-2">
             <button
