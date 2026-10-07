@@ -11,3 +11,5 @@
 - 发现疑似密钥 / `.env` 时立刻警告并排除
 
 用简体中文说明摘要；commit message 可用中文。
+
+真正提交请用 `/save-commit` 或口令「保存并提交」（走个人 `auto-commit` skill）。
