@@ -29,7 +29,8 @@
 - **归因更正（2026-10-08）**：B2 全批原误记为 `qwen3:4b`，实为 BYOK `deepseek-flash`。⇒ **Provider A（Ollama）的 Agent 主路径尚未实跑**，NET-01 目前仅覆盖 Provider B 且未到 finish（登记 DM-V3-ENV-06）
 - B2d 截断与只读观测（2026-10-08）：`/t2-danger` snapshot 80/111 提示截断、超限 31 个元素零试探点击、计数器无动作 ⇒ AG-14 **PASS**
 - 新发现（低危，V1/V2 范围）：产物缺 `content-scripts/content.css`，每次挂载 Shadow UI 产生一次失败请求 + WXT 警告；两个挂载点自带内联样式，**不影响正确性**，非 V3.0 阻塞
-- 下一步：补测 AG-10「未知选项失败」、重跑 AG-15；然后 AG-09（T7，预期命中 DM-V3-001）、AG-12 / AG-13 / AG-14 / AG-19 / AG-04；再进 B3 安全红线
+- AG-10 / AG-15 人工验收（2026-10-08）：select 未知选项「火星」明确失败且表单未被修改 ⇒ AG-10 **PASS**；失败任务 UI 显示「任务未完成」+ 摘要如实列步骤 ⇒ AG-15 判据两侧（成功见 AG-14）已覆盖 **PASS**
+- B2 剩余待补：AG-05（P0，需留证复跑）、AG-09（T7 受控 textarea / contenteditable）、AG-12（wait 返回时机）、AG-04、AG-13、AG-19；以及 Provider A（Ollama）主路径
 
 ## 下一步
 

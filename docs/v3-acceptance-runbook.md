@@ -123,7 +123,8 @@ SEC、LIFE 工具段）都不能成立。
 | AG-08 | B2a | 同上 | PASS | `input:dm-name=3`（含 AG-07 的 1 次 + 本条追加 2 次）、`input:dm-note=2`（本条按要求写两次） | 与预期完全一致，无异常 |
 | AG-10 | B2a | 同上 | **部分 PASS** | `选择城市=2` | 上海（value `sh`）与深圳（value `SZ-TEXT-ONLY`，与文案不同）均命中；**「未知选项（火星）失败且不误选」分支未测** ⇒ 保留未勾选 |
 | AG-11 | B2a | 同上 | PASS | `普通按钮=1`、`选中:dm-news=1`、`选中:dm-mail=1` | 计数完全吻合，无额外点击 |
-| AG-15 | B2a | 同上 | **BLOCKED** | 该次 UI 显示「模型未返回可用计划…」 | 规划阶段即 `EMPTY_RESPONSE`，`finish` 成功 / 失败区分未走到，需重跑 |
+| AG-10 | B2a | `/t1-static-form` / Side Panel / deepseek-flash（BYOK） | **PASS** | `选择城市=2`（上海 / 深圳）；未知选项「火星」→ 明确失败且表单未被修改 | 命中分支与未知选项分支均已验；支付选项拒绝路径归 SEC-04（B3） |
+| AG-15 | B2a·B2d | `/t1-static-form` / Side Panel / deepseek-flash（BYOK） | **PASS**（判据两侧已覆盖） | 失败侧：UI「任务未完成，请查看步骤记录后重试」+ 摘要如实列步骤与原因；成功侧：AG-14 截图顶栏「任务成功完成」 | 失败分支由「工具失败 → 按计划停止」触发，非显式 `finish(false)`；如需严格覆盖该语义可后续补一次 |
 
 计数器原件（执行人提供，**经重新格式化**，`选择城市` 的 `detail` 在粘贴时丢失）：
 
@@ -201,6 +202,13 @@ SEC、LIFE 工具段）都不能成立。
 > 该截图同时覆盖 Agent 侧（步骤事件 / 摘要）与页面侧（计数器），是目前**最完整**的一条证据，
 > 建议后续用例沿用这种「一张图两侧证据」的留证方式。
 
+### B2e · select 未知选项与失败侧语义（2026-10-08 追加）
+
+| 用例 ID | 批次 | 页面 / UI / Provider | 结果 | 证据（计数器 / 日志 / 截图） | 备注 |
+| --- | --- | --- | --- | --- | --- |
+| AG-10（未知选项分支） | B2e | `/t1-static-form` / Side Panel / deepseek-flash（BYOK） | **PASS** | Agent 尝试选「火星」→ 返回 `未找到 value/文案为「火星」的 option`；**表单未被修改**（城市仍为「请选择」）；截图含 Agent 面板与计数器面板 | 该 select 选项仅「请选择 / 北京 / 上海 / 广州 / 深圳」；Agent 展开控件并重新 snapshot 再次确认后放弃，**未自行输入或伪造值** |
+| AG-15（失败侧） | B2e | 同上 | **PASS（判据已覆盖）** | UI **「任务未完成，请查看步骤记录后重试」**；摘要如实列出检查过的步骤与失败原因，未掩盖失败 | 与 AG-14 的「任务成功完成」构成完成 / 未完成的**双向区分**证据 |
+
 ### 新增发现 · 缺失 `content-scripts/content.css`（低危，**V1/V2 范围**）
 
 测试页控制台出现（每次挂载 Shadow UI 一次）：
@@ -238,7 +246,7 @@ Failed to load styles @ chrome-extension://<id>/content-scripts/content.css
 | DM-V3-ENV-03 | 无 Windows 环境 | `Alt+K` 快捷键路径无法验证；仅能验 macOS 的 `Option+K` |
 | DM-V3-ENV-04 | 工作区含**未提交**改动（测试页 / runbook / 文档 + 工具链改动） | 证据无法绑定到 `9770b9e` 单一提交；验收前建议先提交 |
 | DM-V3-ENV-05 | **B1 结果无留存证据**（7 条用例仅执行人口头确认，无计数器 / 日志 / 截图） | 不构成可复核证据；其中 **AG-05 是 P0**，签收前必须留证复跑。建议此后每条用例固定导出 `window.dmTest.state()` |
-| DM-V3-UNTESTED | **仍待补测/复跑**：AG-05（P0，无证据）、AG-10（未知选项分支）、AG-15（`EMPTY_RESPONSE` 未走到 finish）、AG-09（T7 的 textarea / contenteditable）、AG-04 / AG-12（wait 返回时机与 extract_text）、AG-13 / AG-19 | 签收 A 闸门前必须补齐；AG-05 为 P0 |
+| DM-V3-UNTESTED | **仍待补测/复跑**：AG-05（P0，无证据，需留证复跑）、AG-09（T7 的受控 textarea / contenteditable）、AG-12（`wait` 返回时机与 `extract_text`）、AG-04、AG-13、AG-19 | 签收 A 闸门前必须补齐；AG-05 为 P0 |
 | DM-V3-ENV-06 | **Provider A（Ollama）的 Agent 主路径未实跑**：tools 能力已探测通过（`qwen3:4b` 返回结构化 `tool_calls`），但 B2 的全部主链路证据来自 Provider B（BYOK `deepseek-flash`）；测试过程中切换过 Provider 配置 | 必测矩阵要求「两种 Provider 各完成计划 → 批准 → DOM 操作 → finish」；**NET-01 目前只覆盖 Provider B 且未到 finish** |
 | 基线版本 | `9770b9e`；生产构建 2026-10-08 05:06，`.output/chrome-mv3`（manifest `0.1.0`）；权限无 `debugger` / `scripting` / `tabs` / `activeTab` | 与「V3.0 零新增权限」一致（PRIV-01 / PRIV-02 已在产物层核对） |
 
