@@ -30,7 +30,10 @@
 - B2d 截断与只读观测（2026-10-08）：`/t2-danger` snapshot 80/111 提示截断、超限 31 个元素零试探点击、计数器无动作 ⇒ AG-14 **PASS**
 - 新发现（低危，V1/V2 范围）：产物缺 `content-scripts/content.css`，每次挂载 Shadow UI 产生一次失败请求 + WXT 警告；两个挂载点自带内联样式，**不影响正确性**，非 V3.0 阻塞
 - AG-10 / AG-15 人工验收（2026-10-08）：select 未知选项「火星」明确失败且表单未被修改 ⇒ AG-10 **PASS**；失败任务 UI 显示「任务未完成」+ 摘要如实列步骤 ⇒ AG-15 判据两侧（成功见 AG-14）已覆盖 **PASS**
-- B2 剩余待补：AG-05（P0，需留证复跑）、AG-09（T7 受控 textarea / contenteditable）、AG-12（wait 返回时机）、AG-04、AG-13、AG-19；以及 Provider A（Ollama）主路径
+- 新发现缺陷 DM-V3-002（2026-10-08，**P1，开放**）：`MAX_WAIT_MS = TOOL_TIMEOUT_MS = 15000` 零余量 → `wait({text})` 默认路径跑满预算被 deadline 抢占 → `fatal` + `UNKNOWN` 兜底文案「出错了，请稍后重试」，`wait` 自身超时文案不可达、任务致命中止无法恢复。阻塞 AG-12 / AG-13 重跑。详见 `docs/v3-release-test-plan.md` 第 15 节
+- 教训（已写入 runbook）：目标框只写「要达成什么」，**不要把操作步骤粘进去**（AG-13 首轮因此作废）
+- AG-13 首轮尝试**未达成**：目标框被填成多步说明 → Agent 自行改计划 → 未走到「复用旧 index 应被拒绝」判定点；已记部分覆盖，需单步干净目标重跑
+- B2 剩余待补：AG-05（P0，需留证复跑）、AG-09（T7 受控 textarea / contenteditable）、AG-12（待 DM-V3-002 修复）、AG-04、AG-13、AG-19；以及 Provider A（Ollama）主路径
 
 ## 下一步
 
