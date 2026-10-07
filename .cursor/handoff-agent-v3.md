@@ -38,8 +38,8 @@
 - **未定位的环境噪声（B2h 附带发现）**：`/t1-static-form` 控制台出现 `content.css` `net::ERR_FAILED` + CSP `style-src` 拒绝 + `runtime.lastError: Could not establish connection`；Agent 主路径未受影响，但与 `content.ts:15` 的 `cssInjectionMode: 'ui'` 有关，是否影响 `page-fab` 样式待单独排查
 - **AG-09 已全量通过（2026-10-08，B2i）**：受控 input / textarea + contenteditable 三种控件均真实更新（应用状态与 DOM 可见值一致），`受控:直写被判定为无变化并回写=0` ⇒ 隔离世界绕过 tracker 坐实；同时覆盖 Provider A
 - **AG-12 已 PASS（2026-10-08，B2k）**：三段全跑（wait 命中 / wait 超时 / scroll+extract）；超时时返回**可读结果且任务不中止**、页面零变更
-- ⚠️ **DM-V3-002 的默认超时路径仍未复测**：AG-12 的 B 段模型**自带 6000ms**（< 旧上限 15000）⇒ 新旧构建表现相同、无区分力；需按 B2k-B2 用「不要自己设置超时时间」的**默认路径**复跑（预期 `等待文本超时（10000ms）`）
-- B2 剩余待补：AG-04（B2j）、AG-13（B2l）、AG-19（B2m）、**DM-V3-002 默认路径（B2k-B2）**
+- ⚠️ **DM-V3-002 默认路径人工复跑经决策跳过**（2026-10-08）：修复闭合性由代码（`tools.ts:329` + `executor.ts:417` 双处 `Math.min` 钳制、`fail()` 非 fatal）+ 单测不变量锁定；残留为 `等待文本超时（10000ms）` 的用户可见文案未直读
+- B2 剩余待补：**AG-13（B2l）**、AG-19（B2m）、AG-04（B2j）
 
 ## 下一步
 

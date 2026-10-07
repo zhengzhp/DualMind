@@ -463,7 +463,7 @@ Agent 应**拒绝第二次点击**，或明确说明目标已不存在 / 必须�
 | 编号 | 内容 | 影响 |
 | --- | --- | --- |
 | DM-V3-ENV-01 | **模型 tool calling**：原 `qwen-coder-8k:latest` / `qwen2.5-coder:7b` 均返回 `tool_calls: null`（Ollama 0.35.1 本身支持）。已拉取 `qwen3:4b` 并复测通过（结构化 `tool_calls`） | ✅ 已解除；工具段用例（B2 / B3 / B4 / B5 / B7）可执行。两个旧模型留作 NET-05 负面样本 |
-| **DM-V3-002** | **P1 · 长等待被工具级 deadline 抢占**：`MAX_WAIT_MS = TOOL_TIMEOUT_MS = 15000` 零余量 → `wait({text})` 默认路径跑满预算 → deadline 中止会话 → `fatal` → `UNKNOWN` 兜底文案「出错了，请稍后重试」；`wait` 自身的超时文案**不可达**，任务被致命中止无法恢复 | **已修复（最小修复）/ 默认路径复测待做**：`MAX_WAIT_MS` 15000 → **10000**，单测锁定不变量并通过。AG-12 在 dev 产物上已观察到「可读超时 + 任务不中止」，但该次模型**自带 6000ms**（< 旧上限）⇒ 无区分力；**默认路径（省略 timeoutMs）复跑见 B2k-B2** |
+| **DM-V3-002** | **P1 · 长等待被工具级 deadline 抢占**：`MAX_WAIT_MS = TOOL_TIMEOUT_MS = 15000` 零余量 → `wait({text})` 默认路径跑满预算 → deadline 中止会话 → `fatal` → `UNKNOWN` 兜底文案「出错了，请稍后重试」；`wait` 自身的超时文案**不可达**，任务被致命中止无法恢复 | **已修复（代码 + 单测锁定）**：`MAX_WAIT_MS` 15000 → **10000**，双处钳制 + `fail()` 非 fatal + 单测不变量三重保证闭合。AG-12 在 dev 产物上已观察到「可读超时 + 任务不中止」（该次模型自带 6000ms，无区分力）；**默认路径人工复跑经决策跳过**（详见测试清单第 15 节） |
 | DM-V3-ENV-02 | **Edge 未安装**（本机仅 Chrome 155.0.8059.40） | 必测矩阵的 Edge 列 BLOCKED：Edge 的 Provider 主路径与全部安全 / 生命周期人工项无法执行 |
 | DM-V3-ENV-03 | 无 Windows 环境 | `Alt+K` 快捷键路径无法验证；仅能验 macOS 的 `Option+K` |
 | DM-V3-ENV-04 | 工作区含**未提交**改动（测试页 / runbook / 文档 + 工具链改动） | 证据无法绑定到 `9770b9e` 单一提交；验收前建议先提交 |
