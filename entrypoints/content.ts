@@ -27,7 +27,7 @@ export default defineContentScript({
     await mountSelectionToolbar(ctx, settings);
 
     /*
-     * 悬浮入口是**可独立关闭**的（见 docs/decisions.md「入口级开关与粒度」）：
+     * 悬浮入口是**可独立关闭**的（见 docs/decisions-v2.md「入口级开关与粒度」）：
      * 用户可能只想关掉悬浮球、仍要用划词翻译与整页翻译，
      * 因此这里不能与上面的「整站停用」合并成一个早退。
      * 不显示时干脆不建壳、不注册动作（比挂了再隐藏更干净，也不占监听）。

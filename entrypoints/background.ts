@@ -73,7 +73,7 @@ const sidePanelPorts = new Set<{
 
 /**
  * 按窗口记住最近可读内容页。全页工作台占着活动标签时，
- * `chat:context` / `chat:page-info` 回退到此记录（见 docs/decisions.md）。
+ * `chat:context` / `chat:page-info` 回退到此记录（见 docs/decisions-v2.md）。
  */
 const contentTabTracker = new ContentTabTracker();
 
@@ -81,7 +81,7 @@ const contentTabTracker = new ContentTabTracker();
  * 解析网页助手应操作的内容标签页。
  * 活动页可读 → 用之；否则最近可读缓存 → 同窗口 lastAccessed 兜底。
  */
-async function resolveContentTab(): Promise<browser.tabs.Tab | null> {
+async function resolveContentTab(): Promise<Browser.tabs.Tab | null> {
   const [active] = await browser.tabs.query({
     active: true,
     currentWindow: true,
@@ -245,7 +245,7 @@ async function toggleSidePanel(windowId: number): Promise<boolean> {
  * 「总结本页」的送达链路：打开 Side Panel + 投递信箱（`local:chatPending`）。
  *
  * 右键菜单与页面悬浮入口共用同一条链路（真正生成摘要的仍是 Side Panel 内的
- * `ChatPanel`，见 docs/decisions.md「右键菜单入口」与「V2 页面悬浮入口」）。
+ * `ChatPanel`，见 docs/decisions-v2.md「右键菜单入口」与「V2 页面悬浮入口」）。
  *
  * 关键：调用方必须在**用户手势有效期内同步**调用本函数 —— `open()` 是函数体内
  * 第一个 await 之前的**同步调用**（且刻意不 await 它，避免面板打开变慢时拖住
@@ -606,7 +606,7 @@ const CONTEXT_MENU_IDS = [
  *
  * 背景：菜单项全站可见，而 `contextMenus` 的 `documentUrlPatterns` 无法表达
  * 「除 disabledHosts 之外的所有站点」；在内容脚本被禁用的站点上点击只会得到
- * 一个空洞的失败提示。改为在这些站点上把菜单置灰（见 docs/decisions.md）。
+ * 一个空洞的失败提示。改为在这些站点上把菜单置灰（见 docs/decisions-v2.md）。
  *
  * 触发时机：标签页切换 / 地址变化 / 设置变更。任何失败都静默（菜单可能尚未创建）。
  */
@@ -666,7 +666,7 @@ export default defineBackground(() => {
 
   browser.runtime.onMessage.addListener(((
     message: unknown,
-    sender: { tab?: browser.tabs.Tab },
+    sender: { tab?: Browser.tabs.Tab },
     sendResponse: (response: unknown) => void,
   ) => {
     const type = (message as { type?: MessageType })?.type;

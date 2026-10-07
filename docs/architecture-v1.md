@@ -1,7 +1,7 @@
 # DualMind 浏览器插件 · 技术架构（V1 / V1.5 · 已封板）
 
 > 状态：**V1 与 V1.5 已封板（功能冻结）**；本文件为归档，不再随新版本更新。  
-> 当前版本（V2）架构见 [architecture-v2.md](./architecture-v2.md)。  
+> 当前版本（V3）架构见 [architecture-v3.md](./architecture-v3.md)；V2 归档见 [architecture-v2.md](./architecture-v2.md)。  
 > 完整计划原稿见：[.cursor/plans/dualmind_插件架构_b3d3a25e.plan.md](../.cursor/plans/dualmind_插件架构_b3d3a25e.plan.md)  
 > 决策摘要见：[decisions-v1.md](./decisions-v1.md)；契约表见 [features-v1.md](./features-v1.md)。  
 > 代理入口（边界与汇报约定）见 [AGENTS.md](../AGENTS.md)。
@@ -94,7 +94,7 @@ flowchart LR
 - [x] V1 收官（compile / 单测全绿；**功能冻结，仅修 bug**）
 - [x] V1.5 沉浸式全文双语翻译（`features/immersive/`；分段 / 分批并发 / 双语渲染 / 增量补译）—— 已封板 2026-10-07
 
-> V2 / V3 里程碑与发布闸门见 [architecture-v2.md](./architecture-v2.md)。
+> V3 里程碑与发布闸门见 [architecture-v3.md](./architecture-v3.md)；V2 归档见 [architecture-v2.md](./architecture-v2.md)。
 
 > V1 已冻结：不再新增功能，仅接受 bug 修复。新能力（沉浸译 / Chat / Agent）进入 V1.5+，
 > 须先更新 [decisions.md](./decisions.md) 与 [features.md](./features.md)。

@@ -4,7 +4,7 @@
 
 ## 步骤
 
-1. 对照 `docs/decisions.md`（**当前权威 = V2 已封板**）：是否落在已封板范围（仅 bugfix）？新能力视为越界，先提示并给出分期建议（V2.5+ / V3；V1 / V1.5 见 `docs/decisions-v1.md`）
+1. 对照 `docs/decisions.md`（**当前权威 = V3 已立项**）：是否落在 V3.0 范围？扩大范围或 V3.1+ / PDF 等视为越界，先提示并再立项；已封板的 V1～V2 仅 bugfix（见 `docs/decisions-v2.md` / `docs/decisions-v1.md`）
 2. 指出会动到的目录：`entrypoints/` / `features/` / `providers/` / `shared/`
 3. 给出 3～6 步实现计划与风险点
 4. 列出需要用户确认的 1～2 个关键决策（若有）

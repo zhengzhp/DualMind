@@ -2,7 +2,7 @@
 
 > 生成于 YYYY-MM-DD。开新会话只带本文件即可续作，无需回读上一会话全文。  
 > 上一会话（可选）：`agent-transcripts/<uuid>.jsonl`  
-> **权威以** `docs/decisions.md` / `docs/features.md` / `docs/architecture-v2.md` **为准**；本文件只做导航与坑位。  
+> **权威以** `docs/decisions.md` / `docs/features.md` / `docs/architecture-v3.md` **为准**；本文件只做导航与坑位。  
 > **过期条件**：下列任一成立即视为过期，须重写或删除本 handoff——主题功能已合入并验收完毕；决策文档已与本文矛盾；距生成日超过 14 天且无人续作。
 
 ## 目标

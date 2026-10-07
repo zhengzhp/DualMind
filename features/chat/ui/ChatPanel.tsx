@@ -193,7 +193,7 @@ export function ChatPanel({
         </div>
       )}
 
-      {/* 会话来源页与当前页不一致：先确认再用当前页继续（见 docs/decisions.md） */}
+      {/* 会话来源页与当前页不一致：先确认再用当前页继续（见 docs/decisions-v2.md） */}
       {chat.mismatchConfirm && (
         <div
           data-testid="chat-mismatch-confirm"

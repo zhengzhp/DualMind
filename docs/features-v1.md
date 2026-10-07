@@ -1,7 +1,7 @@
 # DualMind Feature 契约表 · V1 / V1.5（已封板）
 
 > 状态：**V1 / V1.5 已封板**；本文件为历史归档，不再随新版本更新。  
-> 当前版本（V2）契约见 [features.md](./features.md)。  
+> 当前版本（V3）契约见 [features.md](./features.md)；V2 契约归档见 [features-v2.md](./features-v2.md)。  
 > LLM 调用约定、新增 Feature 检查清单等共享约定见 [features.md](./features.md)。  
 > 代理入口见 [AGENTS.md](../AGENTS.md)。
 

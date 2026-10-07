@@ -136,7 +136,7 @@ export function useChat(options: UseChatOptions = {}): ChatController {
   } | null>(null);
   const [streaming, setStreaming] = useState(false);
   const [error, setError] = useState('');
-  /** 会话来源页与当前页不一致时的待确认状态（见 docs/decisions.md） */
+  /** 会话来源页与当前页不一致时的待确认状态（见 docs/decisions-v2.md） */
   const [mismatchConfirm, setMismatchConfirm] =
     useState<MismatchConfirm | null>(null);
 

@@ -14,7 +14,7 @@
 - [ ] 新功能是否落在正确的 `features/<name>/` 并更新 `docs/features.md`
 - [ ] 是否无意扩大 `host_permissions` / 自动化权限
 - [ ] 是否把 Chat/Agent 逻辑塞进翻译链路
-- [ ] 是否与 `docs/decisions.md` / V1 产品边界冲突
+- [ ] 是否与 `docs/decisions.md`（V3）产品边界冲突；勿破坏已封板 V1～V2
 
 ## 输出
 

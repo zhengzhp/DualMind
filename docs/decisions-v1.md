@@ -1,8 +1,8 @@
 # DualMind 决策记录 · V1 / V1.5（已封板）
 
 > 状态：**V1 与 V1.5 已封板（功能冻结，仅修 bug）**；本文件为历史归档，不再随新版本更新。  
-> 当前版本（V2）决策见 [decisions.md](./decisions.md)。  
-> 架构见 [architecture-v1.md](./architecture-v1.md)（V1 / V1.5）与 [architecture-v2.md](./architecture-v2.md)（V2）。  
+> 当前版本（V3）决策见 [decisions.md](./decisions.md)；V2 决策归档见 [decisions-v2.md](./decisions-v2.md)。  
+> 架构见 [architecture-v1.md](./architecture-v1.md)（V1 / V1.5）、[architecture-v2.md](./architecture-v2.md)（V2）、[architecture-v3.md](./architecture-v3.md)（V3）。  
 > 代理入口与 Always / Ask / Never 见仓库根目录 [AGENTS.md](../AGENTS.md)。
 
 ## 产品决策

@@ -64,15 +64,17 @@ Chrome 打开 `chrome://extensions` → 开启开发者模式 → 加载 `.outpu
 - Provider 适配层：`providers/openai-compatible.ts`、`providers/ollama.ts`。
 - 能力按 Feature 分包：`features/translate/`（划词 + 工作台）、`features/immersive/`（沉浸式全文翻译，独立消息前缀与 storage）。
 - 页面入口：`features/page-fab/`（跨能力的共享悬浮入口，单按钮 + hover 展开 + 拖动吸附），各 feature 注册动作，入口壳不反向依赖它们。
-- V2 **已封板**：`features/chat/`（网页摘要 / 网页问答，独立 `chat:*` 消息）+ 共享提取层 `features/page-content/`；Agent 仍在 Side Panel 占位（V3 未立项）。
+- V2 **已封板**：`features/chat/` + `page-content/` + `page-fab`。
+- V3 **已立项（实现中）**：本页浏览器 Agent（`features/agent/`，独立 `agent:*`；零新增权限；计划批准 + 危险动作再确认）。详见 [docs/decisions.md](docs/decisions.md)。
 
 ## 项目文档
 
 | 文档 | 说明 |
 |------|------|
-| [docs/decisions.md](docs/decisions.md) | 当前权威（V2 已封板）决策 + 验收快照 |
-| [docs/architecture-v2.md](docs/architecture-v2.md) | 当前权威（V2 已封板）架构摘要 |
-| [docs/features.md](docs/features.md) | 当前权威（V2 已封板）Feature 契约表 |
+| [docs/decisions.md](docs/decisions.md) | 当前权威（V3 已立项）决策 |
+| [docs/architecture-v3.md](docs/architecture-v3.md) | 当前权威（V3）架构摘要 |
+| [docs/features.md](docs/features.md) | 当前权威（V3）Feature 契约表 |
+| [docs/decisions-v2.md](docs/decisions-v2.md) · [docs/architecture-v2.md](docs/architecture-v2.md) · [docs/features-v2.md](docs/features-v2.md) | V2 归档（已封板） |
 | [docs/decisions-v1.md](docs/decisions-v1.md) · [docs/architecture-v1.md](docs/architecture-v1.md) · [docs/features-v1.md](docs/features-v1.md) | V1 / V1.5 归档（已封板） |
 | [docs/store-listing.md](docs/store-listing.md) | 上架权限用途 / 单一用途 / 数据使用说明 |
 | [docs/cursor-cheatsheet.md](docs/cursor-cheatsheet.md) | Cursor 快捷键与 `/` 命令速查 |

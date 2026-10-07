@@ -4,7 +4,7 @@
 > 上一会话完整记录：`agent-transcripts/fa68f8cd-04ef-41c2-a98c-853148b9413c.jsonl`（可按关键词检索回溯）。
 
 > **更新（2026-10-07，V1.5 封板）**：第 3 节的 P0「译文回显」**已修复**；测试计数已过时（见下）。
-> 最新验收快照、新增测试与仍存缺口一律以 `docs/decisions.md`「V1.5 封板 · 测试补充与验收快照（2026-10-07）」为准。
+> 最新验收快照、新增测试与仍存缺口一律以 `docs/decisions-v1.md`「V1.5 封板 · 测试补充与验收快照（2026-10-07）」为准。
 > 现为 **Vitest 16 文件 / 137 用例；E2E 29 passed / 1 skipped**。
 
 ## 1. 当前状态
@@ -23,7 +23,7 @@
 
 ## 2. 关键决策与约束
 
-- **V1 已冻结，只修 bug 不加功能**。沉浸译属 V1.5，改架构前先更新 `docs/decisions.md` 与 `docs/architecture-v1.md`。
+- **V1 / V1.5 已冻结，只修 bug 不加功能**。沉浸译属 V1.5，历史决策见 `docs/decisions-v1.md` / `docs/architecture-v1.md`。
 - **Feature 隔离是硬约束**：`features/immersive/` 不写 `translateSession`、不复用 `translate:*` 消息、不动 `TranslateService`。
 - **仅 Background 可调 LLM**；`providers/` 永不碰 DOM。
 - **渲染原则**：只追加兄弟节点，不改写原文；「仅译文」靠源元素标记 + `<html>` 类名隐藏原文，撤销即还原（表格单元格保持双语）。

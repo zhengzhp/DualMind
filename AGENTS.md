@@ -1,12 +1,12 @@
 # DualMind 代理入口
 
-本仓库是 **DualMind** 浏览器扩展（WXT + React + MV3）。当前阶段：**V1 + V1.5 + V2 已封板**（V1：划词 / Side Panel / 全页工作台 / BYOK；V1.5：沉浸译；V2：网页摘要 / 网页问答 + `page-fab`）；**V3（浏览器 Agent）未立项**，Side Panel Agent Tab 仅占位。新能力须先 `/plan-feature` 并更新 `docs/decisions.md` 与对应架构 / 契约文档。
+本仓库是 **DualMind** 浏览器扩展（WXT + React + MV3）。当前阶段：**V1 + V1.5 + V2 已封板**；**V3（本页浏览器 Agent）已立项、实现中**（零新增权限 + 计划批准 + 危险动作再确认，见 `docs/decisions.md`）。扩大 V3.0 范围或开 V3.1+ 须先 `/plan-feature` 并更新决策 / 架构 / 契约。
 
 ## 规则优先级
 
 1. 用户明确指令
 2. 本文件（`AGENTS.md`）与 `.cursor/rules/`
-3. [docs/decisions.md](docs/decisions.md)、[docs/architecture-v2.md](docs/architecture-v2.md)（当前权威 = V2 已封板；V1 / V1.5 归档见 [docs/architecture-v1.md](docs/architecture-v1.md)）
+3. [docs/decisions.md](docs/decisions.md)、[docs/architecture-v3.md](docs/architecture-v3.md)（当前权威 = V3 已立项；V2 归档见 [docs/architecture-v2.md](docs/architecture-v2.md)；V1 / V1.5 见 [docs/architecture-v1.md](docs/architecture-v1.md)）
 4. 训练数据（可能过期，不得覆盖上述任意一层）
 
 写代码前先读 decisions / architecture；自动生效细则见 `.cursor/rules/`。
@@ -65,15 +65,15 @@
 - **仅 Background** 调用 LLM / Ollama；Content Script 不持有 API Key、不直连模型
 - Feature 经 `shared/llm` 调模型；错误经 `shared/errors` 映射文案；契约见 `docs/features.md`
 - Provider（`providers/`）永不碰 DOM；新能力放 `features/<name>/`，勿塞进 `TranslateService`
-- Side Panel：Translate + 网页助手（Chat）可用；**Agent 仅占位**，除非用户明确要求并先更新 decisions
-- 改架构或产品边界前先读并更新 `docs/decisions.md` 与 `docs/architecture-v2.md`（V1 / V1.5 归档见 `docs/architecture-v1.md`）
+- Side Panel：Translate + 网页助手（Chat）可用；Agent 按 `docs/decisions.md` V3.0 范围实现（未合入前 Tab 仍可为占位）
+- 改架构或产品边界前先读并更新 `docs/decisions.md` 与 `docs/architecture-v3.md`（V2 / V1 归档见对应 `-vN` 文档）
 - 处理空值、loading、错误态
 
 ### Ask first
 
 - 引入新依赖、改目录结构、改 messaging 协议
-- 扩大 `host_permissions` 或添加自动化相关权限
-- 实现 Agent / PDF / 自有后端 / Browser Operator，或扩大已封板的 V2 范围
+- 扩大 `host_permissions` 或添加自动化相关权限（含 `debugger` / `scripting`；V3.0 红线禁止）
+- 扩大已立项的 V3.0 范围、启动 V3.1+，或做 PDF / 自有后端 / 云同步等
 - 执行 lint / build / compile / zip / 测试（默认不跑）
 - 需求不明确时直接问，不要靠猜测 + 反复试错
 
@@ -88,12 +88,11 @@
 
 | 文档 | 用途 |
 |------|------|
-| [docs/decisions.md](docs/decisions.md) | 当前权威（V2 已封板）决策 + 验收快照 |
-| [docs/architecture-v2.md](docs/architecture-v2.md) | 当前权威（V2 已封板）架构摘要与数据流 |
-| [docs/features.md](docs/features.md) | 当前权威（V2 已封板）Feature 契约表（消息 / storage / UI） |
-| [docs/decisions-v1.md](docs/decisions-v1.md) | V1 / V1.5 决策归档（已封板） |
-| [docs/architecture-v1.md](docs/architecture-v1.md) | V1 / V1.5 架构归档（已封板） |
-| [docs/features-v1.md](docs/features-v1.md) | V1 / V1.5 契约归档（已封板） |
+| [docs/decisions.md](docs/decisions.md) | 当前权威（V3 已立项）决策 |
+| [docs/architecture-v3.md](docs/architecture-v3.md) | 当前权威（V3）架构摘要与数据流 |
+| [docs/features.md](docs/features.md) | 当前权威（V3）Feature 契约表（消息 / storage / UI） |
+| [docs/decisions-v2.md](docs/decisions-v2.md) · [docs/architecture-v2.md](docs/architecture-v2.md) · [docs/features-v2.md](docs/features-v2.md) | V2 归档（已封板） |
+| [docs/decisions-v1.md](docs/decisions-v1.md) · [docs/architecture-v1.md](docs/architecture-v1.md) · [docs/features-v1.md](docs/features-v1.md) | V1 / V1.5 归档（已封板） |
 | [docs/cursor-cheatsheet.md](docs/cursor-cheatsheet.md) | Cursor 快捷键与 `/` 命令 |
 | `.cursor/rules/` | 始终 / 按 glob 生效的代码约束 |
 | `.cursor/commands/` | 项目自定义斜杠命令（`/review`、`/verify`、`/arch-check` 等） |

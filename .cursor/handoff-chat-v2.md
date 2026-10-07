@@ -4,8 +4,8 @@
 > 用途：开新会话只带本文件即可接着干，无需回读上一会话记录。
 > 上一会话完整记录：`agent-transcripts/65765c36-a4d0-4614-a93c-a0e4e0c215f1.jsonl`（可按关键词检索回溯）。
 
-> **当前进度**：**V2 已封板**（2026-10-07）。用户按第 6 节清单**实机验收全过**；封板快照见 `docs/decisions.md`「V2 封板 · 验收快照」。
-> 主链路代码 / chat E2E 此前已绿。权威契约以 `docs/features.md` 为准，决策以 `docs/decisions.md` 为准；本文件只是导航 + 坑位。
+> **当前进度**：**V2 已封板**（2026-10-07）。用户按第 6 节清单**实机验收全过**；封板快照见 `docs/decisions-v2.md`「V2 封板 · 验收快照」。
+> 主链路代码 / chat E2E 此前已绿。V2 契约 / 决策归档：`docs/features-v2.md` / `docs/decisions-v2.md`；当前活文档为 V3。本文件只是导航 + 坑位。
 > **未做（不阻塞）**：完整文档切档 `*-v2`（等 V3 立项按 SOP）；可选技术债见第 8～9 节。
 
 ## 1. 当前状态
@@ -49,7 +49,7 @@
 | 附加（计划外） | 右键菜单「总结本页」+ `local:chatPending` 信箱 | ✅ `e4b9e61` |
 | 第 6 步 | 测试：单测 ✅ / E2E ✅（`e2e/chat.e2e.ts` 6 条，已实跑通过） | ✅ 完成 |
 
-> 原 V2 计划**没有落成文件**（只存在于上一会话与 `docs/decisions.md` 的决策表里）；本节的步骤表就是它的落地快照。
+> 原 V2 计划**没有落成文件**（只存在于上一会话与现已归档的 `docs/decisions-v2.md` 决策表里）；本节的步骤表就是它的落地快照。
 
 ## 3. 关键决策与约束（改代码前必读）
 
@@ -65,7 +65,7 @@
 - **会话切换与在途流式**：新建 / 切换会话**中断**在途流式；所有异步回写先比对会话 id，**迟到回包直接丢弃**。
 - **右键菜单入口**：Background 写信箱 `local:chatPending`（消费即清 + TTL 120s），由**常驻的 `WorkbenchApp`** 消费并切到网页助手 Tab 再下发。`ChatPanel` **常驻挂载**（非当前 Tab `hidden`），切翻译再回来不丢当前会话。
 
-> 新增了 5 条决策到 `docs/decisions.md`（上下文读取时机 / 会话切换与迟到回包 / 右键菜单信箱 / 会话与页面绑定 / 右键菜单按站点置灰），改契约时同步更新。
+> 新增了 5 条决策到现已归档的 `docs/decisions-v2.md`（上下文读取时机 / 会话切换与迟到回包 / 右键菜单信箱 / 会话与页面绑定 / 右键菜单按站点置灰），改契约时同步更新。
 
 ## 4. 契约速查
 
@@ -191,7 +191,7 @@ export PATH="$HOME/.nvm/versions/node/v22.23.3/bin:$PATH"   # 本机默认 node 
 ## 9. 下一步（按优先级）
 
 1. ~~实机验收 / V2 封板~~ ✅ 完成。
-2. ~~五项技术债（钉底 / 跨页分隔 / SPA 提示 / TTL+过期提示 / E2E flake）~~ ✅ 见 `docs/decisions.md`「封板后技术债处理」。
+2. ~~五项技术债（钉底 / 跨页分隔 / SPA 提示 / TTL+过期提示 / E2E flake）~~ ✅ 见 `docs/decisions-v2.md`「封板后技术债处理」。
 3. 工程：本地 commits 是否 `git -c http.version=HTTP/1.1 push` 由用户决定。
-4. **V3 / V2.5+**：须先 `/plan-feature` 立项并写入 `docs/decisions.md`；立项后再按 [dualmind-docs-versioning.plan.md](./plans/dualmind-docs-versioning.plan.md) 切档 `*-v2` 并重建活文档。
+4. ~~**V3 立项 + 文档切档**~~ ✅ 见 `docs/decisions.md` 与 [.cursor/handoff-agent-v3.md](./handoff-agent-v3.md)。
 5. 发布闸门（compile / 全量 e2e / 提审）仍推迟到 V3 完成后。

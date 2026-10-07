@@ -11,7 +11,7 @@ import type { Page } from '@playwright/test';
 import { OLLAMA_SETTINGS, expect, seedSettings, test } from './fixtures';
 
 /**
- * 共享悬浮入口（V2 起替代沉浸译专属 FAB，见 docs/decisions.md「页面悬浮入口」）。
+ * 共享悬浮入口（V2 起替代沉浸译专属 FAB，见 docs/decisions-v2.md「页面悬浮入口」）。
  * 入口壳默认收起，指针移入停留 150ms 才展开动作面板。
  */
 const FAB_HOST = 'dualmind-page-fab';
