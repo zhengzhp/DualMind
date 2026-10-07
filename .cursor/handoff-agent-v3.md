@@ -23,7 +23,8 @@
 - 人工验收 runbook（2026-10-08）：`docs/v3-acceptance-runbook.md`（8 个批次 + 页面路由 + 记录表）
 - 模型前提已解决（2026-10-08）：原两模型不支持 tool calling，已拉取 `qwen3:4b` 并复测通过（结构化 `tool_calls`）；工具段用例（B2/B3/B4/B5/B7）现已可执行
 - B1 计划闸门人工验收（2026-10-08）：Chrome + Side Panel，AG-01/02/03/06 PASS、AG-17/NET-05（qwen-coder-8k 负面样本）PASS，计划闸门另在 BYOK 与 qwen3:4b 下重跑通过；**全部无留存证据**，AG-05（P0）保留未勾选待留证复跑。已登记 DM-V3-ENV-05；结论见 `docs/v3-acceptance-runbook.md` 第 3 节
-- 下一步：B2 执行主路径（AG-04 / 07~15 / 18 / 19），需 tools 能力模型 `qwen3:4b`；AG-09 预期命中 DM-V3-001
+- B2a 执行主路径人工验收（2026-10-08）：Chrome + Side Panel + qwen3:4b，页面 `/t1-static-form`。AG-07 / AG-08 / AG-11 PASS（有计数器 JSON）；AG-10 部分 PASS（「未知选项」分支未测）；AG-15 BLOCKED（该次规划阶段 `EMPTY_RESPONSE`）。**首次证明 Agent 主链路走通**：计划 → 批准 → runChatWithTools → 真实 DOM 写入，工具行为与页面事实一致。观察：qwen3:4b 规划偶发失败，产品可读报错且零写入，但无自动重试
+- 下一步：补测 AG-10「未知选项失败」、重跑 AG-15；然后 AG-09（T7，预期命中 DM-V3-001）、AG-12 / AG-13 / AG-14 / AG-19 / AG-04；再进 B3 安全红线
 
 ## 下一步
 
