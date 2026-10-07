@@ -528,6 +528,26 @@ document.querySelector('#dm-target').addEventListener(
 > **残留（请你执行）**：按 `STATIC_PLUS` 口径，在**网络面板**捞一次 Agent 任务请求，
 > 确认：① 认证头只出现在发往**你所配置 Provider** 的请求上；② **无**任何请求把 Key 发往第三方。
 
+**SEC-20 网络面板核对 · 进行中（2026-10-08）** —— DevTools 开在 **Background Service Worker** 上（页面面板看不到）
+
+| 检查 | 证据 | 结论 |
+| --- | --- | --- |
+| BYOK 请求去向 | `https://api.deepseek.com/v1/chat/completions` | 只发往配置的 Provider ✅ |
+| 请求源为扩展本身 | 响应头 `Access-Control-Allow-Origin: chrome-extension://jfjfgcpjmkfcifflejdgejaebjijgacn` | 由扩展发起，非页面 ✅ |
+| Ollama 请求去向 | `http://127.0.0.1:11434/v1/chat/completions`（远程地址 `127.0.0.1:11434`） | 仅本机 ✅ |
+| 请求清单 | BYOK 4 条全为 `completions`；Ollama 6 条 = `completions`×5 + `tags`×1（模型列表探测） | **无第三方域名** ✅ |
+| 反向搜索 | 过滤 `sk-` / key 前缀 ⇒ **0 命中** | Key 未出现在任何**请求 URL** ✅ |
+
+**残留（两项，均需目视）**：
+
+1. **BYOK 请求的「请求标头」未目视** —— 截图展示的是**响应标头**，「请求标头」节被截。
+   `Authorization: Bearer …` 是**请求头**。⚠️ 需澄清判据：BYOK **本就应带**该头，
+   **关键是"只出现在该域名下"**，而非"是否存在"。
+2. **第 5 步搜索的覆盖面有限** —— DevTools 过滤框搜**请求 URL**，**不搜 header 值**。
+   故「0 命中」证明的是 **Key 未混入 URL**（有力但不充分）；header 级泄漏须由第 1 项目视补足。
+3. **Ollama 的「请求标头」在截图中被截断**（仅见 `Accept` / `Accept-Encoding` / `Accept-Language`），
+   「无 `Authorization`」尚需下滚确认（代码层面 `ollama.ts:102` 只设 `Content-Type`，故预期为空）。
+
 #### 人工执行单（仅缺口）
 
 **B3a · SEC-07 导航** — 页面 `/t3-dynamic`（底部「导航」区）— **PASS（金融分支，2026-10-08）**
