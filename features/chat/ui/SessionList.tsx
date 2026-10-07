@@ -27,6 +27,11 @@ export interface SessionListProps {
   onDownload: (id: string) => void;
   /** 导出全部会话为单个 Markdown */
   onDownloadAll: () => void;
+  /** 覆盖层场景：撑满父级高度，列表区自行滚动 */
+  fill?: boolean;
+  /** 右上角关闭（覆盖层用） */
+  onClose?: () => void;
+  className?: string;
 }
 
 export function SessionList({
@@ -37,31 +42,50 @@ export function SessionList({
   onClear,
   onDownload,
   onDownloadAll,
+  fill = false,
+  onClose,
+  className = '',
 }: SessionListProps) {
   return (
-    <div className="rounded-xl border border-brand-100 bg-white/90 p-2">
-      <div className="flex items-center justify-between gap-2 px-1 pb-2">
+    <div
+      className={`rounded-xl border border-brand-100 bg-white/95 p-2 shadow-md ${
+        fill ? 'flex h-full min-h-0 flex-col' : ''
+      } ${className}`}
+    >
+      <div className="flex shrink-0 items-center justify-between gap-2 px-1 pb-2">
         <span className="text-xs font-semibold text-brand-900">
           历史会话（{sessions.length}）
         </span>
-        {sessions.length > 0 && (
-          <div className="flex shrink-0 items-center gap-0.5">
+        <div className="flex shrink-0 items-center gap-0.5">
+          {sessions.length > 0 && (
+            <>
+              <button
+                type="button"
+                onClick={onDownloadAll}
+                className="rounded-md px-2 py-0.5 text-[11px] font-medium text-brand-600 hover:bg-brand-50"
+              >
+                下载全部
+              </button>
+              <button
+                type="button"
+                onClick={onClear}
+                className="rounded-md px-2 py-0.5 text-[11px] font-medium text-brand-600 hover:bg-brand-50"
+              >
+                清空全部
+              </button>
+            </>
+          )}
+          {onClose && (
             <button
               type="button"
-              onClick={onDownloadAll}
+              aria-label="关闭历史"
+              onClick={onClose}
               className="rounded-md px-2 py-0.5 text-[11px] font-medium text-brand-600 hover:bg-brand-50"
             >
-              下载全部
+              关闭
             </button>
-            <button
-              type="button"
-              onClick={onClear}
-              className="rounded-md px-2 py-0.5 text-[11px] font-medium text-brand-600 hover:bg-brand-50"
-            >
-              清空全部
-            </button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {sessions.length === 0 ? (
@@ -69,7 +93,13 @@ export function SessionList({
           还没有历史会话；提问后会自动保存在本机。
         </p>
       ) : (
-        <ul className="max-h-56 space-y-1 overflow-y-auto">
+        <ul
+          className={
+            fill
+              ? 'min-h-0 flex-1 space-y-1 overflow-y-auto'
+              : 'max-h-56 space-y-1 overflow-y-auto'
+          }
+        >
           {sessions.map((item) => (
             <li key={item.id} className="flex items-center gap-1">
               <button

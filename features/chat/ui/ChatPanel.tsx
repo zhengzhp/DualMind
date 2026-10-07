@@ -55,6 +55,16 @@ export function ChatPanel({
     el.scrollTop = el.scrollHeight;
   }, [chat.session.turns]);
 
+  // Esc 关闭历史覆盖层
+  useEffect(() => {
+    if (!showHistory) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setShowHistory(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [showHistory]);
+
   async function handleSend() {
     const text = draft;
     if (!text.trim() || chat.streaming) return;
@@ -165,27 +175,17 @@ export function ChatPanel({
         </button>
         <button
           type="button"
+          aria-expanded={showHistory}
           onClick={() => setShowHistory((current) => !current)}
-          className="rounded-lg border border-brand-100 bg-white px-2.5 py-1.5 text-xs font-medium text-brand-700 hover:bg-brand-50"
+          className={`rounded-lg border px-2.5 py-1.5 text-xs font-medium hover:bg-brand-50 ${
+            showHistory
+              ? 'border-brand-300 bg-brand-50 text-brand-800'
+              : 'border-brand-100 bg-white text-brand-700'
+          }`}
         >
           历史{chat.sessions.length > 0 ? `（${chat.sessions.length}）` : ''}
         </button>
       </div>
-
-      {showHistory && (
-        <SessionList
-          sessions={chat.sessions}
-          currentId={chat.session.id}
-          onOpen={(id) => {
-            setShowHistory(false);
-            void chat.openSession(id);
-          }}
-          onRemove={(id) => void chat.removeSession(id)}
-          onClear={() => void chat.clearSessions()}
-          onDownload={(id) => void chat.downloadSession(id)}
-          onDownloadAll={() => void chat.downloadAllSessions()}
-        />
-      )}
 
       {chat.error && (
         <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
@@ -235,28 +235,55 @@ export function ChatPanel({
         </div>
       )}
 
-      {/* 消息区：侧栏与全页均锁视口，消息列表 flex-1 滚动，输入区钉底 */}
+      {/* 消息区 + 历史覆盖层：历史不占文档流，避免挤矮总结行与输入框 */}
       <div
-        ref={scrollRef}
-        className={`min-h-0 flex-1 space-y-3 overflow-y-auto rounded-xl border border-brand-100/80 bg-white/70 p-3 ${
-          isPage ? 'text-sm' : 'min-h-[10rem] text-xs'
+        className={`relative min-h-0 flex-1 ${
+          isPage ? '' : 'min-h-[10rem]'
         }`}
       >
-        {turns.length === 0 ? (
-          <p className="py-6 text-center leading-relaxed text-brand-700/60">
-            点「总结本页」快速抓取要点，
-            <br />
-            或在下方直接提问（基于当前网页内容作答）。
-          </p>
-        ) : (
-          turns.map((turn) =>
-            isPageBreakTurn(turn) ? (
-              <PageBreakDivider key={turn.id} turn={turn} />
-            ) : (
-              <TurnBubble key={turn.id} turn={turn} />
-            ),
-          )
+        {showHistory && (
+          <div
+            data-testid="chat-history-overlay"
+            className="absolute inset-0 z-20"
+          >
+            <SessionList
+              fill
+              sessions={chat.sessions}
+              currentId={chat.session.id}
+              onClose={() => setShowHistory(false)}
+              onOpen={(id) => {
+                setShowHistory(false);
+                void chat.openSession(id);
+              }}
+              onRemove={(id) => void chat.removeSession(id)}
+              onClear={() => void chat.clearSessions()}
+              onDownload={(id) => void chat.downloadSession(id)}
+              onDownloadAll={() => void chat.downloadAllSessions()}
+            />
+          </div>
         )}
+        <div
+          ref={scrollRef}
+          className={`h-full space-y-3 overflow-y-auto rounded-xl border border-brand-100/80 bg-white/70 p-3 ${
+            isPage ? 'text-sm' : 'text-xs'
+          }`}
+        >
+          {turns.length === 0 ? (
+            <p className="py-6 text-center leading-relaxed text-brand-700/60">
+              点「总结本页」快速抓取要点，
+              <br />
+              或在下方直接提问（基于当前网页内容作答）。
+            </p>
+          ) : (
+            turns.map((turn) =>
+              isPageBreakTurn(turn) ? (
+                <PageBreakDivider key={turn.id} turn={turn} />
+              ) : (
+                <TurnBubble key={turn.id} turn={turn} />
+              ),
+            )
+          )}
+        </div>
       </div>
 
       {/* 输入区（钉在面板底部） */}
