@@ -81,8 +81,9 @@ export function WorkbenchApp({ surface }: { surface: WorkbenchSurface }) {
   /**
    * 右键菜单「总结本页」：信箱由**常驻的**工作台统一消费，再下发给 ChatPanel。
    *
-   * 为什么不在 ChatPanel 里消费：面板只在「网页助手」Tab 激活时挂载，用户停在
-   * 「翻译」Tab 点右键时会错过 storage 事件，动作就丢了。
+   * 为什么仍由 WorkbenchApp 消费：要先 `setTab('chat')` 切到网页助手，用户才看得到
+   * 自动发起的总结；ChatPanel 虽已常驻挂载（避免切 Tab 丢会话），但默认可能藏在
+   * 翻译 Tab 后面。
    * 为什么只有 Side Panel 消费：右键菜单打开的就是侧栏；否则全页工作台会把动作抢走。
    */
   useEffect(() => {
@@ -99,7 +100,7 @@ export function WorkbenchApp({ surface }: { surface: WorkbenchSurface }) {
       if (handledPendingRef.current === action.createdAt) return;
       handledPendingRef.current = action.createdAt;
       setPendingExpiredHint('');
-      // 必须先切到网页助手 Tab，保证 ChatPanel 挂载，否则动作没人执行
+      // 先切到网页助手，保证用户看见自动发起的总结（ChatPanel 本身常驻）
       setTab('chat');
       setPendingChatAction(action);
     };
@@ -606,13 +607,18 @@ export function WorkbenchApp({ surface }: { surface: WorkbenchSurface }) {
           </div>
         )}
 
-        {tab === 'chat' && (
+        {/* 常驻挂载、非当前 Tab 时 hidden：切走翻译再回来不丢内存中的当前会话 */}
+        <div
+          className={
+            tab === 'chat' ? 'flex min-h-0 flex-1 flex-col' : 'hidden'
+          }
+        >
           <ChatPanel
             surface={surface}
             pendingAction={pendingChatAction}
             onPendingHandled={clearPendingChatAction}
           />
-        )}
+        </div>
         {tab === 'agent' && (
           <Placeholder
             title="Agent（即将推出）"

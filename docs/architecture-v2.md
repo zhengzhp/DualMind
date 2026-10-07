@@ -85,7 +85,7 @@ flowchart LR
 - 提取层 `features/page-content/` 为 `chat` 与 `immersive` 共用，无独立消息前缀。
 - 页面悬浮入口 `features/page-fab/` 是内容脚本侧的共享 UI 壳（非独立 Feature）：沉浸译动作直连本页 `ImmersiveController`（不走消息）；「总结本页」动作只发 `chat:summarize-page`，由 Background 开侧栏 + 写 `local:chatPending`，**不**在内容脚本里直接触达模型或侧栏。落点存 `local:pageFabPos`（全局共享）。
 - 入口的**显示逻辑**与能力解耦：静止收成 12px 贴边窄把手（品牌蓝实底 + 页面内侧 2px 实边 + 抓手点，见 [decisions.md](./decisions.md)「把手可辨识性」），指针移入 / 面板展开 / 拖拽中 / 有状态时滑出为完整圆形（`data-peek` / `data-reveal`，由 `attention.ts` 与不透明度**同源**算出）；壳有**显式尺寸**且贴边对齐，面板 / 提示因此天然整块在屏内；面板为卡片形态且**粘性**（关闭靠切换 / 点外 / 头部 `×` / `Esc` / 滚动）。改这里要盯住**两套坐标系**：拖拽全程跟的是**按钮**左边缘，落点写的是**壳**左边缘（相差 `size - peekWidth`，由 `mount.ts` 的 `shellLeftFor` 换算）。细节见 [decisions.md](./decisions.md)「V2 悬浮入口 · UI 显示逻辑改版」。
-- 右键菜单「总结本页」不走 runtime 广播：Background 写信箱 `local:chatPending`（消费即清空 + TTL 30s），由**常驻的** `WorkbenchApp` 消费并切到网页助手 Tab，再下发给 `ChatPanel` 执行 —— 因为 `sidePanel.open()` 与面板挂载存在竞态，且 `ChatPanel` 仅在网页助手 Tab 挂载。
+- 右键菜单「总结本页」不走 runtime 广播：Background 写信箱 `local:chatPending`（消费即清空 + TTL 120s），由**常驻的** `WorkbenchApp` 消费并切到网页助手 Tab，再下发给 `ChatPanel` 执行 —— `sidePanel.open()` 与面板挂载存在竞态；`ChatPanel` 常驻挂载（非当前 Tab `hidden`）以免切 Tab 丢当前会话。
 
 ## 里程碑状态（V2 / V3）
 

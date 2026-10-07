@@ -115,8 +115,7 @@ export interface ChatController {
 export interface UseChatOptions {
   /**
    * 由外层（常驻的 `WorkbenchApp`）消费信箱后下发的待执行动作。
-   * 之所以不在这里直接读 `local:chatPending`：面板只在「网页助手」Tab 激活时挂载，
-   * 用户停在「翻译」Tab 时会错过 storage 事件。
+   * 之所以不在这里直接读：要由 WorkbenchApp 先切到网页助手 Tab，用户才看得见自动总结。
    */
   pendingAction?: ChatPendingAction | null;
   /** 动作已处理，外层可清空，避免重复下发 */
