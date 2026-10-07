@@ -58,10 +58,10 @@
 | --- | --- |
 | ✅ 单测记账 | 13 条（SEC-01~06 · 09 · 12~16 · 19）—— `pnpm test features/agent` 7 文件 / 54 例全绿 |
 | ✅ 静态核对 | **SEC-18**（无 `debugger` / `scripting`）· **SEC-20**（content 产物已 tree-shake 掉 `getSettings`，无 `Authorization`/`Bearer`，唯一 `apiKey` 为空串默认值） |
-| ✅ 人工 | **SEC-08**（B3b PASS：`type` 走键盘通道也弹确认卡；文件上传可读失败、不绕过、不虚构）· **SEC-07 金融分支**（B3a PASS：金融目标硬拦截、URL 未变；附带已知边界 `DM-V3-LIMIT-01`：JS 驱动导航目标在 DOM 中不可见） |
+| ✅ 人工 | **SEC-08**（B3b PASS）· **SEC-07 金融分支**（B3a PASS，附带已知边界 `DM-V3-LIMIT-01`）· **SEC-11**（B3d-b PASS：插入危险按钮后旧 index 仍指向原目标，并实证确认暂停冻结 index） |
 | 🆕 夹具 | **`t8-injection`** 已建（SEC-17 用），登记进 `index.html` |
-| ⬜ 待人工 | **SEC-10**（B3c 隐藏/禁用）· **SEC-11**（B3d 旧 index）· **SEC-17**（B3e 注入） |
-| ⚙️ 方法 | SEC-10 / SEC-11 统一改用「**危险确认暂停 = 无时限窗口**」（`element` 在 `service.ts:311` 取自快照、早于 `waitDangerConfirm`）。**v1 的 8 秒 `wait` 窗口已废弃**：B3d-b 首跑中变异比点击**晚 74.1 秒**，计数"符合预期"却无证据力 |
+| ⬜ 待人工 | **SEC-10**（B3c 隐藏/禁用，上次漏点第 5 步需重跑）· **SEC-17**（B3e 注入） |
+| ⚙️ 方法 | SEC-10 用「**危险确认暂停 = 无时限窗口**」（`element` 在 `service.ts:311` 取自快照、早于 `waitDangerConfirm`）。该法已在 SEC-11 上成熟：**确认暂停会冻结 index**。**v1 的 8 秒 `wait` 窗口已废弃**（B3d-b 首跑中变异比点击**晚 74.1 秒**，计数"符合预期"却无证据力） |
 | ⬜ 待你 | **SEC-20** 网络面板捞一次请求 |
 
 **记账口径限定**（须向签发人明示）：单测只锁**分类与授权逻辑**，**SEC-01 的「UI 无绕过路径」属 UI 断言、未被覆盖**；SEC-18 的「不操作其他 Tab」属行为断言。
@@ -86,7 +86,7 @@
 | 文档 / 主链路代码 | ✅ 已落地 |
 | 单测（tool-calling / agent tools·danger·plan / pending） | ⬜ 已写，待用户同意后 `pnpm test` |
 | Agent 最小单测（danger / tools / prompts / session / service / executor / client） | ✅ 2026-10-08：7 个文件 / 51 个用例通过；`git diff --check` 通过。`pnpm test features/agent` 因 pnpm 9.5.1 镜像获取失败，改用已安装的 `node node_modules/vitest/vitest.mjs run features/agent`，未修改依赖或配置 |
-| A 功能补口单测（service tool-calling 判定） | ✅ 2026-10-08：`features/agent` 7 文件 / 53 用例通过（较此前 51 增 2：拆分轮数上限用例 + 新增零 tool_calls 判定用例），用本地 `node node_modules/vitest/vitest.mjs run features/agent`。Options 为 UI 改动，未跑命令，待人工验 |
+| A 功能补口单测（service tool-calling 判定） | ✅ 2026-10-08：`features/agent` **7 文件 / 54 用例通过**（`pnpm test features/agent`）。Options 为 UI 改动，未跑命令，待人工验 |
 | 封板测试页 T1–T7 | ✅ 2026-10-08：已建并冒烟（`node e2e/pages/serve.mjs`；全部路由 200、跨源 4174 可达、路径穿越 404、JS 全部 `node --check` 通过）。用例本身**未执行** |
 | AG-09 机制验证（缺陷候选 DM-V3-001） | ⚠️ 2026-10-08：T7 上以 Runtime.evaluate 对比两种写入路径，确认 `el.value=x` 不更新受控状态且不报错。**尚未**在真实扩展 + 真实模型下复现 |
 | 实机验收 | ⬜ 见下方 |
