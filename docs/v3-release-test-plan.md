@@ -377,13 +377,26 @@ Provider 双主路径至少在 Chrome 的两个 UI 入口完成；Edge 至少重
       → errors.ts:61 UNKNOWN = 「出错了，请稍后重试」，具体原因丢失
 出现次数 / 执行次数：1 / 1（AG-13 尝试中命中）；机制上**确定性复现**，非偶发
 脱敏截图 / 日志 / trace：Agent 面板截图（TOOL 准备 wait → 出错了，请稍后重试）；无凭据
-建议修法（待定，未实施）：
-  a) 让 MAX_WAIT_MS 明显小于 TOOL_TIMEOUT_MS（如 10s vs 15s），给 wait 留出自报超时的余量；
-  b) 或将 wait 的 text 超时改为返回 ok:false 且**非 fatal**，避免中止整个任务；
-  c) 错误文案按具体原因映射（工具超时 / 等待超时），不要一律落到 UNKNOWN。
-负责人 / 修复版本：待定
-修复后复测结果 / 相邻路径回归：需重跑 AG-12（wait 默认超时路径）、AG-13、AG-18，
-  并回归 AG-14（快照截断）与 SEC 系列（fatal 判定与 dangerConfirmed 共用同一条 fail 路径）
+建议修法（原为三选一）：
+  a) 让 MAX_WAIT_MS 明显小于 TOOL_TIMEOUT_MS（如 10s vs 15s），给 wait 留出自报超时的余量；← **已采用**
+  b) 或将 wait 的 text 超时改为返回 ok:false 且**非 fatal**，避免中止整个任务；← 未采用（保持最小改动）
+  c) 错误文案按具体原因映射（工具超时 / 等待超时），不要一律落到 UNKNOWN。← 未采用（同上）
+状态：**已修复（最小修复） / 待人工复测**
+负责人 / 修复版本：zp / 纳入 V3.0 封板
+修复内容（2026-10-08）：
+  - features/agent/tools.ts：MAX_WAIT_MS 15_000 → **10_000**，并加注释固化
+    「必须明显小于 TOOL_TIMEOUT_MS」这一不变量（工具预算 15s，留 5s 余量，
+    覆盖 runWait 的 200ms 轮询粒度与消息往返）；
+  - features/agent/tools.test.ts：钳制断言原**硬编码 15_000**（改常量会假失败）→ 改为断言 MAX_WAIT_MS 本身；
+  - features/agent/service.test.ts：新增「工具预算不变量」用例，断言 MAX_WAIT_MS < TOOL_TIMEOUT_MS
+    且余量 ≥ 2000ms，防止两者再次耦合。
+  ⚠️ **(b) 未采用**：fatal 语义按最小改动原则保持不动 ⇒ 若单个工具真的跑过 15s，
+  仍会以 fatal + UNKNOWN 兜底文案收场（该路径后续另议）。
+验证：`pnpm test features/agent/tools.test.ts features/agent/service.test.ts`
+  → **2 files / 15 tests 全通过**
+修复后复测结果 / 相邻路径回归（**待执行**）：需先 `pnpm build` 重新打包，否则测到的仍是旧产物；
+  再重跑 AG-12（wait 默认超时路径）、AG-13、AG-18，并回归 AG-14（快照截断）
+  与 SEC 系列（fatal 判定与 dangerConfirmed 共用同一条 fail 路径）
 ```
 
 > 说明：本缺陷为**机制级确定性缺陷**（三个常量相等导致），与模型能力无关；

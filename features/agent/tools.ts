@@ -18,7 +18,17 @@ export const AGENT_TOOL_NAMES: readonly AgentToolName[] = [
 
 export const MAX_SNAPSHOT_ELEMENTS = 80;
 export const MAX_TEXT_ARG_CHARS = 4000;
-export const MAX_WAIT_MS = 15_000;
+/**
+ * 单次 `wait` 的上限（含 `ms` 与 `text` 两条路径，见 executor.runWait）。
+ *
+ * ⚠️ **必须明显小于 `service.TOOL_TIMEOUT_MS`（工具级预算）**。两者相等时，一次
+ * 「等待文本且文本始终未出现」的默认调用就会吃满整个工具预算：page 侧 deadline
+ * （executor 依 `expiresAt` 注册）会先一步取消会话 → 返回 `fatal`
+ * → service 统一抛 `UNKNOWN` → 用户只看到兜底文案，且 `runWait` 自己那句
+ * 「等待文本超时」**永远不可达**、任务被致命中止无法自适应（DM-V3-002）。
+ * 因此这里留出余量，保证 wait 能自报超时并以非 fatal 结果交还给模型。
+ */
+export const MAX_WAIT_MS = 10_000;
 export const DEFAULT_WAIT_MS = 500;
 
 const NAME_SET = new Set<string>(AGENT_TOOL_NAMES);

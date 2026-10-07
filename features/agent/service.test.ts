@@ -9,6 +9,7 @@ const { runChat, runChatWithTools } = vi.hoisted(() => ({
 vi.mock('@/shared/llm/run', () => ({ runChat, runChatWithTools }));
 
 import { runAgentTask, TOOL_TIMEOUT_MS, type RunAgentTaskOptions } from './service';
+import { MAX_WAIT_MS } from './tools';
 
 function call(name: string, args: Record<string, unknown> = {}): ToolCall {
   return { id: `call-${name}`, type: 'function', function: { name, arguments: JSON.stringify(args) } };
@@ -111,5 +112,15 @@ describe('runAgentTask 安全编排', () => {
     runChatWithTools.mockResolvedValue({ content: '我不知道该怎么做', tool_calls: [] });
     await expect(runAgentTask(options({ maxSteps: 5 }))).rejects.toMatchObject({ code: 'TOOLS_UNSUPPORTED' });
     expect(runChatWithTools).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('工具预算不变量', () => {
+  it('单次 wait 上限必须小于工具级超时，留出自报超时的余量', () => {
+    // 回归 DM-V3-002：两者相等时，默认的 text 等待会跑满预算被 deadline 抢先取消，
+    // 返回 fatal 并丢成 UNKNOWN 兜底文案，runWait 自身的超时结果永远不可达。
+    expect(MAX_WAIT_MS).toBeLessThan(TOOL_TIMEOUT_MS);
+    // 余量需覆盖 runWait 的轮询粒度（200ms）与消息往返，过小同样会踩线
+    expect(TOOL_TIMEOUT_MS - MAX_WAIT_MS).toBeGreaterThanOrEqual(2000);
   });
 });

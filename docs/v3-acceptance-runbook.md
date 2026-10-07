@@ -251,7 +251,8 @@ Failed to load styles @ chrome-extension://<id>/content-scripts/content.css
 > ⇒ 期望拒绝并提示重新 snapshot，且 `变异:替换目标节点` 与「插入的危险按钮」计数**必须为 0**。
 > 之后另跑 ② 越界 index、③ 参数类型错误 两个分支。
 >
-> 另：AG-13 依赖的 `wait` 路径正被 **DM-V3-002** 阻塞，建议**先修该缺陷再重跑**。
+> 另：AG-13 依赖的 `wait` 路径曾命中 **DM-V3-002**（已做最小修复：`MAX_WAIT_MS` 15000 → 10000）。
+> **重跑前必须先 `pnpm build`**，否则测到的仍是旧产物。
 
 ### B2 判定标准（供重跑参考）
 
@@ -266,7 +267,7 @@ Failed to load styles @ chrome-extension://<id>/content-scripts/content.css
 | 编号 | 内容 | 影响 |
 | --- | --- | --- |
 | DM-V3-ENV-01 | **模型 tool calling**：原 `qwen-coder-8k:latest` / `qwen2.5-coder:7b` 均返回 `tool_calls: null`（Ollama 0.35.1 本身支持）。已拉取 `qwen3:4b` 并复测通过（结构化 `tool_calls`） | ✅ 已解除；工具段用例（B2 / B3 / B4 / B5 / B7）可执行。两个旧模型留作 NET-05 负面样本 |
-| **DM-V3-002** | **P1 · 长等待被工具级 deadline 抢占**：`MAX_WAIT_MS = TOOL_TIMEOUT_MS = 15000` 零余量 → `wait({text})` 默认路径跑满预算 → deadline 中止会话 → `fatal` → `UNKNOWN` 兜底文案「出错了，请稍后重试」；`wait` 自身的超时文案**不可达**，任务被致命中止无法恢复 | **开放**，机制级确定性复现。**阻塞 AG-12 与 AG-13 的重跑**，修复前后者无意义 |
+| **DM-V3-002** | **P1 · 长等待被工具级 deadline 抢占**：`MAX_WAIT_MS = TOOL_TIMEOUT_MS = 15000` 零余量 → `wait({text})` 默认路径跑满预算 → deadline 中止会话 → `fatal` → `UNKNOWN` 兜底文案「出错了，请稍后重试」；`wait` 自身的超时文案**不可达**，任务被致命中止无法恢复 | **已修复（最小修复）/ 待人工复测**：`MAX_WAIT_MS` 15000 → **10000**（留 5s 余量），并新增「工具预算不变量」单测防再耦合；单测 2 files/15 tests 通过。⚠️ 复测前需 `pnpm build` |
 | DM-V3-ENV-02 | **Edge 未安装**（本机仅 Chrome 155.0.8059.40） | 必测矩阵的 Edge 列 BLOCKED：Edge 的 Provider 主路径与全部安全 / 生命周期人工项无法执行 |
 | DM-V3-ENV-03 | 无 Windows 环境 | `Alt+K` 快捷键路径无法验证；仅能验 macOS 的 `Option+K` |
 | DM-V3-ENV-04 | 工作区含**未提交**改动（测试页 / runbook / 文档 + 工具链改动） | 证据无法绑定到 `9770b9e` 单一提交；验收前建议先提交 |

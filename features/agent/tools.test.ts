@@ -6,6 +6,7 @@ import {
   AGENT_TOOL_DEFINITIONS,
   AGENT_TOOL_NAMES,
   flattenToolArgs,
+  MAX_WAIT_MS,
   parseAgentToolCall,
 } from './tools';
 
@@ -56,7 +57,8 @@ describe('parseAgentToolCall', () => {
     const w = parseAgentToolCall('wait', '{"ms":999999}');
     expect(w).toMatchObject({
       ok: true,
-      args: { tool: 'wait', ms: 15_000 },
+      // 断言到常量本身：避免常量调整后测试与实现脱钩（曾硬编码 15_000）
+      args: { tool: 'wait', ms: MAX_WAIT_MS },
     });
   });
 
