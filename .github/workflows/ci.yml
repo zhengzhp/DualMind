@@ -14,7 +14,7 @@ jobs:
       # 版本以 package.json 的 packageManager 为准
       - uses: pnpm/action-setup@v4
         with:
-          version: 9.5.1
+          version: 12.9.1
 
       - uses: actions/setup-node@v4
         with:

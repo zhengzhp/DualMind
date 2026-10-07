@@ -1,0 +1,4 @@
+# pnpm 12 起，项目级设置统一放在本文件（package.json 的 pnpm 字段已不再读取）
+# pnpm 10+ 默认拦截依赖的构建脚本，这里显式放行需要 postinstall 的依赖
+allowBuilds:
+  esbuild: true
