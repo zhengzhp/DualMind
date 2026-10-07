@@ -47,4 +47,20 @@
   document
     .getElementById('dm-safe-input')
     ?.addEventListener('input', () => bump('input:安全输入框'));
+
+  // 复位时一并清掉本页的结果行：counters.js 的 reset 只清计数与日志，
+  // 而「最近一次动作」文本是各测试页自己写的。不清掉会留下与计数不一致的
+  // 残留读数，容易让人误判某动作刚发生过（本轮已多次遇到此类误读）。
+  //
+  // 用**事件委托**而非直接绑定：counters.js 在 readyState === 'loading' 时把
+  // ensurePanel 推迟到 DOMContentLoaded，故本脚本同步执行时 #dm-reset 尚不存在，
+  // 直接 getElementById 会拿到 null 而静默失效。委托到 document 则可免疫该时序。
+  // 顺序也正确：按钮自身的监听器（counters.js）先于冒泡到 document 的本监听器执行。
+  document.addEventListener('click', (event) => {
+    const target = event.target;
+    if (target instanceof Element && target.id === 'dm-reset') {
+      const out = document.getElementById('dm-result');
+      if (out) out.textContent = '页面结果：尚未执行任何动作';
+    }
+  });
 })();
