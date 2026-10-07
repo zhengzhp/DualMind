@@ -42,6 +42,8 @@
 | 模型 tool calling 前提（ENV-06） | ⚠️ 2026-10-08 实测：本机原有 `qwen-coder-8k:latest` 与 `qwen2.5-coder:7b` 均返回 `tool_calls: null`（把工具调用当纯文本输出，Ollama 0.35.1）；同日拉取 **`qwen3:4b`** 复测返回结构化 `tool_calls` / `finish_reason: "tool_calls"` | 证明当前环境**已具备** Agent DOM 操作主路径的模型前提（Provider A）；原两个模型可作为 NET-05 的负面样本 |
 | B1 计划闸门人工验收 | 2026-10-08，Chrome + Side Panel：AG-01 / AG-02 / AG-03 / AG-06 PASS；AG-17 / NET-05 用 `qwen-coder-8k`（不支持 tools）PASS；计划闸门另在 BYOK 与 `qwen3:4b` 下分别重跑通过。**全部无留存证据**；AG-05（P0）仅执行人确认 | 证明计划闸门在三种 Provider 配置下可用，且不支持 tools 的模型能给出可读提示；**不**证明 tools 主路径（NET-01）、不证明 AG-09；**AG-05 不足以关闭 P0**，签收前须留证复跑 |
 | B2a 执行主路径人工验收 | 2026-10-08，Chrome + Side Panel + `qwen3:4b`，页面 `/t1-static-form`：AG-07 / AG-08 / AG-11 PASS（有计数器 JSON）；AG-10 部分 PASS（未知选项分支未测）；AG-15 BLOCKED（该次规划阶段即 `EMPTY_RESPONSE`）。计数器：`input:dm-name=3`、`input:dm-note=2`、`选择城市=2`、`普通按钮=1`、`选中:dm-news=1`、`选中:dm-mail=1` | **首次证明 Agent 主链路走通**：计划 → 批准 → `runChatWithTools` → 真实 DOM 写入，工具行为与页面事实一致。**不**证明：`finish` 成功 / 失败区分、AG-09 受控表单。另暴露 qwen3:4b 规划偶发失败（`EMPTY_RESPONSE`，产品可读报错且零写入，但无自动重试） |
+| B2b 受控表单人工验收 | 2026-10-08，`/t7-react-form`：受控 input 写入「李四」→ 应用状态与 DOM 均为「李四」；计数器 `受控:onChange 触发=1`（detail `李四`）、`直写被判定为无变化并回写=0` | 证明**隔离世界绕过 React value tracker**，受控组件确实更新；据此**撤回**误报 DM-V3-001。受控 textarea / contenteditable 未测 |
+| B2c 等待与抽取人工验收 | 2026-10-08，`/t4-waiting`：计数器 `开始延时=1`、`延时完成=1`，两事件相隔恰好 3000ms | 证明延时流程被触发且按时出现；**不**证明 `wait` 返回时机与 `extract_text` 内容（延时文本由页面自身定时器产生）⇒ AG-12 保留未勾选 |
 | T7 受控输入实测（**缺陷候选已撤回**） | 2026-10-08 两次对照：① 主世界 `Runtime.evaluate` 用 `el.value=x` + `input/change` → 应用状态**不更新**；② 隔离世界（真实扩展 `runFill`，同一写入方法）→ 应用状态 **= 李四**，正常更新 | **DM-V3-001 系误报，已撤回**（详见第 15 节）。根因是 T7/我的验证都从**主世界**写入，命中 React 的 value tracker；内容脚本在**隔离世界**，绕过 tracker，行为等价原生 setter → 受控组件正常收到更新。结论：受控表单上 `fill` **有效** |
     39|| 既有 Playwright E2E | 翻译、划词、沉浸译、Options、工作台、Chat 有用例 | 当前没有专门的 Agent E2E 文件；必须人工执行第 6～10 节，不能用全量 E2E 绿灯推断 Agent 浏览器主链路通过 |
 | compile / 全量 test / build / E2E | 本次安全修复后尚未执行 | 发布前必须补齐 |
@@ -159,7 +161,7 @@ Provider 双主路径至少在 Chrome 的两个 UI 入口完成；Edge 至少重
 - [ ] **AG-09 · P1**：填写 React 受控表单、textarea、contenteditable — 页面业务状态和提交前预览与可见值一致；若不支持，明确失败而非声称成功。　`2026-10-08 部分 PASS：真实扩展 + qwen3:4b 在 T7 受控 input 上填入「李四」→ 应用状态与 DOM 可见值均为「李四」，计数器 受控:onChange 触发=1（detail 李四）、直写被判定为无变化=0 ⇒ 隔离世界绕过 tracker 已坐实；T7 的受控 textarea / contenteditable 未单独测 ⇒ 保留未勾选。注：原 DM-V3-001（受控表单填写不生效）**已撤回**，见第 15 节`
 - [ ] **AG-10 · P1**：select 按 value 与显示文案选择 — 命中目标选项，未知选项失败且不误选；支付选项走第 7 节拒绝路径。　`2026-10-08 部分 PASS：上海（value=sh）与深圳（value=SZ-TEXT-ONLY，与文案不同）均命中，计数器 选择城市=2；但「未知选项（火星）失败且不误选」分支未测 ⇒ 保留未勾选`
 - [x] **AG-11 · P1**：点击普通按钮、checkbox、radio — 页面动作计数与 UI 状态一致，正常操作不产生额外点击。　`2026-10-08 PASS：计数器 普通按钮=1 / 选中:dm-news=1 / 选中:dm-mail=1，完全吻合且无额外点击`
-- [ ] **AG-12 · P1**：滚动页面 / 指定元素、等待文本出现、抽取文本 — 工具结果与页面事实一致；超出能力范围给出可读结果。
+- [ ] **AG-12 · P1**：滚动页面 / 指定元素、等待文本出现、抽取文本 — 工具结果与页面事实一致；超出能力范围给出可读结果。　`2026-10-08 部分 PASS：/t4-waiting 计数器 开始延时=1、延时完成=1 且两事件相隔恰好 3000ms；但延时完成由页面自身定时器触发，计数器无法证明 wait 的返回时机与 extract_text 内容 ⇒ 保留未勾选，需补 Agent 侧摘要`
 - [ ] **AG-13 · P1**：索引越界、未知工具、参数类型错误、节点已移除 — 拒绝错误调用，不降级成随便点；后续可重新 snapshot 或结束。
 - [ ] **AG-14 · P1**：快照元素达到截断上限 — 返回截断提示；模型不猜测未列出的 index，不操作不可见目标。
 - [ ] **AG-15 · P1**：finish 分别返回成功与失败 — UI 明确区分完成 / 未完成；摘要不掩盖被拒绝或失败的步骤。　`2026-10-08 BLOCKED：该次任务在规划阶段即失败（qwen3:4b 未产出可解析计划 → EMPTY_RESPONSE），finish 的成功 / 失败区分完全未走到 ⇒ 需重跑`
