@@ -311,9 +311,18 @@ Failed to load styles @ chrome-extension://<id>/content-scripts/content.css
 
 ### B2j · AG-04（工作台占用活动 Tab，待执行）
 
-**已核实的实现**：Agent 任务与 chat **共用** `resolveContentTab()`（`entrypoints/background.ts:99-115`，Agent 调用点在 `:577`）：活动页可读 → 用之；否则回退到 `ContentTabTracker` 记住的**同窗口最近可读内容页**；再无则报错「没有可读的内容页。请先打开普通网页再试。」
+**已核实的实现（判据即由此推出，非推测）**
 
-**步骤**：
+- **可读定义**：`isReadableContentUrl` 只认 **`http:` / `https:`**（`features/chat/resolveContentTab.ts:24-32`）
+  ⇒ `chrome-extension://` 的**工作台必然被排除**，这正是本条要验的点。
+- **三级回退**（`resolveContentTab()` `background.ts:99-115`，**Agent 与 chat 共用**，Agent 调用点 `:577`）：
+  1. 活动页可读（http/https）→ 直接用，并记入「最近可读」
+  2. 否则用 `ContentTabTracker` 记住的**该窗口最近可读** tab
+  3. 追踪器为空（SW 冷启动）→ 同窗口按 **`lastAccessed` 降序**挑最近的可读页
+- 三级皆空 → 报错「**没有可读的内容页。请先打开普通网页再试。**」（`:580-585`）
+- 注：`ContentTabTracker` 为**内存态**，SW 休眠即清空，由第 3 级 `lastAccessed` 兜底。
+
+**步骤**
 
 1. 同一窗口开两个 Tab：① `/t1-static-form` ② **全页工作台**（Side Panel 标题栏的「工作台」按钮进入）
 2. 让**工作台 Tab 成为活动 Tab**（内容页仍在同窗口开着）
@@ -387,10 +396,9 @@ Failed to load styles @ chrome-extension://<id>/content-scripts/content.css
 | executor **拒绝旧 index 复用** | ⚠️ **人工未触发** —— Agent 因**先重新 snapshot** 而**绕开**了该路径（并非发旧 index 的 click 被打回）；仅单测覆盖（`executor.test.ts:82-90`「旧快照版本不能执行」） |
 | 越界 index / 未知工具 / 参数类型错误 | ⚠️ 人工无法构造（index 由模型自选），仅单测覆盖 |
 
-> **非缺陷小瑕疵**：Agent 自述「该页面**每次点击后会自行触发变异**」，因果推断有误
-> （实为注入的**一次性**监听器）。**行为安全，但陈述的理由不准** —— 属自述准确性观察，不计缺陷。
-
 **次① 的正面信号（不能替代判定）**：Agent 明确「立即停止，未做猜测性点击」「未触碰任何支付语义按钮」，并建议刷新后重跑 ⇒ 符合 AG-13「**不降级成随便点**」的精神，但**未覆盖**「旧 index 复用被拒」这一核心分支。
+
+> 模型自述的因果解释**不作为判据**（自述本就不可靠，产品不依赖它），故不计入记录。
 
 **次② 配方（时序确定，不依赖手速与批准耗时）**
 
