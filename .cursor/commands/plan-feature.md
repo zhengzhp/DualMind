@@ -4,7 +4,7 @@
 
 ## 步骤
 
-1. 对照 `docs/decisions.md`：是否落在 V1 范围？若越界，先提示并给出分期建议
+1. 对照 `docs/decisions.md`（**当前版本 = V2**）：是否落在已拍板范围？若越界，先提示并给出分期建议（V2.5+ / V3；V1 / V1.5 已封板见 `docs/decisions-v1.md`）
 2. 指出会动到的目录：`entrypoints/` / `features/` / `providers/` / `shared/`
 3. 给出 3～6 步实现计划与风险点
 4. 列出需要用户确认的 1～2 个关键决策（若有）
@@ -12,7 +12,8 @@
 ## 约束提醒
 
 - 仅 Background 调 AI；Provider 不碰 DOM
-- Chat / Agent 能力不得混进翻译服务
+- Chat / Agent 能力不得混进翻译服务（Chat 走 `features/chat/`，消息前缀 `chat:*`）
 - 不随意扩大扩展权限
+- 验证节奏见 `AGENTS.md`「改动 → 最小验证」；**Ask first** 仍适用于 test / build / compile
 
 用简体中文输出。

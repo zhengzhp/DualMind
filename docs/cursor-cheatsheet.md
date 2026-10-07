@@ -96,7 +96,8 @@ Windows：多数将 `⌘` 换成 `Ctrl`。
 |------|------|------|
 | `/review` | `review.md` | 代码审查（含 DualMind 架构检查） |
 | `/explain` | `explain.md` | 解释代码与调用链 |
-| `/plan-feature` | `plan-feature.md` | 按 V1 边界规划功能 |
+| `/plan-feature` | `plan-feature.md` | 按当前 `docs/decisions.md`（V2）边界规划功能 |
+| `/verify` | `verify.md` | 按改动类型给出最小验证菜单（Ask first，默认不执行） |
 | `/fix` | `fix.md` | 排查并最小修复 |
 | `/add-provider` | `add-provider.md` | 新增 AI Provider |
 | `/arch-check` | `arch-check.md` | 架构合规检查 |
@@ -140,7 +141,7 @@ Windows：多数将 `⌘` 换成 `Ctrl`。
 
 ## Agent 建议工作流
 
-1. 大需求先 `/plan-feature` 或切 Plan 模式  
+1. 大需求先 `/plan-feature` 或切 Plan 模式；长任务结束写/更新 `.cursor/handoff-*.md`（模板见 `handoff-TEMPLATE.md`）  
 2. 用 `@` 挂上相关文件与规则  
 3. 实现后 `/arch-check` 或 `/review`  
-4. `/test-plan` 自测 → `/commit-msg` → 确认后再提交
+4. `/verify` 选最小验证（仍 Ask first）→ 需要细则再用 `/test-plan` → `/commit-msg` → 确认后再提交

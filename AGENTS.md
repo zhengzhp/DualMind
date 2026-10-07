@@ -32,6 +32,22 @@
 
 **默认不执行** `dev` / `build` / `compile` / `zip`，除非用户明确要求。
 
+### 改动 → 最小验证（对照表）
+
+按改动类型选**最小**验证；全量 `compile` / `test:e2e` 仍推迟到 V3 发布闸门（见 `docs/decisions.md`）。  
+**Ask first 不变**：下表是「该跑什么 / 请用户验什么」的菜单，Agent **仍须先征得用户同意**再执行任何 test / build / compile / e2e。
+
+| 改动类型 | 建议验证（征得同意后） | 不要默认做 | 请用户验证 |
+|----------|------------------------|------------|------------|
+| 纯函数 / storage / prompts | `pnpm test`（相关文件即可） | build / e2e / compile | 一般无需 |
+| UI 文案 / Tailwind / 布局 | 通常不跑命令 | e2e | Side Panel / Options / 浮层对应路径 |
+| messaging / Feature 契约 | 相关单测 | 全量 e2e | 一条主路径（发消息 / 划词 / 摘要等） |
+| Content Script / DOM 注入 | 相关单测（若有） | 无头硬跑 Side Panel | 目标页实机点一次 |
+| 扩展加载 / `sidePanel.open()` | 提醒改用 `pnpm test:e2e:headed` | 无头当有头用 | 有头 E2E 或人工开侧栏 |
+| 权限 / manifest | 征得同意后 `pnpm build`，核对产物 manifest | 擅自扩权 | Options + 一条需权限的路径 |
+
+完成后在「完成报告」写明：跑了什么、未跑什么、请用户验哪条路径。更细的手工清单用 `/test-plan`；按改动选验证用 `/verify`。
+
 ### E2E 有头 / 无头 —— 必须主动提醒用户
 
 - 默认 `pnpm test:e2e` 为**无头**。
@@ -80,7 +96,8 @@
 | [docs/features-v1.md](docs/features-v1.md) | V1 / V1.5 契约归档（已封板） |
 | [docs/cursor-cheatsheet.md](docs/cursor-cheatsheet.md) | Cursor 快捷键与 `/` 命令 |
 | `.cursor/rules/` | 始终 / 按 glob 生效的代码约束 |
-| `.cursor/commands/` | 项目自定义斜杠命令（`/review`、`/arch-check` 等） |
+| `.cursor/commands/` | 项目自定义斜杠命令（`/review`、`/verify`、`/arch-check` 等） |
+| `.cursor/handoff-TEMPLATE.md` | 功能交接文档模板（目标 / 已完成 / 下一步 / 勿动 / 过期条件） |
 
 ## 完成报告格式
 
