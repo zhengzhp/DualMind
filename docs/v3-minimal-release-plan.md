@@ -81,10 +81,12 @@
 ### Phase 6 · 上架材料与签收（≈1 天）
 
 - [ ] **T28** · REL-04 · P1 ｜ Chrome 加载最终解压包，Options / 真实 Side Panel / 工作台 / 划词 / 沉浸译 / Chat / Agent 主路径逐一打开 | 0.3h
-- [ ] **T29** · REL-05 · P1 ｜ 扩展名 / 描述 / 图标 / 版本 / 快捷键说明无开发版标识与 V1-only 宣传 | 0.3h
+- [x] **T29** · REL-05 · P1 ｜ ✅ **产物核对完成，并发现 1 处待修**：名称 / 版本 / `action.default_title` / 四个图标（有效 PNG + 尺寸正确）/ 无开发标记 全部通过。⚠️ **`description` 仍是 V1 口径**（未提阅读助手与 Agent）→ 需改 `wxt.config.ts` 并**重新 build + zip + 重跑 T04–T08**。**待你拍板是否本轮修** | 0.3h
+- [x] **T34** · REL-09 · P1 ｜ ✅ 新建 `docs/reviewer-reproduction.md`：安装 → 配置（`ollama pull qwen3:4b`，无需账号 / 付费）→ 翻译 → 阅读助手 → Agent 计划批准 → 危险二次确认 → **资金类动作被拒** → 停止；含无模型降级路径与「勿粘贴真实 Key」提示 | 0.4h
 - [ ] **T30** · REL-10 · P1 ｜ 正式包截图与功能说明（含模型前提、安全确认、已知限制） | 0.5h
-- [ ] **T31** · REL-12 · P1 ｜ 发布说明 / 已知限制 / 回滚暂停预案 / 负责人 | 0.3h
+- [x] **T31** · REL-12 · P1 ｜ ✅ 新建 `docs/release-notes-v1.0.0.md`：发布说明 + 已知限制 + 已知缺陷表 + **回滚 / 暂停发布预案**（含「无后端 ⇒ 只能商店下架」的影响追踪）。⚠️ **负责人仍为待填** | 0.3h
 - [ ] **T32** · REL-11 · P1 ｜ 提交表单**当日**核验（记录日期） | 0.3h
+- [ ] **T35** · REL-13 · P1 ｜ 把正式包**另存到不受 build 影响的目录** + 生成 `.sha256` 文件，并在 §16 记录日期（当前只存在于会被覆盖的 `.output`） | 0.2h
 - [ ] **T33** · §16 ｜ 填写签收表（V3.0 封板 + Chrome 发布），登记剩余问题与已声明延后 | 0.3h
 
 ## 3. Phase D · 明确延后并披露（不勾选、也不豁免）
@@ -109,6 +111,10 @@
 | `docs/v3-release-test-plan.md` | §1 补「范围变更须记入 decisions，不得静默豁免 P0」；§3 登记表 Edge 改「已声明延后」；§16 签收加「范围裁剪已声明」项 |
 | `docs/store-listing.md` | **修正事实冲突**：原文「Agent 默认需用户显式开启 / disabled by default」与代码 `enabled: true` 不符，须改为「安装后可用、但不会自动启动任务」；并补「首轮仅 Chrome」口径 |
 | `docs/v3-minimal-release-plan.md` | 本文件 |
+| `PRIVACY.md` | 新建：公开隐私政策（REL-08） |
+| `docs/release-notes-v1.0.0.md` | 新建：发布说明 / 已知限制 / 回滚预案（REL-12） |
+| `docs/reviewer-reproduction.md` | 新建：审核员复现步骤（REL-09） |
+| `README.md` | 文档表补 `PRIVACY.md` 链接 |
 
 ## 5. 完成判据（Definition of Done）
 
@@ -167,3 +173,14 @@
 | `1 skipped` | `selection-panel-toggle.e2e.ts` 真实 Side Panel（无头自动 skip，有头下已于 §5.3 补齐） |
 
 **结论**：T12–T16、T18 闭合（T12 走单测记账、T16 部分完成并披露未构造变体）；**T17（NET-01 双 Provider 到 `finish`）未做**，需真实 Provider 人工会话。
+
+### 2026-10-08 · Phase 6 文档项（REL-09 / REL-12 / REL-05 核对）
+
+| 项 | 结果 |
+|----|------|
+| **REL-05 产物核对** | ✅ 名称 `DualMind`、版本 `1.0.0`、`action.default_title`=「打开 DualMind」、`icon/{16,32,48,128}.png` 均 `file` 验证为**有效 PNG 且尺寸正确**、manifest 无开发标记 ⇒ 全部通过。⚠️ **发现 1 处待修**：`description` 为 V1 口径「AI 浏览器助手 — 划词翻译 / Side Panel / 本地 Ollama」，**未提阅读助手与可选本页 Agent**，不满足 REL-05「无 V1-only 宣传」 |
+| **REL-09** | ✅ 新建 `docs/reviewer-reproduction.md`（安装 → 配置 → 翻译 → 阅读助手 → Agent 批准 → 危险二次确认 → **资金类动作被拒** → 停止；含无模型降级路径） |
+| **REL-12** | ✅ 新建 `docs/release-notes-v1.0.0.md`（发布说明 / 已知限制 / 已知缺陷表 / 回滚暂停预案）；⚠️ 负责人待填 |
+| **REL-13** | ⏳ 未做：正式包仍只存在于会被 build 覆盖的 `.output`，需另存 + `.sha256` |
+
+**结论**：T29 / T31 / T34 完成；**T29 附带一处 REL-05 发现需拍板**（是否本轮修 manifest 描述 → 会触发重打包 + T04–T08 重跑）。
