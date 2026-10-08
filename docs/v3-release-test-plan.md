@@ -151,6 +151,37 @@ Provider 双主路径至少在 Chrome 的两个 UI 入口完成；Edge 至少重
 
 如 pnpm 再次因版本镜像失败，可经确认用本地已安装的 `node node_modules/vitest/vitest.mjs run features/agent` 复核 A1；B 阶段必须记录并解决工具链可复现性问题。不要静默改锁文件、registry、依赖或 `packageManager`。
 
+### 5.1 Agent 自动化用例（2026-10-08 新增；mock Provider + Playwright）
+
+以前只能人工跑、且多为「非留存证据」的一批 Agent 用例，现可用**确定性 mock** 自动化。
+跑法（**仍须先征得同意**）：
+
+```bash
+node e2e/pages/serve.mjs   # 夹具会自动拉起；如自管可设 DM_SKIP_PAGES=1
+pnpm test:e2e              # 默认无头；脚本会先 wxt build
+# 只跑 Agent 组：
+npx playwright test e2e/agent-plan.e2e.ts e2e/agent-safety.e2e.ts \
+  e2e/agent-network.e2e.ts e2e/agent-lifecycle.e2e.ts e2e/agent-entry.e2e.ts
+```
+
+| 自动化用例文件 | 覆盖清单项 |
+|---|---|
+| `e2e/agent-plan.e2e.ts` | AG-03 / AG-05 / AG-16 / AG-18 / AG-19 / AG-04（负路径） |
+| `e2e/agent-safety.e2e.ts` | SEC-01 / SEC-17（闸门层不可绕过）/ SEC-06（危险确认 + 跳过） |
+| `e2e/agent-network.e2e.ts` | NET-04（401/429/5xx/连接重置）/ NET-06（未知工具、坏 JSON）/ NET-07（不支持 tools）+ PRIV-06 片段 |
+| `e2e/agent-lifecycle.e2e.ts` | LIFE-01 / LIFE-02 / LIFE-03 / LIFE-05 / LIFE-08 / LIFE-11 / LIFE-16 |
+| `e2e/agent-entry.e2e.ts` | AG-01 / AG-02 / UI-08 / UI-09 / UI-12（含 DM-V3-003 的硬阻断文案断言） |
+| `e2e/workspace.e2e.ts`（修） | 修正过期的「Agent 仍占位」断言 → Agent Tab 已接入 `AgentPanel` |
+
+**边界（不要被绿色误导）**：
+
+- mock 只提供**协议级**确定性；`NET-01` 的真实 Provider（Ollama / BYOK）主路径**仍必须各跑一次**，不能用 mock 替代。
+- 无头下仍拿不到**真实** `SIDE_PANEL` 表面（把 `sidepanel.html` 当普通标签页驱动）；涉及真实手势 / 侧栏的项仍走 `E2E_HEADED=1` 或人工。
+- 多窗口类（部分 LIFE）受 Playwright 单窗口限制，属「单窗口近似」。
+
+- [ ] **AUTO-07 · P1**：新增 / 改动 `e2e/mock-llm.ts` 脚本后，记录断言依据的**请求轮次**（`mock.cursor()`）与页面**计数器**，不以模型自然语言摘要为准。
+- [ ] **AUTO-08 · P1**：mock 用例全绿时，仍须单独确认 `NET-01` 真 Provider 主路径未被 mock 结论「顺带证明」。
+
 ## 6. Agent 功能与计划批准（A / B）
 
 所有动作计数器在每条用例开始前归零；用确定的任务目标，不以模型输出文字本身作为 DOM 成功依据。
@@ -267,7 +298,7 @@ Provider 双主路径至少在 Chrome 的两个 UI 入口完成；Edge 至少重
 - [ ] **NET-03 · P1**：BYOK 缺 Key、错误 Key、错误 Base URL / 模型 — 对应错误可读，不打印凭据；保存正确配置后恢复。
 - [ ] **NET-04 · P1**：模拟 401 / 403 / 429 / 5xx、断网、连接重置与慢响应 — 不无限 loading、不重复发危险工具；未成功的任务不标成功。
 - [x] **NET-05 · P1**：模型只支持文本，不支持 tools — 明确提示换支持 tools 的模型；不退化成猜测点击或无限重复工具催促。　`2026-10-08 Chrome/SidePanel + qwen-coder-8k PASS（无留存证据）`
-- [ ] **NET-06 · P1**：模型输出多个 tool calls、空参数、损坏 JSON、未知 function、纯文本回答 — 校验有效；失败可恢复或结束；非法调用不写页面。
+- [ ] **NET-06 · P1**：模型输出多个 tool calls、空参数、损坏 JSON、未知 function、纯文本回答 — 校验有效；失败可恢复或结束；非法调用不写页面。　`2026-10-08 【单测 + 代码层 PASS，待最终包复跑】① 未知 function：`tools.ts:230-233` 返回「未知工具」+ `tools.test.ts:22`「拒绝未知工具」；② 损坏 JSON：`tools.ts:239-242` catch → 「参数不是合法 JSON」+ `tools.test.ts:29`「拒绝非法 JSON」；③ 空参数：`wait` 无 ms/text、`click` 无 index 均返回 `ok:false`（tools.ts:270/326，`tools.test.ts:56`）；④ **非法调用不写页面**：`service.ts:301-307` 解析失败仅返回 `{ok:false,error}` 交回模型，**不进入 executor**；⑤ 多 tool calls：`service.test.ts:50-51/71` 一轮多个调用；⑥ 纯文本回答：`service.test.ts:110-113`「连续两轮零 tool_calls 判定 TOOLS_UNSUPPORTED」⇒ 不退化成乱点`
 - [ ] **NET-07 · P1**：任务运行时切 Provider / 模型 — 记录实际行为；如新配置导致后续调用失败，应明确结束且不误报成功，不跨任务泄露上下文。
 - [ ] **NET-08 · P1**：自定义 OpenAI Compatible Base URL 与本地 Ollama host — 所有模型请求从 Background 发出，Content Script 无直连模型请求。
 - [ ] **NET-09 · P1**：停止或断连后观察网络与页面 — 无旧任务的后续模型轮次 / 写动作；Provider 无法取消的已发请求也不得消费成新任务结果。
@@ -285,7 +316,7 @@ Provider 双主路径至少在 Chrome 的两个 UI 入口完成；Edge 至少重
 - [ ] **UI-09 · P1**：loading / 空值 / 请求失败 / 重试 — 无空白页、未处理 Promise 错误或永久禁用按钮。
 - [ ] **UI-10 · P1**：Shadow DOM、跨域 iframe、严格 CSP 或不接收合成事件的控件 — 明确限制或失败，不虚构成功、不请求新增权限绕过。
 - [ ] **UI-11 · P1**：同时启用沉浸译、Chat 与 Agent — 不共享错误状态或取消信号；Agent 不把扩展自己的浮层 / FAB 当目标误操作，不使其他 Feature 异常。
-- [ ] **UI-12 · P1**：启用开关、模型要求、金融拒绝、页面限制、取消说明 — 文案与真实行为一致；不声称可执行支付、多 Tab 或自动恢复旧任务。
+- [ ] **UI-12 · P1**：启用开关、模型要求、金融拒绝、页面限制、取消说明 — 文案与真实行为一致；不声称可执行支付、多 Tab 或自动恢复旧任务。　`2026-10-08 【代码层核对：**发现 1 处文案与行为不一致**，另有 4 项一致；保留未勾选】 ✅ 一致：① 模型前提「需支持 tool calling 的模型」(`AgentPanel.tsx`) ⇔ `TOOLS_UNSUPPORTED`（errors.ts）；② 上限文案「上限 N 步」只称**步数**、未承诺「N 个 DOM 动作」⇔ `maxSteps` 是模型轮次（已由 AG-19 实测合规）；③ 页面限制「不支持 Shadow DOM / 跨域 iframe」⇔ decisions 已知限制；④ 取消「已发生的页面动作无法撤销」⇔ 决策语义。 ❌ **不一致（DM-V3-003，已于 2026-10-08 修复）**：帮助文案此前把「提交 / 支付 / 删除」并列成「会再确认」，但 `danger.ts` 对**支付类目标判 `blocked`**（无「仍要执行」）。已改为：删除等危险动作 → 再次弹窗确认；支付 / 下单 / 转账 → **直接拒绝、无法确认放行**（`agent-entry.e2e.ts` 已去 `fixme` 并断言）`
 
 ## 11. V1 / V1.5 / V2 必须回归（B）
 
@@ -327,8 +358,8 @@ Provider 双主路径至少在 Chrome 的两个 UI 入口完成；Edge 至少重
 - [ ] **DATA-02 · P1**：以相同扩展身份保留旧 V1 / V2 测试数据升级 — Provider、站点禁用、翻译偏好、Chat 历史不丢失；新增 Agent prefs 使用合法默认值。
 - [ ] **DATA-03 · P1**：验证 toolbar 默认迁移 — 旧 auto 默认首次按迁移规则转 shortcut；迁移标记生效；用户后来主动设置 auto 不被重复迁移覆盖。
 - [ ] **DATA-04 · P1**：关闭浏览器再打开 — 设置与 Chat 历史保留；Agent 内存任务不恢复、不重放页面操作。
-- [ ] **DATA-05 · P1**：部分旧字段缺失、偏好值非法、存储失败 / 超额 — 默认 / 校验 / 错误提示合理，不白屏、不用非法上限死循环。
-- [ ] **DATA-06 · P1**：检查 Agent runtime 与 FAB 信箱 — 不混用 translateSession / chat:*；信箱消费清空、过期不误启动。
+- [ ] **DATA-05 · P1**：部分旧字段缺失、偏好值非法、存储失败 / 超额 — 默认 / 校验 / 错误提示合理，不白屏、不用非法上限死循环。　`2026-10-08 【代码层部分 PASS，存储失败子项残留】① 旧字段缺失：`getSettings` / `getImmersivePrefs` / `getChatPrefs` / `getAgentPrefs` 均以 `{...DEFAULT, ...stored}` 合并（settings.ts:106-131 / 90-93 / 176-180 / 271-279），**容忍缺字段** ✅；② 非法值：`getAgentPrefs`/`saveAgentPrefs` 将 `maxSteps` 钳制到 `[1,40]` 且 `|| 20` 兜底非法数 ⇒ **不死循环** ✅（settings.ts:277-278 / 284-286）；③ 迁移幂等：`runMigrations` 依 `local:migrations` 标记（migrations.ts / settings.ts:52-62）✅。⚠️ **残留**：`getSettings` 等**未包裹 try/catch**，`storage` 读取失败（配额 / IO）**无显式兜底**，是否会白屏需人工或故障注入确认 ⇒ 保留未勾选`
+- [ ] **DATA-06 · P1**：检查 Agent runtime 与 FAB 信箱 — 不混用 translateSession / chat:*；信箱消费清空、过期不误启动。　`2026-10-08 【代码层 PASS，待最终包复跑】① **前缀/键隔离**：Agent 用独立 `local:agentPrefs` + `local:agentPending`，Chat 用 `local:chatPending`，翻译用 `local:translateSession` —— **无混用**（settings.ts:269-301）；② **消费即清空**：`consumeAgentPending` 先 `setValue(null)` 再判定（settings.ts:298-302），**天然幂等**；③ **过期不启动**：`evaluateAgentPending` 用 `AGENT_PENDING_TTL_MS=120_000`，`now-createdAt>ttl` 返回 `expired`（agentPendingEval.ts:15-22，另有 `agentPendingEval.test.ts`）⇒ 不误启动旧指令`
 - [ ] **DATA-07 · P1**：Reload 扩展后旧内容页尚未刷新 — 提示刷新或拒绝旧契约，不通过旧脚本安全检查；刷新后恢复正常。
 - [ ] **DATA-08 · P1**：重复失败与取消后累计运行至少 20 次任务 — 无持续增加的监听器、活动 Port、页面锁或计时器；没有重复事件。
 - [ ] **DATA-09 · P2**：长时间线、较多 Chat 会话、长文翻译后的响应 — 记录 CPU / 内存 / 页面交互延迟；设置合理观察基线，不臆造固定性能阈值。
@@ -337,13 +368,13 @@ Provider 双主路径至少在 Chrome 的两个 UI 入口完成；Edge 至少重
 
 本节核对实现和披露，不替代提交当日商店政策核验。对外政策、表单、截图必须以最终包为准。
 
-- [ ] **PRIV-01 · P0**：核对生产 manifest — 权限仍为已批准的 storage / sidePanel / contextMenus 与既有 host permissions；无 debugger / scripting / activeTab / tabs 等未批准新增声明。
-- [ ] **PRIV-02 · P0**：核对 matches、host permissions、commands、资源暴露与 CSP — 与批准配置一致；无因为调试扩大范围或残留远程脚本入口。
+- [ ] **PRIV-01 · P0**：核对生产 manifest — 权限仍为已批准的 storage / sidePanel / contextMenus 与既有 host permissions；无 debugger / scripting / activeTab / tabs 等未批准新增声明。　`2026-10-08 【静态核对 PASS，待最终包复跑】`.output/chrome-mv3/manifest.json`：`permissions=["storage","sidePanel","contextMenus"]`、无 `optional_permissions`、`host_permissions=["127.0.0.1:11434/*","localhost:11434/*","<all_urls>"]`、**无** `debugger`/`scripting`/`tabs`/`activeTab`。⚠️ 该产物构建于 05:06（早于 DM-V3-002 修复），权限项不受该修复影响，但**正式判定须在最终 zip 上重跑**`
+- [ ] **PRIV-02 · P0**：核对 matches、host permissions、commands、资源暴露与 CSP — 与批准配置一致；无因为调试扩大范围或残留远程脚本入口。　`2026-10-08 【静态核对 PASS，待最终包复跑】`content_scripts.matches=["<all_urls>"]`、仅 `content-scripts/content.js`（无 css）、`commands` 仅 `translate-selection`(Alt+K，mac 同)；manifest **未声明** `content_security_policy` ⇒ 用 MV3 默认 `script-src 'self'`；**无** `web_accessible_resources`、无远端脚本入口。⚠️ 附已知低危：`content.js` 运行时引用不存在的 `content-scripts/content.css`（V1/V2 范围，正确性无损）`
 - [ ] **PRIV-03 · P0**：拦截 / 观察翻译、Chat、Agent 网络 — 仅用户配置模型端点接收该功能必要数据；无遥测、开发者后端、未知第三方请求或远程代码。
-- [ ] **PRIV-04 · P0**：检查 Agent snapshot 密码框 — 不回传密码明文；普通表单值可能进快照，使用虚构值检查并据实披露，不宣称「从不发送表单内容」。
-- [ ] **PRIV-05 · P0**：检查 Content Script 代码、消息、页面 DOM 与控制台 — 无 API Key 的读取 / 存储 / 明文传播；Provider 不碰 DOM，模型调用只在 Background。
-- [ ] **PRIV-06 · P0**：将 Provider 错误中混入假 Key、内部地址、响应 body — 面向用户的错误与公开附件不泄漏秘密。
-- [ ] **PRIV-07 · P1**：核对本地持久化 — Chat 历史、本地设置、API Key、信箱与 Agent 内存边界和隐私文案一致；清空功能与说明一致。
+- [ ] **PRIV-04 · P0**：检查 Agent snapshot 密码框 — 不回传密码明文；普通表单值可能进快照，使用虚构值检查并据实披露，不宣称「从不发送表单内容」。　`2026-10-08 【代码层 PASS，待最终包复跑】`executor.ts:131-137`：`inputType==='password'` 时 `stub.value = el.value ? '••••' : ''`（**掩码，不回传明文**）；`executor.ts:183-184` 的 `nodeSignature` 对密码框取 `''`，故签名也不含明文；非密码控件的 `value` 会进快照并按 `MAX_VALUE_CHARS` 截断（**与本次上架材料披露一致：已改为「元素快照可能含表单值」**）。SEC-08 人工实测快照内密码框显示为「••••」可交叉印证`
+- [ ] **PRIV-05 · P0**：检查 Content Script 代码、消息、页面 DOM 与控制台 — 无 API Key 的读取 / 存储 / 明文传播；Provider 不碰 DOM，模型调用只在 Background。　`2026-10-08 【静态核对 PASS，待最终包复跑】`content-scripts/content.js`（112,336 B）检索：`getSettings`=0、`Authorization`=0、`Bearer`=0、`sk-`=0；唯一 `apiKey` 为 `DEFAULT_SETTINGS` 默认空串（`openai:{baseUrl:'https://api.openai.com/v1',apiKey:'',model:'gpt-4o-mini'}`）⇒ 非真实密钥。🟡 卫生项（非缺陷）：content 产物携带整段 `DEFAULT_SETTINGS`（传递性依赖），当前无利用面，可考虑拆分常量`
+- [ ] **PRIV-06 · P0**：将 Provider 错误中混入假 Key、内部地址、响应 body — 面向用户的错误与公开附件不泄漏秘密。　`2026-10-08 【代码层 PASS，待最终包复跑】`openai-compatible.ts:131` 对 `!res.ok` 执行 `await res.text().catch(()=>'')` 后**丢弃**响应体（不进入错误对象）；错误只经 `toUserMessage(code, detail)` 生成，`detail` 仅为 `${res.status}` 或（404 时）模型名；`shared/errors.ts:60-77` 的 `toUserMessage` **仅**对 `CHAT_FAILED`/`LIST_MODELS_FAILED`/`MODEL_NOT_FOUND` 追加 detail，其余（含 `UNKNOWN`）**不追加**；`formatErrorForUi` 对 `UNKNOWN` 走 `toUserMessage` 基础文案「出错了，请稍后重试」⇒ **通用 Error.message 不外显**。`Authorization: Bearer` 仅存在于请求头（`headers()`），不在任何错误路径复用`
+- [ ] **PRIV-07 · P1**：核对本地持久化 — Chat 历史、本地设置、API Key、信箱与 Agent 内存边界和隐私文案一致；清空功能与说明一致。　`2026-10-08 【代码层 PASS，待最终包复跑】`shared/storage/settings.ts` 持久化键清单：`local:settings`（**含 `openai.apiKey`**，仅 Background 读）/ `local:chatSessions`（Chat 历史）/ `local:chatPending` + `local:agentPending`（信箱）/ `local:agentPrefs` / `local:immersivePrefs` / `local:pageFabPos` / `local:translateSession`（单次）。**Agent 运行态（计划 / 轨迹 / 中止）不入库**（无对应 storage 键，与 decisions.md「仅内存」一致）。清空功能：`clearChatSessions()` 置空 `local:chatSessions`（settings.ts:216-218）。**与新版 store-listing 文案一致**（本地历史 + Key 仅存本机 + Agent 不持久化）`
 - [ ] **PRIV-08 · P0**：检查 zip 全部内容 — 无 `.env`、真实 Key、测试用户数据、`.e2e-profile`、日志 / trace、开发私密文件或额外后台脚本。
 - [ ] **PRIV-09 · P1**：区分扩展网络与目标网页自身网络 — 不把网页自己的 analytics 当作扩展遥测，也不能把扩展流量误归给站点以漏报。
 
@@ -354,8 +385,8 @@ Provider 双主路径至少在 Chrome 的两个 UI 入口完成；Edge 至少重
 - [ ] **REL-03 · P0**：解压最终 zip，检查 manifest、权限、脚本、资源与校验值 — 与已验候选一致；zip 后再构建或更改包需重新核对。
 - [ ] **REL-04 · P1**：Chrome 与 Edge 分别加载最终解压包 — Options、真实 Side Panel、工作台、划词、沉浸译、Chat、Agent 主路径均能打开 / 完成。
 - [ ] **REL-05 · P1**：扩展名、描述、图标、版本、快捷键说明 — 无开发版标识、失效资源和 V1-only 宣传；不夸大支持范围。
-- [ ] **REL-06 · P0**：修订 `docs/store-listing.md` 中文和英文单一用途、权限用途、数据传输 — 覆盖翻译 + 阅读助手 + 可选本页 Agent，披露 DOM 写操作、工具快照与 Chat 本地历史。
-- [ ] **REL-07 · P0**：修正文案中的绝对声明 — 不写「API Key 不上传任何服务器」而忽略 Provider 认证；不写「不外发页面信息」而忽略用户主动发送至配置端点；不把本地会话历史说成不存在。
+- [x] **REL-06 · P0**：修订 `docs/store-listing.md` 中文和英文单一用途、权限用途、数据传输 — 覆盖翻译 + 阅读助手 + 可选本页 Agent，披露 DOM 写操作、工具快照与 Chat 本地历史。　`2026-10-08 【已修订】单一用途改为三类能力（翻译 / 只读阅读助手 / 可选本页 Agent）；`storage` 补「仅存本机聊天历史」；`content_scripts` 补 Agent DOM 操作通道与「元素快照可能含表单值」；新增「本页操作 Agent（可选）」数据条（计划批准 + 危险再确认 + 仅当前页 + 不跨 Tab + 不用 debugger/CDP）；顶部引用由 `decisions-v1.md` 改指 `decisions.md`。中英文均已同步`
+- [x] **REL-07 · P0**：修正文案中的绝对声明 — 不写「API Key 不上传任何服务器」而忽略 Provider 认证；不写「不外发页面信息」而忽略用户主动发送至配置端点；不把本地会话历史说成不存在。　`2026-10-08 【已修正】Key 条款改为「仅作为认证凭据发往用户所配置的 Provider，不发往任何其他第三方」；删除「不采集页面内容 / 不外发」式绝对表述，改为「用户主动发起时发往所配置端点」；本地 Chat 历史明确为「存于本机、可单条删除或全部清空」；Agent 运行态「不持久化、不重放」`
 - [ ] **REL-08 · P0**：准备公开可访问的隐私政策与支持入口 — 与实际数据流、模型端点、保存与删除方式一致；无占位链接或内部文档地址。
 - [ ] **REL-09 · P1**：准备审核员可复现说明 — 新安装到 Provider 配置、普通翻译、Agent 计划批准、危险确认、停止的完整步骤；说明 BYOK / Ollama 前提。不要把真实生产 Key 放在公开包或截图；审核所需凭据走负责人批准的安全渠道。
 - [ ] **REL-10 · P1**：最终截图与功能说明 — 使用正式包，展示当前 UI；包括模型前提、安全确认与已知限制，不使用调试页冒充产品能力。
@@ -474,6 +505,67 @@ Provider 双主路径至少在 Chrome 的两个 UI 入口完成；Edge 至少重
 ```
 
 > 本项为**误报**，不构成 V3.0 缺陷。撤回记录保留在此，用于避免后续重复误判。
+
+```text
+缺陷 ID / 等级：DM-V3-003 / P2（文案与行为不一致：把「支付」归入可再确认，实际为直接拒绝）
+关联用例：UI-12（另与 SEC-01「无『仍要执行』路径」同源）
+候选版本 / 浏览器 / UI / Provider：工作区（未提交）；代码路径 features/agent/ui/AgentPanel.tsx
+前置状态与测试页：任意内容页，Agent 面板 → 「说明 ▾」
+复现步骤：1) 打开 Agent 面板；2) 展开「说明」；3) 阅读帮助文案
+期望结果：帮助文案应区分「可再确认」（提交 / 删除等 dangerous）与「直接拒绝」
+          （支付 / 转账 / 金融域，blocked、无「仍要执行」）
+实际结果：文案写「提交 / 支付 / 删除等会再确认（计划批准 + 危险再确认）」，
+          把支付与可再确认动作并列；而 danger.ts:123-124 对支付类判 blocked
+根因（已定位到代码）：
+  - AgentPanel.tsx:112-115  帮助文案「提交 / 支付 / 删除等会再确认」
+  - danger.ts:123-124       PAY_RE 命中 → { level: 'blocked', reasons: ['…V3.0 不允许确认放行'] }
+  - decisions.md            「金融 / 支付域：默认拒绝自动执行（或整任务阻断），不靠『确认』放行」
+出现次数 / 执行次数：静态阅读命中 1 / 1；机制上确定性
+脱敏截图 / 日志 / trace：无（代码层发现，未截图）
+建议修法：帮助文案拆成两句 —— 「提交 / 删除等会再确认」＋「支付 / 转账类直接拒绝」；
+          或改为「危险动作会再确认；支付类一律拒绝」。属文案级最小改动
+状态：**已修（2026-10-08）** —— 文案已拆为「删除等危险动作 → 再次弹窗确认」与
+      「支付 / 下单 / 转账 → 直接拒绝、无法确认放行」；危险确认卡加 `data-testid="agent-danger"`
+负责人 / 修复版本：Agent E2E 轮次 / V3.0
+修复后复测结果 / 相邻路径回归：`npx playwright test e2e/agent-entry.e2e.ts` → UI-12 两条用例
+      （含去 `fixme` 的 DM-V3-003 断言）**PASS**；SEC-01（无「仍要执行」）**PASS**，文案与行为已一致
+```
+
+缺陷 ID / 等级：DM-V3-004 / P2（可诊断性：内部 `Error` 的具体原因被 UNKNOWN 兜底文案吞掉）
+关联用例：LIFE-08（同页第二个任务被拒）、LIFE-19 / ENV-04（站点禁用时启动）、以及 DM-V3-002 中未采用的建议 (c)
+候选版本 / 浏览器 / UI / Provider：工作区（未提交）；代码路径 `entrypoints/background.ts` + `shared/errors.ts`
+前置状态与测试页：任意内容页 + Agent 面板（新增自动化用例 `e2e/agent-lifecycle.e2e.ts`）
+复现步骤：1) 在内容页发起一个 Agent 任务并停在 `planning`；
+          2) 从另一个入口（全页工作台）对**同一内容页**再发起一个任务
+期望结果：面板给出可操作的原因，如「本页已有 Agent 任务，请先停止侧栏或工作台中的原任务」
+实际结果：面板只显示统一文案「出错了，请稍后重试」，用户无法得知真实原因
+根因（已定位到代码）：
+  - background.ts:596  以普通 `Error` 抛出具体原因（未带 ErrorCode）
+  - errors.ts:96       `normalizeError` 对普通 Error 归为 `UNKNOWN`
+  - errors.ts:117      `formatErrorForUi` 对 `UNKNOWN` **丢弃 message**，只返回 `USER_MESSAGES.UNKNOWN`
+  ⇒ 凡是走「抛出普通 Error」的路径（同页已有任务、站点已停用等），原因都会丢
+出现次数 / 执行次数：静态定位 1 / 1；机制上确定性（AG-04 的「没有可读的内容页」因走 `post()` 直发而未受影响）
+脱敏截图 / 日志 / trace：无（代码层发现；可由新 automation 用例稳定复现）
+建议修法：把这类业务原因改为带码抛出（如 `AppError(msg, 'UNKNOWN' | 新增码)` 并在
+          `formatErrorForUi` 中对**业务可展示**的 message 放行；或直接 `post({type:'error', message})`）。
+          注意：不要因此把 Provider 原始响应体也带进 UI（PRIV-06 边界）
+状态：**已修（2026-10-08）** —— 采用「显式标记」而非「UNKNOWN 一律放行」：
+      `shared/errors.ts` 新增 `UserFacingError extends AppError`，`formatErrorForUi` 对其实例直接透出 message；
+      `background.ts` 三处业务拒绝（站点已停用 / 本页已有 Agent 任务 / 任务中途站点被停用）改抛 `UserFacingError`。
+      **PRIV-06 边界不变**：仅包装本项目自有文案，不包裹 Provider 原始响应（NET-04 的 500 用例仍断言不泄露响应体）
+负责人 / 修复版本：Agent E2E 轮次 / V3.0
+修复后复测结果 / 相邻路径回归：`e2e/agent-lifecycle.e2e.ts` LIFE-08 **PASS**（断言改为
+      「本页已有 Agent 任务…」）；`e2e/agent-network.e2e.ts` NET-04 三条错误注入 + PRIV-06 **PASS**
+
+> 说明：本条为**文案与行为不一致**，非功能缺陷；按测试清单第 1 节口径不自动升为 P0，
+> 但因其涉及「支付是否可放行」的用户预期，建议在封板前一并修正。
+
+> **既有 TypeScript 错误（非品牌/Agent 缺陷，2026-10-08 一并修净）**：
+> `pnpm compile` 此前报 4 处 —— `features/agent/executor.test.ts`（缺 `override`）、
+> `features/agent/service.test.ts`（mock 返回类型未收敛为 `AgentToolResult`）、
+> `features/chat/export.ts`（`noUncheckedIndexedAccess` 下 `ChatSession | undefined` 未收窄）、
+> `shared/ui/modelIcons.ts`（`browser.runtime.getURL` 的动态路径参数不在 `PublicPath` 字面量内）。
+> 现 `pnpm compile` **0 error**。
 
 ## 16. 最终签收
 

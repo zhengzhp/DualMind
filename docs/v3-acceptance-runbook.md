@@ -939,6 +939,8 @@ SEC-01/02/03/04/05/06 · SEC-09 · SEC-12/13/14/15/16 · SEC-19。
 | DM-V3-ENV-04 | 工作区含**未提交**改动（测试页 / runbook / 文档 + 工具链改动） | 证据无法绑定到 `9770b9e` 单一提交；验收前建议先提交 |
 | DM-V3-ENV-05 | **B1 结果多数无留存证据**（AG-01/02/03/06 仅执行人口头确认，无计数器 / 日志 / 截图） | 不构成可复核证据；建议此后每条用例固定导出 `window.dmTest.state()`。其中 **AG-05（P0）已于 2026-10-08 留证复跑通过**（见 B2g 行） |
 | DM-V3-UNTESTED | **仍待补测/复跑**：AG-04 负路径（无内容页报错）、AG-10 未知选项分支、AG-13 的「旧 index 复用被拒」人工未触发（仅单测）、DM-V3-002 默认超时文案未直读；B3 缺口见上 | 均**非 P0**；AG-05（P0）已留证关闭 |
+| DM-V3-STATIC-01 | **静态/代码层核对（2026-10-08，B1）**：PRIV-04 / PRIV-06 / PRIV-07 / DATA-06 / NET-06 **代码层 PASS**；DATA-05 除「storage 读取失败无显式兜底」外 PASS；UI-12 **发现文案不一致 DM-V3-003** | 上述 PRIV/DATA/NET 均须在**最终 zip** 上复跑（当前核对基于 05:06 旧产物）；DM-V3-003 **已修**（见 B9） |
+| **DM-V3-003** | **P2 · 文案与行为不一致**：Agent 帮助文案把「支付」与「提交 / 删除」并列为「会再确认」，但支付类实际判 `blocked`（无「仍要执行」） | ✅ **已修**（2026-10-08）：文案区分「可再确认（删除等）」与「直接拒绝（支付 / 下单 / 转账）」，`agent-entry.e2e.ts` 去 `fixme` 并有断言；详见测试清单第 15 节 |
 | DM-V3-ENV-06 | **Provider A（Ollama）主路径已实跑通过**（2026-10-08，B2h）：`qwen3:4b` 完成 `snapshot → click [#3] → fill [#3]`，计数器与页面事实一致 | ✅ **已解除**。仍残留：`finish` 成功/失败区分、NET-01 的完整闭环（含 finish）未单独验 |
 | 基线版本 | `9770b9e`；生产构建 2026-10-08 05:06，`.output/chrome-mv3`（manifest `0.1.0`）；权限无 `debugger` / `scripting` / `tabs` / `activeTab` | 与「V3.0 零新增权限」一致（PRIV-01 / PRIV-02 已在产物层核对） |
 | **DM-V3-LIMIT-01** | **已知边界（非缺陷）· JS 驱动导航的目标不可检测**：`<button>` + 事件处理器改 `location` 时，DOM 里没有目标路径，`classifyDanger` 无法在点击时刻判定目标是否为金融页。保护退化为：① 文案启发式（`PAY_RE` 命中按钮可见文案）；② 点击后 URL 变化 → 旧任务失效；③ 落页金融上下文 → `isFinancialContext` 阻断全部写操作 | **落地页仍受保护**（第③层兜底，已由 SEC-02 验证）。文案不含支付关键词的 JS 导航按钮会被判 `safe`。**属 DOM 层面不可修的固有边界**，不按缺陷计；须在封板说明中向签发人明示 |
@@ -954,6 +956,79 @@ curl -s http://127.0.0.1:11434/v1/chat/completions -H 'Content-Type: application
 ```
 
 判定：响应里出现非空 `choices[0].message.tool_calls` 才算通过；只有 `content` 里的 JSON 文本即**不通过**。
+
+### B9 · Agent 自动化（mock Provider，**新增能力**，2026-10-08）
+
+**为什么新增**：此前 Agent 的 A 闸门用例几乎全靠人工，且多为「无留存证据」（DM-V3-ENV-05）；
+其中 SEC-17「闸门层不可绕过」两次人工尝试都**没能让真模型吐出危险 tool_call**，机制上不可靠。
+
+**做法**：`e2e/mock-llm.ts` 提供「OpenAI 兼容」mock（`text/event-stream` + `tool_calls` 分片），
+可确定性注入：计划、危险/支付 `tool_calls`、401/429/5xx/连接重置、零 `tool_calls`、非法参数。
+`e2e/fixtures.ts` 增补 `setupAgentTest` 等装配 helper，并自动拉起 `e2e/pages/serve.mjs`。
+
+**命令**（仍须先同意；脚本会先 `wxt build`）：
+
+```bash
+pnpm test:e2e
+# 或只跑 Agent 组
+npx playwright test e2e/agent-plan.e2e.ts e2e/agent-safety.e2e.ts \
+  e2e/agent-network.e2e.ts e2e/agent-lifecycle.e2e.ts e2e/agent-entry.e2e.ts
+```
+
+> **环境提示（2026-10-08）**：若 shell 里存在指向临时沙箱缓存的 `PLAYWRIGHT_BROWSERS_PATH`
+> （浏览器未安装在该目录），需临时指回真实缓存：
+> `PLAYWRIGHT_BROWSERS_PATH="$HOME/Library/Caches/ms-playwright" npx playwright test ...`
+
+**覆盖**（详见测试清单第 5.1 节）：
+
+| 文件 | 清单项 |
+|---|---|
+| `agent-plan.e2e.ts` | AG-03 / AG-05 / AG-16 / AG-18 / AG-19 / AG-04（负路径） |
+| `agent-safety.e2e.ts` | SEC-01 / SEC-17 / SEC-06（确认 + 跳过两条支路） |
+| `agent-network.e2e.ts` | NET-04 / NET-06 / NET-07 + PRIV-06 片段 |
+| `agent-lifecycle.e2e.ts` | LIFE-01 / 02 / 03 / 05 / 08 / 11 / 16 |
+| `agent-entry.e2e.ts` | AG-01 / AG-02 / UI-08 / UI-09 / UI-12 |
+
+**不要被绿色误导**：
+
+- mock 只覆盖**协议级**确定性；`NET-01` 的真实 Provider 主路径仍须各跑一次（B2h 已验 Ollama 侧）。
+- 无头下仍无**真实** `SIDE_PANEL` 表面 ⇒ 真实侧栏相关项仍走 `E2E_HEADED=1` 或人工。
+- 多窗口类（部分 LIFE）受 Playwright 单窗口限制，属「单窗口近似」。
+- **仍未自动化、仍需人工**的 LIFE / AG 项（不要误以为已全覆盖）：
+  `LIFE-04`（等待与页面变化耦合）、`LIFE-06`（工具级超时：现有工具集无法稳定造出「超过 15s 的工具」）、
+  `LIFE-07 / 09 / 10 / 12 / 13 / 14 / 15 / 17 / 18 / 19 / 20`（多窗口、SW 重启、时间节流、站点禁用等），
+  以及 `AG-07～AG-15` 中依赖真实页面语义的项（`AG-09` 受控表单已在 B2b/B2i 人工 PASS）。
+
+**本轮修复的缺陷（2026-10-08，均已闭环）**：
+
+| 缺陷 | 等级 | 说明 | 状态 |
+|---|---|---|---|
+| **DM-V3-004** | P2 | 内部 `Error` 的具体原因被 `UNKNOWN` 兜底文案吞掉（如「本页已有 Agent 任务」→ 只显示「出错了，请稍后重试」） | ✅ **已修** |
+| **DM-V3-003** | P2 | 帮助文案把「支付」与可再确认动作并列；实际 `PAY_RE` 判 `blocked`（无「仍要执行」） | ✅ **已修** |
+
+修复要点：
+
+- **DM-V3-004**：`shared/errors.ts` 新增 `UserFacingError`（显式标记「message 已是我们写给用户的文案」），
+  `formatErrorForUi` 对其直接透出；`entrypoints/background.ts` 中三处**业务拒绝**
+  （站点已停用 / 本页已有 Agent 任务 / 任务中途站点被停用）改为抛 `UserFacingError`。
+  ⚠️ 仅包装**本项目自有的**用户文案，**不**包裹 Provider 原始响应体，PRIV-06 边界不变
+  （NET-04 的 500 用例仍断言不泄露响应体）。
+- **DM-V3-003**：`features/agent/ui/AgentPanel.tsx` 帮助文案拆成两类——
+  「删除等危险动作 → 再次弹窗确认」与「支付 / 下单 / 转账等资金类动作 → 直接拒绝，无法确认放行」，
+  与 `features/agent/danger.ts` 的 `blocked` / `dangerous` 分级一致；
+  危险确认卡补 `data-testid="agent-danger"`，供 E2E 把文案断言限定在卡内。
+
+**本轮顺带修复的过期资产 / 既有类型错误**：
+
+- `e2e/workspace.e2e.ts`：原断言「Agent 仍占位（`Agent（即将推出）`）」，但 Agent Tab 已接入真实
+  `AgentPanel` ⇒ 该用例此前**必然失败**；已改为断言 Agent 面板真实接入。
+- `pnpm compile` 此前有 4 处**既有** TS 错误（非本轮引入），已一并修净：
+  `features/agent/executor.test.ts`（`override`）、`features/agent/service.test.ts`（mock 返回类型
+  收敛为 `AgentToolResult`）、`features/chat/export.ts`（`noUncheckedIndexedAccess` 下的空值收窄）、
+  `shared/ui/modelIcons.ts`（`getURL` 的动态路径参数放宽为 `string`）。
+
+**验证结果（2026-10-08）**：`pnpm compile` 0 error；`pnpm test` 相关 4 个文件 36 test 全过；
+`npx playwright test`（Agent 组 + 工作台）**32 passed**。
 
 ## 5. 不要在本阶段做的事
 

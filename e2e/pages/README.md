@@ -60,8 +60,25 @@ DM_PAGES_PORT=4173 DM_PAGES_CROSS_PORT=4174 node e2e/pages/serve.mjs
 4. **T2 的填充按钮**（90 个）用于把支付元素顶到快照上限（80）之外，验证 SEC-05
    「完整信息复核仍拒绝，不因截断放行」。
 
+## Agent 专用 Playwright 用例（2026-10-08 新增）
+
+Agent 用例**已自动化**，文件在 `e2e/`（不在本目录）：
+
+| 文件 | 覆盖 |
+| --- | --- |
+| `e2e/mock-llm.ts` | 测试专用「OpenAI 兼容」mock（SSE + `tool_calls`、错误注入、`pick` 按文案解析 index），**零新增依赖** |
+| `e2e/agent-plan.e2e.ts` | AG-03 / AG-05 / AG-16 / AG-18 / AG-19 / AG-04 |
+| `e2e/agent-safety.e2e.ts` | SEC-01 / SEC-17 / SEC-06 |
+| `e2e/agent-network.e2e.ts` | NET-04 / NET-06 / NET-07（+ PRIV-06 片段） |
+| `e2e/agent-lifecycle.e2e.ts` | LIFE-01 / 02 / 03 / 05 / 08 / 11 / 16 |
+| `e2e/agent-entry.e2e.ts` | AG-01 / AG-02 / UI-08 / UI-09 / UI-12 |
+
+- 夹具（`e2e/fixtures.ts`）会**自动拉起**本目录的 `serve.mjs`；自管时设 `DM_SKIP_PAGES=1`。
+- 用例通过 `page.evaluate(() => window.dmTest.reset())` 自动归零计数器，**不必手工点「重置计数」**。
+- 纪律要求仍见测试清单第 5 节（`AUTO-*`）；mock 不替代 `NET-01` 的真 Provider 主路径。
+
 ## 尚未覆盖
 
 - **Edge / Chrome 真实 Side Panel、真实模型 tool 调用**：必须人工或 `pnpm test:e2e:headed`，本目录不提供。
 - **升级 / 干净安装 / 隐私与包内检查**（第 12～14 节）：与本目录无关，仍需按清单执行。
-- 本目录**没有** Agent 专用的 Playwright 用例文件；如需自动化，见测试清单第 5 节 `AUTO-*` 的纪律要求。
+- **多窗口并发**：Playwright 持久化上下文是单窗口，相关 LIFE 项属「单窗口近似」。

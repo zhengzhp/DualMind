@@ -55,7 +55,7 @@ test.describe('全页工作台', () => {
     await expect(page.locator('.text-red-700')).toHaveCount(0);
   });
 
-  test('Chat 已接入、Agent 仍占位，切回翻译仍可用', async ({
+  test('Chat 与 Agent 均已接入，切回翻译仍可用', async ({
     page,
     serviceWorker,
     extensionId,
@@ -70,9 +70,11 @@ test.describe('全页工作台', () => {
     await expect(page.getByRole('button', { name: '总结本页' })).toBeVisible();
     await expect(page.getByText('聊天（即将推出）')).toHaveCount(0);
 
-    // Agent 仍为占位
+    // V3：Agent Tab 已接入真实 AgentPanel（不再是占位）
     await page.getByRole('button', { name: 'Agent', exact: true }).click();
-    await expect(page.getByText('Agent（即将推出）')).toBeVisible();
+    await expect(page.getByText('全页工作台 · 本页操作')).toBeVisible();
+    await expect(page.getByText('本页操作 Agent', { exact: true })).toBeVisible();
+    await expect(page.getByText('Agent（即将推出）')).toHaveCount(0);
 
     // 模型横栏位于各 Tab 之上且常驻可见：非翻译 Tab 也应能看到
     await expect(page.getByTestId('model-select')).toBeVisible();
