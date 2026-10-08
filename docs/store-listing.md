@@ -1,30 +1,37 @@
 # DualMind 上架材料（Chrome / Edge）
 
 > 用于 Chrome Web Store / Edge Add-ons 提交表单中的「权限用途」「单一用途」「数据使用」等字段。
-> 与 [docs/decisions-v1.md](./decisions-v1.md)「权限决策」保持一致；改权限前先改本文件。
+> 与 [docs/decisions.md](./decisions.md)（当前权威 · V3 已立项）保持一致；改权限前先改本文件。
 > 注：商店后台多数字段要求英文，文末附英文版可直接粘贴。
+> 修订记录：2026-10-08 按 V3 口径补齐**阅读助手 / 可选本页 Agent**、**本地聊天历史**与 **DOM 写操作**披露，并修正「Key 不上传任何服务器」「页面信息不外发」等绝对声明（对应 REL-06 / REL-07）。
 
 ## 单一用途（Single purpose）
 
-在网页中提供基于用户自带模型（BYOK）的**划词翻译**、**整页沉浸式双语翻译**与翻译工作台，帮助用户即时理解外语内容。
+在网页中提供基于用户自带模型（BYOK）的三类能力，帮助用户理解与操作当前网页：
+① **划词翻译 / 整页沉浸式双语翻译**与侧边栏翻译工作台；
+② **只读的阅读助手**（整页摘要、针对当前页的问答）；
+③ **可选**的本页操作 Agent（在用户逐次批准下对**当前网页**执行有限 DOM 操作）。
+阅读助手保持只读；Agent 默认需用户显式开启，且每个任务的步骤计划必须经用户批准后才执行。
 
 ## 权限用途说明
 
 | 权限 | 类型 | 用途 | 不使用的场景 |
 |------|------|------|--------------|
-| `storage` | 权限 | 保存扩展设置（Provider、模型、目标语言、站点禁用列表）与**当前一次**翻译会话；供界面恢复状态 | 不用于任何云端同步、不收集历史 |
-| `sidePanel` | 权限 | 打开侧边栏翻译工作台 | — |
+| `storage` | 权限 | 保存扩展设置（Provider、模型、目标语言、站点禁用列表、Agent 偏好）、**当前一次**翻译会话，以及**仅存于本机**的聊天 / 会话历史（供恢复、导出、删除） | 不用于任何云端同步；开发者不接收；用户可随时清空 |
+| `sidePanel` | 权限 | 打开侧边栏翻译工作台 / 阅读助手 / Agent 面板 | — |
 | `contextMenus` | 权限 | 提供右键菜单「用 DualMind 翻译」（选中文本）与「用 DualMind 翻译整页」 | — |
 | `commands`（Alt/Option+K） | 快捷键 | 对当前选中文本触发划词翻译（默认「仅快捷键」触发） | 不在页面内硬编码监听按键 |
-| `content_scripts.matches: <all_urls>` | 内容脚本 | 注入划词工具栏与页面悬浮入口（含「沉浸译」「总结本页」），支撑「选中后自动显示」、整页翻译与一键摘要 | 脚本仅读取**当前选区**与页面正文文本用于翻译 / 摘要，不采集其它信息、不外发 |
+| `content_scripts.matches: <all_urls>` | 内容脚本 | 注入划词工具栏、页面悬浮入口（含「沉浸译」「总结本页」「请 Agent 操作本页」）与 Agent 的 DOM 操作通道；读取当前选区、页面正文，以及在用户发起 Agent 任务时所需的页面元素快照（表单值等可能包含在内） | **不持有 API Key、不直连模型**（模型调用一律由 Background 发起）；Agent 仅在用户开启并经逐次批准后操作**当前页** |
 | `host_permissions: <all_urls>` | 主机权限 | 用户在设置中填入**任意** OpenAI 兼容 Base URL 后，由 Background 跨域 `fetch` 调用该端点 | 除用户显式配置的端点外，不外发任何数据 |
 | `host_permissions: 127.0.0.1 / localhost :11434` | 主机权限 | 访问用户本机运行的 Ollama 服务，实现本地模型翻译 | 请求仅发往本机回环地址 |
 
 ## 数据传输说明（Data usage）
 
-- **BYOK 直连**：翻译文本仅从 Background Service Worker 直接发送到**用户自己配置**的模型端点（自建 OpenAI 兼容服务或本机 Ollama）。DualMind **没有自有后端**，不中转、不存储用户文本。
-- **API Key**：仅保存在浏览器本地 `storage`，只由 Background 读取用于发起请求；**不会**注入到网页 Content Script，也不会上传到任何服务器。
-- **不采集**：不做浏览历史、页面内容、个人身份信息的收集或分析；无遥测/埋点。
+- **BYOK 直连**：翻译文本、摘要 / 问答上下文，以及 Agent 任务的工具结果，仅从 Background Service Worker 直接发送到**用户自己配置**的模型端点（自建 OpenAI 兼容服务或本机 Ollama）。DualMind **没有自有后端**，不中转、不存储用户文本。
+- **API Key**：仅保存在浏览器本地 `storage`，只由 Background 读取，并**仅用于向用户所配置的 Provider 发送认证请求**（即 Key 会作为该端点的认证凭据发出，但不会发往任何其他第三方）；**不会**注入到网页 Content Script。
+- **本页操作 Agent（可选）**：默认需用户显式开启；每个任务的步骤计划必须经用户批准后才执行，提交表单、导航至敏感域、删除类等**危险动作**在执行前二次确认，随时可停止。**支付 / 下单 / 转账等资金类动作直接拒绝**，不执行、也无法通过确认放行。仅在**当前内容页**操作，**不跨标签页**，不使用 debugger / CDP；对 Shadow DOM / 跨域 iframe / 严格 CSP 下的部分元素可能无法操作（会给出可读失败）。
+- **本地历史**：聊天与会话历史仅存于本机扩展存储，支持单条删除与全部清空；Agent 任务的运行态**不持久化**（关闭或重启后不恢复、不重放页面操作）。
+- **不采集**：不做浏览历史、个人身份信息的收集或分析；无遥测 / 埋点。
 - **无远程代码**：所有逻辑随包发布，运行时仅从用户配置的 API 端点获取文本结果，不加载远程可执行代码。
 
 ## 商店表单常见字段速查
@@ -32,7 +39,7 @@
 - **Remote code（是否使用远程代码）**：否
 - **Data collection（是否收集用户数据）**：否（仅在本机/用户端点间传输，开发者不接收）
 - **Host permission justification**：见上表两行 `host_permissions`
-- **Content script justification**：划词翻译需常驻读取用户选区
+- **Content script justification**：划词 / 沉浸译需常驻读取用户选区与页面正文；可选 Agent 需在用户批准后对当前页执行 DOM 操作
 
 ---
 
@@ -40,20 +47,28 @@
 
 **Single purpose**
 
-Provide instant, user-configured (BYOK) translation of selected text on web pages and of
-full page content (immersive in-page bilingual translation), plus a translation workbench
-in the side panel.
+Provide three user-configured (BYOK) capabilities on web pages:
+(1) instant translation of selected text and immersive full-page bilingual translation, plus a
+translation workbench in the side panel;
+(2) a read-only reading assistant (page summary and Q&A about the current page);
+(3) an **optional** on-page agent that performs limited DOM actions on the current page, only after
+the user explicitly enables it and approves each task plan.
 
 **Permission justifications**
 
-- `storage` — Persist extension settings (provider, model, target language, disabled-site list)
-  and the current translation session. No cloud sync, no history collection.
-- `sidePanel` — Host the translation workbench in the browser side panel.
+- `storage` — Persist extension settings (provider, model, target language, disabled-site list,
+  agent preferences), the current translation session, and locally stored chat/session history
+  (for restore, export, and deletion). No cloud sync; the developer does not receive it.
+- `sidePanel` — Host the translation workbench, reading assistant, and agent panel in the browser side panel.
 - `contextMenus` — Add "Translate with DualMind" (selection) and "Translate full page with DualMind" right-click menu items.
 - `commands` (Alt/Option+K) — Trigger translation for the current selection (hotkey-only by default).
-- `content_scripts.matches: <all_urls>` — Inject the selection toolbar and the immersive
-  full-page translation entry point. The script only reads the user's current selection and
-  the page's visible body text for translation; nothing else is collected or sent.
+- `content_scripts.matches: <all_urls>` — Inject the selection toolbar, the page entry point
+  (immersive translation, summarize, "Ask the agent to operate this page"), and the agent's DOM
+  action channel. The script reads the current selection, the page's visible text, and — only when
+  the user starts an agent task — a snapshot of the required page elements (which may include form
+  values). It never holds the API key and never calls the model directly; all model calls are made by
+  the background service worker. The agent acts on the current page only, after explicit opt-in and
+  per-task approval.
 - `host_permissions: <all_urls>` — The extension must `fetch` any user-provided OpenAI-compatible
   Base URL from the background service worker to perform translation. No data is sent anywhere
   except the endpoint the user explicitly configured.
@@ -62,9 +77,17 @@ in the side panel.
 
 **Data usage**
 
-No developer-operated backend. Selected text is sent only from the background worker directly to
-the user-configured model endpoint (their own OpenAI-compatible server or local Ollama). API keys
-stay in local extension storage and are never injected into content scripts. No telemetry, no
-browsing-history or page-content collection. No remote code.
+No developer-operated backend. Selected text, summary/Q&A context, and agent tool results are sent
+only from the background worker directly to the user-configured model endpoint (their own
+OpenAI-compatible server or local Ollama). API keys stay in local extension storage, are read only by
+the background worker, and are used solely to authenticate requests to the provider the user
+configured — never sent to any other third party, and never injected into content scripts.
+The optional on-page agent is disabled by default; each task plan must be approved by the user before
+execution, and dangerous actions (form submission, navigation to sensitive domains, deletion, etc.)
+require a second confirmation. Payment, ordering, and money-transfer actions are refused outright —
+they are never executed and cannot be approved. It operates on the current page only, never spans tabs, and never uses
+debugger/CDP. Chat and session history are stored locally and can be deleted. Agent task state is not
+persisted (no replay of page actions after restart). No telemetry, no browsing-history or page-content
+collection. No remote code.
 
 **Remote code** — No.
