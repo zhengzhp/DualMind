@@ -77,15 +77,15 @@
 
 | 字段 | 填写内容 |
 | --- | --- |
-| 候选版本 / 源码标识 | 人工验收证据绑定 `9770b9e625061c6c82eee1e2daae20f1de501672`（`main`，2026-10-08 04:53:38 +0800）。**自动化轮次（B9）已上移到 `b3af568`**（`main`，含 mock Provider 与 Agent E2E 套件 + DM-V3-003/004 修复 + 工具链提交）；工作区**已干净**，`pnpm compile` 0 error、Agent 组 E2E 32 passed。⚠️ 人工验收证据仍指向旧提交，如需绑定单一不可变版本须重跑（原 DM-V3-ENV-04） |
-| 测试日期 / 执行人 | 2026-10-08；执行人 **待填** |
+| 候选版本 / 源码标识 | **正式包绑定 `636fcd3`**（`636fcd343a93379a990638bf5a814048e9bb87fa`，`main`，2026-10-08 11:33:57 +0800）= 定版 `1.0.0` + 描述修正 + `minimum_chrome_version: 114`；对应正式包 sha256 **`2a670372…`**。历史证据链：人工验收证据绑定 `9770b9e`（2026-10-08 04:53:38）；自动化（B9）上移到 `b3af568`（2026-10-08 09:32:32，含 mock Provider + Agent E2E）。⚠️ **`9770b9e` 的人工验收证据未绑定到 `636fcd3`**，如需单一不可变版本须重跑人工项（原 DM-V3-ENV-04） |
+| 测试日期 / 执行人 | 2026-10-08；执行人 **zp** |
 | OS / 浏览器 | macOS 14.6.1（build 23G93，arm64）；Google Chrome 155.0.8059.40。**Edge 未安装；已拍板首轮只发 Chrome、Edge 已声明延后**（见 decisions.md「V3.0 正式版发布范围裁剪」S2），不再记为 BLOCKED；Windows 的 `Alt+K` 路径本机无法验证 |
 | 工具链 | Node `v24.21.0`；pnpm `12.9.1`（原 `9.5.1` 镜像获取失败，已由工作区改动修好并实测 `pnpm build` 通过）；WXT `^0.21.4`；Vitest `^3.2.7`；Playwright `^1.63.0`；TypeScript `^5.7.2` |
 | 扩展 | manifest 版本 **`1.0.0`**（2026-10-08 由负责人拍板定版，见 REL-01；与产品阶段名「V3.0」不等价）；**`minimum_chrome_version: 114`**（`sidePanel` 依赖）；加载路径 `.output/chrome-mv3`（生产构建）／正式包 `.output/dualmind-1.0.0-chrome.zip`（sha256 `2a670372…`，已归档至 `~/DualMind-releases/`）；扩展 ID 随加载变化，验收时记录实际值 |
 | 权限核对（PRIV-01 / PRIV-02） | `permissions: ["storage","sidePanel","contextMenus"]`；`host_permissions: ["http://127.0.0.1:11434/*","http://localhost:11434/*","<all_urls>"]`；`optional_permissions: null`；`commands: ["translate-selection"]`。**无 `debugger` / `scripting` / `tabs` / `activeTab`**，与「V3.0 零新增权限」一致 |
 | Provider A | Ollama `http://127.0.0.1:11434`（服务版本 0.35.1）。模型 **`qwen3:4b`（4.0B, 2.50GB）**：2026-10-08 实测返回结构化 `tool_calls`（`finish_reason: "tool_calls"`）→ **tools 能力通过**。原 `qwen-coder-8k:latest` / `qwen2.5-coder:7b` 不支持（`tool_calls: null`），不得再用作 Agent 验收模型。**tools 主路径已实跑（见 runbook B2h）**：`PLAN → 批准 → snapshot → click [#3] → fill [#3]`，计数器与页面事实一致。⚠️ 但仍**未走到 `finish`**，故 NET-01「双 Provider 完整闭环」尚未闭合 |
 | Provider B | **`deepseek-flash`**（OpenAI Compatible / BYOK）；Key 已脱敏、未记录。**B2 的全部主链路证据来自本 Provider**（计划 → 批准 → `runChatWithTools` → DOM 写入），但同样**未走到 `finish`** |
-| 构建与包 | 2026-10-08 05:06 生产构建 `pnpm build` 成功（WXT 1.048s）；已核对产物包含本次改动（Options 的 Agent 设置项、`background.js` 中的 `TOOLS_UNSUPPORTED` / `已达到最大步数` 逻辑） |
+| 构建与包 | 2026-10-08 05:06 首次生产构建 `pnpm build` 成功（WXT 1.048s）；核对产物含本次改动（Options 的 Agent 设置项、`background.js` 的 `TOOLS_UNSUPPORTED` / `已达到最大步数` 逻辑）。**2026-10-08 11:32 因 REL-05（描述）+ P1-3（`minimum_chrome_version`）重打包**：`pnpm compile` 0 error、`pnpm zip` 成功 → `.output/dualmind-1.0.0-chrome.zip`（227,927 B / sha256 `2a670372…`）；并在该新包上重跑 T04–T08（描述 / 最低版本 114 / 权限三项 / 无 `optional_permissions` / 无 CSP / 无 WAR / 图标 4 个有效 / `content.js` 敏感串全 0 / 掩码与超时常量均在）**全通过** |
 | 验证产物 | 封板测试页与计数器见 `e2e/pages/README.md`；手工验收记录表见 `docs/v3-acceptance-runbook.md` 第 3 节 |
 
 ### 必测矩阵
@@ -645,8 +645,10 @@ npx playwright test e2e/agent-plan.e2e.ts e2e/agent-safety.e2e.ts \
 
 | 签收项 | 负责人 | 日期 | 候选版本 / 包 hash | 结论与遗留 |
 |---|---|---|---|---|
-| V3.0 封板 | 待填 | 待填 | 待填 | 待填 |
-| Chrome 发布 | 待填 | 待填 | 待填 | 待填 |
+| V3.0 封板 | zp | **待签** | `1.0.0` @ `636fcd3` / `dualmind-1.0.0-chrome.zip` sha256 `2a670372…` | **待签**。A 段待决：① `9770b9e` 的人工验收证据未绑定 `636fcd3`（DM-V3-ENV-04）；② 第 6–10 节必测项按 S3/S4 收敛后复跑；③ 已知 flake（`selection-toolbar`）与低危缺陷（`content.css`）已披露 |
+| Chrome 发布 | zp | **待签** | 同上（归档 `~/DualMind-releases/`，REL-13 已校验 OK） | **待签**。B 段待决：① T09/T10 真实加载与网络观察（PRIV-03）未做；② NET-01 双 Provider 未走到 `finish`；③ REL-10 截图与 REL-11 提交当日核验未做 |
 | Edge 发布 | 延后（S2） | — | — | 首轮只发 Chrome，Edge 逐项验证延后至下一轮 |
+
+> **说明**：上表为**预填框架**（2026-10-08，已把负责人 / 候选版本 / 包 hash / 遗留项就位），**不代表任何闸门已通过**。日期与结论须由负责人在实际完成对应验证后填写；**只有完成签收后才更新架构里程碑或发布状态**。
 
 **只有完成对应签收后，才更新架构里程碑或发布状态；本文新增不表示任何闸门已通过。**
