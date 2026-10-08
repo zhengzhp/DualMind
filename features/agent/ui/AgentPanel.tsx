@@ -110,9 +110,12 @@ export function AgentPanel({
         </div>
         {showHelp && (
           <p className="mt-1.5 text-[11px] leading-relaxed text-brand-700/75">
-            需支持 tool calling 的模型。流程：生成计划 → 你批准 → 本页逐步操作；提交 /
-            支付 / 删除等会再确认（计划批准 + 危险再确认）。不支持 Shadow DOM /
-            跨域 iframe。
+            需支持 tool calling 的模型。流程：生成计划 → 你批准 → 本页逐步操作。删除
+            等危险动作会再次弹窗确认；
+            <span className="font-medium text-rose-700">
+              支付 / 下单 / 转账等资金类动作直接拒绝
+            </span>
+            ，不会执行、也无法通过确认放行。不支持 Shadow DOM / 跨域 iframe。
           </p>
         )}
       </div>
@@ -158,7 +161,10 @@ export function AgentPanel({
       )}
       {/* 危险确认：理由过长时可滚，操作按钮始终可见 */}
       {agent.danger && (
-        <div className="flex shrink-0 flex-col rounded-xl border border-amber-300 bg-amber-50 p-3">
+        <div
+          data-testid="agent-danger"
+          className="flex shrink-0 flex-col rounded-xl border border-amber-300 bg-amber-50 p-3"
+        >
           <p className="shrink-0 text-xs font-medium text-amber-900">
             危险动作待确认
           </p>

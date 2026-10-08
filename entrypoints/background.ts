@@ -26,7 +26,7 @@ import { runAgentTask, TOOL_TIMEOUT_MS, withTimeout } from '@/features/agent/ser
 import { answerQuestion } from '@/features/chat/service';
 import { createProviderFromSettings } from '@/providers/registry';
 import { softenDevTabReloads } from '@/shared/dev/softenTabReload';
-import { formatErrorForUi, normalizeError } from '@/shared/errors';
+import { UserFacingError, formatErrorForUi, normalizeError } from '@/shared/errors';
 import { fail, ok } from '@/shared/messaging/client';
 import { hostnameFromUrl, isHostDisabled } from '@/shared/siteAccess';
 import {
@@ -589,11 +589,11 @@ function attachAgentPort(port: {
         const settings = await getSettings();
         if (controller.signal.aborted) return;
         if (isHostDisabled(settings.disabledHosts, hostnameFromUrl(tab.url ?? ''))) {
-          throw new Error('当前站点已停用 DualMind，请先在 Options 中启用');
+          throw new UserFacingError('当前站点已停用 DualMind，请先在 Options 中启用');
         }
 
         if (agentTabTasks.has(tab.id)) {
-          throw new Error('本页已有 Agent 任务，请先停止侧栏或工作台中的原任务');
+          throw new UserFacingError('本页已有 Agent 任务，请先停止侧栏或工作台中的原任务');
         }
         taskTabs.set(message.taskId, tab.id);
         agentTabTasks.set(tab.id, {
@@ -651,7 +651,7 @@ function attachAgentPort(port: {
             const latestSettings = await getSettings();
             if (controller.signal.aborted) throw new Error('任务已停止');
             if (isHostDisabled(latestSettings.disabledHosts, hostnameFromUrl(binding.url))) {
-              throw new Error('当前站点已停用，Agent 任务已停止');
+              throw new UserFacingError('当前站点已停用，Agent 任务已停止');
             }
             return executeAgentToolOnTab(tab.id!, message.taskId, binding, tool, args, guard);
           },

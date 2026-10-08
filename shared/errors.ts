@@ -38,6 +38,24 @@ export class ProviderError extends AppError {
   }
 }
 
+/**
+ * 「业务可展示」错误：message **已经是我们写给用户的文案**，
+ * 允许 `formatErrorForUi` 直接展示（区别于 UNKNOWN 的统一兜底）。
+ *
+ * 为什么需要：Background 里大量**可预期**的拒绝（站点已停用、本页已有 Agent 任务等）
+ * 过去以普通 `Error` 抛出，经 `normalizeError` 归为 `UNKNOWN` 后 message 被丢弃，
+ * 用户只看到「出错了，请稍后重试」，无从判断原因（缺陷 DM-V3-004）。
+ *
+ * ⚠️ 只允许包装**本项目自己的**用户文案；**绝不能**包装 Provider 原始响应体
+ * 或任何可能含凭据 / 内网信息的文本（PRIV-06 边界）。
+ */
+export class UserFacingError extends AppError {
+  constructor(message: string) {
+    super(message, 'UNKNOWN');
+    this.name = 'UserFacingError';
+  }
+}
+
 /** 面向用户的固定文案；detail 仅作补充（不暴露 Key） */
 const USER_MESSAGES: Record<ErrorCode, string> = {
   EMPTY_TEXT: '没有可翻译的文本',
@@ -111,6 +129,10 @@ export function normalizeError(err: unknown): AppError {
 /** UI 展示用：统一取可读文案 */
 export function formatErrorForUi(err: unknown): string {
   const normalized = normalizeError(err);
+  // 显式标记的业务文案：直接展示（见 UserFacingError 注释；不含任何 Provider 原始内容）
+  if (normalized instanceof UserFacingError) {
+    return normalized.message;
+  }
   // 若 message 已是用户文案则直接用；否则按 code 映射
   if (normalized.message && normalized.code !== 'UNKNOWN') {
     return normalized.message;
