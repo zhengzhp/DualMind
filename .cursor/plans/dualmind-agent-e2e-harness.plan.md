@@ -137,7 +137,7 @@ isProject: false
 | `e2e/fixtures.ts`（改） | 新增 `setupAgentTest` / `openAgentSurface` / `agentUi` / `openContentPage` / `seedAgentPrefs` / `readAgentPrefs` / `readCounters` / `resetCounters` / `ensureTestPages` / `resetMockLlm`；`EXTENSION_PATH` 与 `OLLAMA_MODEL` 支持环境变量覆盖（默认行为不变） |
 | `e2e/agent-plan.e2e.ts`（新增） | AG-03 / AG-05 / AG-16 / AG-18 / AG-19 / AG-04 |
 | `e2e/agent-safety.e2e.ts`（新增） | SEC-01 / SEC-17 / SEC-06（确认与跳过两支路） |
-| `e2e/agent-network.e2e.ts`（新增） | NET-04 / NET-06 / NET-07 + PRIV-06 片段 |
+| `e2e/agent-network.e2e.ts`（新增） | NET-04 / NET-05 / NET-06 + PRIV-06 片段 |
 | `e2e/agent-lifecycle.e2e.ts`（新增） | LIFE-01/02/03/05/08/11/16 |
 | `e2e/agent-entry.e2e.ts`（新增） | AG-01 / AG-02 / UI-08 / UI-09 / UI-12（DM-V3-003 以 `test.fixme` 固化期望） |
 | `e2e/workspace.e2e.ts`（改） | 修正过期的「Agent 仍占位」断言（该用例此前**必然失败**） |

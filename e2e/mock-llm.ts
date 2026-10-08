@@ -39,7 +39,7 @@ export type MockStep =
   | { type: 'plan'; steps?: string[]; notes?: string; delayMs?: number }
   /** tool 环：返回一批 tool_calls */
   | { type: 'tools'; calls: MockToolCall[]; delayMs?: number }
-  /** 纯文本回答（不含 tool_calls），用于 NET-07「模型不支持 tools」 */
+  /** 纯文本回答（不含 tool_calls），用于 NET-05「模型不支持 tools」 */
   | { type: 'text'; content?: string; delayMs?: number }
   /** HTTP 错误，用于 NET-04 */
   | { type: 'http_error'; status: number; body?: string; delayMs?: number }

@@ -1,5 +1,5 @@
 /**
- * V3 Agent · Provider 错误注入（NET-04 / NET-06 / NET-07）
+ * V3 Agent · Provider 错误注入（NET-04 / NET-05 / NET-06）
  *
  * 价值：401/429/5xx/连接重置/「模型不支持 tools」这些**概率性**故障，
  * 靠真模型无法稳定复现；mock 可确定性注入，并保证 UI 不卡在 loading、不误报成功。
@@ -141,7 +141,7 @@ test.describe('Agent · Provider 错误注入', () => {
     await expect(agentPage.getByText('任务成功完成')).toBeVisible({ timeout: 60_000 });
   });
 
-  test('NET-07 · 模型不返回 tool_calls：容忍一轮后明确判定不支持', async ({
+  test('NET-05 · 模型不返回 tool_calls：容忍一轮后明确判定不支持', async ({
     context,
     serviceWorker,
     extensionId,

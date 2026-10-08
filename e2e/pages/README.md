@@ -69,7 +69,7 @@ Agent 用例**已自动化**，文件在 `e2e/`（不在本目录）：
 | `e2e/mock-llm.ts` | 测试专用「OpenAI 兼容」mock（SSE + `tool_calls`、错误注入、`pick` 按文案解析 index），**零新增依赖** |
 | `e2e/agent-plan.e2e.ts` | AG-03 / AG-05 / AG-16 / AG-18 / AG-19 / AG-04 |
 | `e2e/agent-safety.e2e.ts` | SEC-01 / SEC-17 / SEC-06 |
-| `e2e/agent-network.e2e.ts` | NET-04 / NET-06 / NET-07（+ PRIV-06 片段） |
+| `e2e/agent-network.e2e.ts` | NET-04 / NET-05（零 tool_calls 判定不支持）/ NET-06（+ PRIV-06 片段） |
 | `e2e/agent-lifecycle.e2e.ts` | LIFE-01 / 02 / 03 / 05 / 08 / 11 / 16 |
 | `e2e/agent-entry.e2e.ts` | AG-01 / AG-02 / UI-08 / UI-09 / UI-12 |
 
