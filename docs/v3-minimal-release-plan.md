@@ -33,18 +33,18 @@
 
 ### Phase 0 · 决策与登记（≈0.5h）
 
-- [ ] **T01** · REL-01 ｜ 确定正式版 version，核对 `package.json` 与最终 manifest（当前 `0.1.0`，**勿等同于产品阶段「V3」**） | 0.2h | 负责人：待填
+- [x] **T01** · REL-01 ｜ 确定正式版 version ✅ **2026-10-08 拍板 = `1.0.0`**（首个正式版）；`package.json` 已改，WXT 取 package version 写入 manifest（无硬编码 version） | 0.2h | 负责人：zp
 - [ ] **T02** · §3 ｜ 候选版本 / 源码标识绑定最终 commit；S1–S5 范围变更已写入 `docs/decisions.md`（本清单第 1 节） | 0.3h | 负责人：待填
 
 ### Phase 1 · 打包与包内安全（P0 机械项，≈1.5h）
 
-- [ ] **T03** · B6 ｜ `pnpm zip` 生成正式包 | 0.2h
-- [ ] **T04** · REL-03 · P0 ｜ 解压最终 zip，核对 manifest / 权限 / 脚本 / 资源 / 校验值 | 0.3h
-- [ ] **T05** · PRIV-08 · P0 ｜ zip 全内容检查：无 `.env`、真实 Key、测试用户数据、`.e2e-profile`、日志 / trace、开发私密文件 | 0.2h
-- [ ] **T06** · PRIV-01 / PRIV-02 · P0 ｜ 在**最终包**上复跑 manifest 口径（权限 = storage/sidePanel/contextMenus；无 debugger/scripting/tabs/activeTab） | 0.2h
-- [ ] **T07** · PRIV-05 · P0 ｜ 最终包 `content.js` 静态复跑：`getSettings` / `Authorization` / `Bearer` / `sk-` 命中数均为 0 | 0.2h
-- [ ] **T08** · PRIV-04 / PRIV-06 · P0 ｜ 最终包复跑：密码框掩码不回传明文；错误不泄漏 body / Key | 0.2h
-- [ ] **T09** · AUTO-06 · P1 ｜ 最终包加载 + 主路径冒烟（防止「验旧包、交新包」） | 0.2h
+- [x] **T03** · B6 ｜ `pnpm zip` 生成正式包 ✅ 2026-10-08 → `.output/dualmind-0.1.0-chrome.zip`（227,847 B / 227.85 kB；sha256 `3d741a39c812f49c309569cb26fd5a3ea6d52583f5cc3e7e48c975b9abc83204`） | 0.2h
+- [x] **T04** · REL-03 · P0 ｜ 解压最终 zip，核对 manifest / 权限 / 脚本 / 资源 / 校验值 ✅ 72 文件 / 788K（解压后）；manifest 与批准口径一致（见 §7）；「运行加载」部分留 T09 / T28 | 0.3h
+- [x] **T05** · PRIV-08 · P0 ｜ zip 全内容检查 ✅ 无 `.env` / `.map` / `.ts` / 日志 / 凭据 / `.e2e-profile` / trace | 0.2h
+- [x] **T06** · PRIV-01 / PRIV-02 · P0 ｜ 最终包 manifest 口径 ✅ `permissions=[storage,sidePanel,contextMenus]`、无 `optional_permissions`、无 `debugger`/`scripting`/`tabs`/`activeTab`、无 `web_accessible_resources`、无 `content_security_policy`（走 MV3 默认）；`commands` 仅 `translate-selection`(Alt+K) | 0.2h
+- [x] **T07** · PRIV-05 · P0 ｜ 最终包 `content.js` 静态复跑 ✅ `getSettings`/`Authorization`/`Bearer`/`sk-` 命中 **均为 0**；`apiKey` 仅默认空串（`apiKey:""`） | 0.2h
+- [x] **T08** · PRIV-04 / PRIV-06 · P0 ｜ 最终包复跑 ✅ 密码掩码 `••••` 存在于 `content.js`；`background.js` 含 `Authorization`/`Bearer` 各 1（仅请求头）、`debugger`/`scripting` 命中 0；DM-V3-002 超时常量 `1e4`/`15e3` 均在包内 | 0.2h
+- [ ] **T09** · AUTO-06 · P1 ｜ 最终包加载 + 主路径冒烟（防止「验旧包、交新包」）—— **待真实 Chrome 加载** | 0.2h
 
 ### Phase 2 · 隐私实证（P0，≈1～2h）
 
@@ -130,3 +130,23 @@
 | **合计** | | **≈3.5～4.5 人日** |
 
 **关键路径**：Phase 3 → Phase 4 → Phase 6。Phase 1 / 2 可与 Phase 3 并行。
+
+## 7. 执行记录
+
+### 2026-10-08 · Phase 1 静态核对（源码标识 `861fda0` + 版号 `1.0.0`，工作区干净）
+
+| 项 | 结果 |
+|----|------|
+| 打包命令 | `pnpm zip` → 退出码 0，`✔ Finished in 893 ms` |
+| **产物（最终）** | `.output/dualmind-1.0.0-chrome.zip` · 227,845 B · **sha256 `487f11836ea86d94822a0034e597096c31f82a29b27fa6976ceff5fc13456f1e`** |
+| 旧包（已废弃） | `dualmind-0.1.0-chrome.zip`（sha256 `3d741a39…`）—— 因版号变更已删除，其核对结论不再有效 |
+| 解压规模 | 72 个文件 / 788K |
+| 顶层结构 | `manifest.json`、`background.js`(56.6K)、`content-scripts/content.js`(112.4K)、`chunks/`(5 个：Workbench/options/sidepanel/tailwind/workspace)、`options.html`、`sidepanel.html`、`workspace.html`、`icon/`、`model-icons/`(57)、`assets/`、`wordmark.svg` |
+| **T05 敏感文件** | 无 `.env*` / `*.map` / `*.ts(x)` / `*.log` / `credentials*` / `*.e2e*` ⇒ 干净 |
+| **T06 manifest** | `manifest_version:3`、**`version:1.0.0`**、`permissions:["storage","sidePanel","contextMenus"]`、**无** `optional_permissions`、`host_permissions:["http://127.0.0.1:11434/*","http://localhost:11434/*","<all_urls>"]`、`commands` 仅 `translate-selection`(default/mac 均 `Alt+K`)、`side_panel.default_path: sidepanel.html`、`content_scripts.matches:["<all_urls>"]` 且 js 仅 `content-scripts/content.js`（**无 css** —— 已知低危）、**未声明** `content_security_policy`、**无** `web_accessible_resources`、**无** `debugger`/`scripting`/`tabs`/`activeTab` |
+| **T07 隐私静态** | `content.js`：`getSettings`=0、`Authorization`=0、`Bearer`=0、`sk-`=0；`apiKey` 仅 1 处且为默认空串 `apiKey:""` |
+| **T08 掩码 / 错误** | `content.js` 含 `••••`（密码掩码）；`background.js`：`Authorization`=1、`Bearer`=1（仅请求头）、`debugger`=0、`chrome.debugger`=0、`scripting`=0；DM-V3-002 常量 `1e4`(MAX_WAIT_MS) 与 `15e3`(TOOL_TIMEOUT_MS) 均在包内 |
+
+**结论**：T01、T03–T08 全部通过，**与 `docs/v3-release-test-plan.md` §3 登记的权限口径一致**。T09（真实加载 + 主路径冒烟）与 T10（网络观察）需真实浏览器，尚未执行。
+
+**⚠️ 后续约束**：Phase 3–5 若**新增测试文件**（不改产品源码），包不受影响；**一旦改动 `features/` / `providers/` / `shared/` / `entrypoints/` 等产品源码，必须重新 `pnpm zip` 并重跑 T04–T08**。

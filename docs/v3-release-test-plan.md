@@ -81,7 +81,7 @@
 | 测试日期 / 执行人 | 2026-10-08；执行人 **待填** |
 | OS / 浏览器 | macOS 14.6.1（build 23G93，arm64）；Google Chrome 155.0.8059.40。**Edge 未安装；已拍板首轮只发 Chrome、Edge 已声明延后**（见 decisions.md「V3.0 正式版发布范围裁剪」S2），不再记为 BLOCKED；Windows 的 `Alt+K` 路径本机无法验证 |
 | 工具链 | Node `v24.21.0`；pnpm `12.9.1`（原 `9.5.1` 镜像获取失败，已由工作区改动修好并实测 `pnpm build` 通过）；WXT `^0.21.4`；Vitest `^3.2.7`；Playwright `^1.63.0`；TypeScript `^5.7.2` |
-| 扩展 | manifest 版本 `0.1.0`（与产品阶段名「V3.0」不等价，正式版号见 REL-01）；加载路径 `.output/chrome-mv3`（生产构建）；扩展 ID 随加载变化，验收时记录实际值 |
+| 扩展 | manifest 版本 **`1.0.0`**（2026-10-08 由负责人拍板定版，见 REL-01；与产品阶段名「V3.0」不等价）；加载路径 `.output/chrome-mv3`（生产构建）／正式包 `.output/dualmind-1.0.0-chrome.zip`；扩展 ID 随加载变化，验收时记录实际值 |
 | 权限核对（PRIV-01 / PRIV-02） | `permissions: ["storage","sidePanel","contextMenus"]`；`host_permissions: ["http://127.0.0.1:11434/*","http://localhost:11434/*","<all_urls>"]`；`optional_permissions: null`；`commands: ["translate-selection"]`。**无 `debugger` / `scripting` / `tabs` / `activeTab`**，与「V3.0 零新增权限」一致 |
 | Provider A | Ollama `http://127.0.0.1:11434`（服务版本 0.35.1）。模型 **`qwen3:4b`（4.0B, 2.50GB）**：2026-10-08 实测返回结构化 `tool_calls`（`finish_reason: "tool_calls"`）→ **tools 能力通过**。原 `qwen-coder-8k:latest` / `qwen2.5-coder:7b` 不支持（`tool_calls: null`），不得再用作 Agent 验收模型。**tools 主路径已实跑（见 runbook B2h）**：`PLAN → 批准 → snapshot → click [#3] → fill [#3]`，计数器与页面事实一致。⚠️ 但仍**未走到 `finish`**，故 NET-01「双 Provider 完整闭环」尚未闭合 |
 | Provider B | **`deepseek-flash`**（OpenAI Compatible / BYOK）；Key 已脱敏、未记录。**B2 的全部主链路证据来自本 Provider**（计划 → 批准 → `runChatWithTools` → DOM 写入），但同样**未走到 `finish`** |
@@ -436,7 +436,7 @@ npx playwright test e2e/agent-plan.e2e.ts e2e/agent-safety.e2e.ts \
 
 ## 14. 正式包与商店提审材料（B）
 
-- [ ] **REL-01 · P1**：确定正式版 version，核对 package 与最终 manifest — 本仓库 package 当前为 `0.1.0`，正式版本由负责人决定；不要自动等同于产品阶段「V3」或擅自改版号。
+- [x] **REL-01 · P1**：确定正式版 version，核对 package 与最终 manifest — ✅ **2026-10-08 负责人拍板 = `1.0.0`**（首个正式版）；`package.json` 已改为 `1.0.0`，WXT 取 package version 写入 manifest（无硬编码），最终包 `dualmind-1.0.0-chrome.zip` 内 `manifest.version = "1.0.0"` 已核对。未自动等同于产品阶段「V3」。
 - [ ] **REL-02 · P1**：在干净构建环境 / 明确工具链下生成产物 — 无开发热更新依赖；构建日志可复现，包能独立加载。
 - [ ] **REL-03 · P0**：解压最终 zip，检查 manifest、权限、脚本、资源与校验值 — 与已验候选一致；zip 后再构建或更改包需重新核对。
 - [ ] **REL-04 · P1**：Chrome 与 Edge 分别加载最终解压包 — Options、真实 Side Panel、工作台、划词、沉浸译、Chat、Agent 主路径均能打开 / 完成。
