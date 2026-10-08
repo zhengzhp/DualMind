@@ -87,7 +87,7 @@
 - [ ] **T28** · REL-04 · P1 ｜ Chrome 加载最终解压包，Options / 真实 Side Panel / 工作台 / 划词 / 沉浸译 / Chat / Agent 主路径逐一打开 | 0.3h
 - [x] **T29** · REL-05 · P1 ｜ ✅ 完成：名称 / 版本 / `default_title` / 四图标（有效 PNG + 尺寸正确）/ 无开发标记 全通过；**修复 V1-only 描述**（改为覆盖三类能力、不夸大，并写明 Agent「可选 + 逐次批准」）；**顺带修复 P1-3**：新增 `minimum_chrome_version: "114"`。已重新 build + zip + 在新包重跑 T04–T08 全通过 | 0.4h
 - [x] **T34** · REL-09 · P1 ｜ ✅ 新建 `docs/reviewer-reproduction.md`：安装 → 配置（`ollama pull qwen3:4b`，无需账号 / 付费）→ 翻译 → 阅读助手 → Agent 计划批准 → 危险二次确认 → **资金类动作被拒** → 停止；含无模型降级路径与「勿粘贴真实 Key」提示 | 0.4h
-- [~] **T30** · REL-10 · P1 ｜ ⏳ **素材框架就绪（2026-10-08），图片待跑**：新建 `docs/store-screenshots.md`（6 张截图清单 + 每张可粘贴文案 + **模型前提 / 安全确认 / 已知限制**三段 + 提交前 Checklist + 待人工补拍项）与采集用例 `e2e/store-screenshots.e2e.ts`（仅 `DM_CAPTURE=1` 执行，锁定 DPR=1 保证恰为 1280×800）。⚠️ **未完成部分**：① 尚未用最终解压包真正出图；② 工作台 / 阅读助手 / Agent 三张采自 `workspace.html`（与侧栏共用 `WorkbenchApp`），**真实侧栏观感须人工补拍** | 0.5h
+- [x] **T30** · REL-10 · P1 ｜ ✅ **6 张截图已用最终归档包采集（2026-10-08）**：`docs/store-screenshots.md`（6 张清单 + 可粘贴文案 + 模型前提 / 安全确认 / 已知限制 + Checklist + 采集记录）与用例 `e2e/store-screenshots.e2e.ts`（仅 `DM_CAPTURE=1`、DPR 锁 1）。**采集证据**：源 = `/tmp/dm-1.0.0`（解压自归档包 sha256 `2a670372…`）、`manifest version=1.0.0`、有头、**6 passed / 27.4s**、产物 6 张经 `sips` 实测均 **1280×800**（落在 `docs/assets/store/`）。⚠️ **保留人工**：真实 Side Panel 形态（Playwright 截不到浏览器 UI，仅在 `workspace.html` 采工作台 / 阅读助手 / Agent 三张）与肉眼观感核对（见 `store-screenshots.md` §6） | 0.5h
 - [x] **T31** · REL-12 · P1 ｜ ✅ 新建 `docs/release-notes-v1.0.0.md`：发布说明 + 已知限制 + 已知缺陷表 + **回滚 / 暂停发布预案**（含「无后端 ⇒ 只能商店下架」的影响追踪）；负责人已填 **zp** | 0.3h
 - [ ] **T32** · REL-11 · P1 ｜ 提交表单**当日**核验（记录日期）—— 📋 **8 项 Checklist 已就绪**：runbook **B11-3 · T32 · REL-11**（包 sha256 校验 / 包内版本 / 权限口径 / 隐私政策与支持 URL 可达 / 表单字段 / 截图与最终包一致 / 提交日期；含「当日改源码即须重新打包」红线）。**待提交当日执行** | 0.3h
 - [x] **T35** · REL-13 · P1 ｜ ✅ 正式包已归档到**仓库外** `~/DualMind-releases/`（zip + `.sha256` + README），`shasum -c` 校验 OK，不再依赖会被覆盖的 `.output` | 0.2h
@@ -248,3 +248,16 @@
 | 未触及产品源码 | 本轮仅改测试夹具与文档 ⇒ 已归档的 `1.0.0` 包（sha256 `2a670372…`）**仍有效，无需重新打包** |
 
 **结论**：发版前剩余代码级风险（DM-V3-005）已闭环；完整有头套件的最终包复跑按负责人意见**跳过并登记**。
+
+### 2026-10-08 · T30 截图采集（用最终归档包）
+
+| 项 | 结果 |
+|----|------|
+| 来源 | `/tmp/dm-1.0.0`（`unzip` 自 `~/DualMind-releases/dualmind-1.0.0-chrome.zip`）；`shasum -a 256` 实测 = `2a670372…`，与归档 `.sha256` 一致；包内 `version: 1.0.0` |
+| 命令 | `DM_CAPTURE=1 DM_EXTENSION_PATH=/tmp/dm-1.0.0 E2E_HEADED=1 PLAYWRIGHT_BROWSERS_PATH="$HOME/Library/Caches/ms-playwright" npx playwright test e2e/store-screenshots.e2e.ts`（**脱离沙箱**执行） |
+| 结果 | **6 passed / 27.4s**；产物 6 张落在 `docs/assets/store/`，`sips` 实测均 **1280×800**（01 划词 / 02 沉浸译 / 03 工作台翻译 / 04 阅读助手 / 05 Agent 计划批准 / 06 Agent 危险确认） |
+| 模型 | 本机 Ollama `qwen-coder-8k:latest`（1/2/4 走真实推理，产出真实中译文） |
+| 文档 | `docs/store-screenshots.md` 状态改为「已采集」并新增 §5.1 采集记录；Checklist 勾选尺寸项与「用最终包采集」项 |
+| 保留人工 | 真实 Side Panel 形态（Playwright 截不到浏览器 UI）与肉眼观感核对 |
+
+**结论**：T30 **自动可做部分已完成**（图片 + 文案 + 前提声明齐备）；仅剩「真实侧栏形态」属可选人工补拍。

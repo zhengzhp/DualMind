@@ -1,6 +1,6 @@
 # DualMind 上架截图与功能说明（REL-10 / T30）
 
-> 状态：**素材框架就绪（2026-10-08），图片待用最终包复拍**。
+> 状态：**图片已用最终归档包采集（2026-10-08，6/6 通过）**，待人工补拍「真实侧栏形态」与观感核对（见 §6）。
 > 与 [store-listing.md](./store-listing.md)（表单文案）、[release-notes-v1.0.0.md](./release-notes-v1.0.0.md)（已知限制）配套；
 > 权威边界见 [decisions.md](./decisions.md) 与 [v3-minimal-release-plan.md](./v3-minimal-release-plan.md)。
 
@@ -83,11 +83,25 @@ DualMind 把三类能力放到你正在看的这一页上，模型由**你自己
 
 ## 5. 提交前 Checklist
 
-- [ ] 用**最终归档包**（不是 dev 产物）跑一次 §3 的采集，确认 6 张图与文中描述逐条一致。
-- [ ] 图内出现的功能、按钮、文案与最终包**实际**一致（REL-05）。
+- [x] 用**最终归档包**（不是 dev 产物）跑一次 §3 的采集，确认 6 张图与文中描述逐条一致。→ **2026-10-08 已执行**（`DM_EXTENSION_PATH=/tmp/dm-1.0.0`，源包 sha256 `2a670372…`，6/6 通过）
+- [ ] 图内出现的功能、按钮、文案与最终包**实际**一致（REL-05）。→ 图片已取自最终包；**仍须人工目视复核**文案口径
 - [ ] §4.1–§4.3 的三类前提**已写进**提交表单对应字段。
 - [ ] 与 [store-listing.md](./store-listing.md) 的「单一用途 / 数据使用」无事实冲突。
-- [ ] 图片尺寸恰为 1280×800，且无个人数据 / 真实 Key / 真实站点私密信息。
+- [x] 图片尺寸恰为 1280×800，且无个人数据 / 真实 Key / 真实站点私密信息。→ 6 张均 `sips` 实测 **1280×800**，内容为虚构演示数据
+
+## 5.1 采集记录（2026-10-08）
+
+| 项 | 值 |
+|----|----|
+| 来源扩展 | `/tmp/dm-1.0.0`（解压自 `~/DualMind-releases/dualmind-1.0.0-chrome.zip`） |
+| 源包 sha256 | `2a6703722098cba7e583c96f56bc9b5da7090307fe5280153c347d41629b08c1`（与归档 `.sha256` 一致） |
+| 包内版本 | `manifest.json` → `version: 1.0.0` |
+| 模式 | 有头（`E2E_HEADED=1`），DPR 锁 1 |
+| 结果 | **6 passed / 27.4s**，产物 6 张均 1280×800 |
+| 模型 | 本机 Ollama `qwen-coder-8k:latest`（内容页 1/2/4 走真实推理） |
+| 命令 | `DM_CAPTURE=1 DM_EXTENSION_PATH=/tmp/dm-1.0.0 E2E_HEADED=1 PLAYWRIGHT_BROWSERS_PATH="$HOME/Library/Caches/ms-playwright" npx playwright test e2e/store-screenshots.e2e.ts` |
+
+> 说明：本次出图**已脱离 Cursor 沙箱**（沙箱内代理会干扰扩展加载 / 本地模型连接）。
 
 ## 6. 待人工补拍 / 待人工确认
 
