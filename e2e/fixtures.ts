@@ -189,7 +189,7 @@ export async function seedSettings(
        * 注意：这是**测试夹具的缺陷**，不是产品缺陷 —— 产品侧写入都经
        * `getSettings()/saveSettings()`，天然与迁移串行；只有本函数直接写底层 storage。
        * 故修法也留在测试侧（不改产品源码 ⇒ 已归档的发布包不受影响）。
-       * 诊断记录：docs/v3-release-test-plan.md 第 15 节 DM-V3-005。
+       * 诊断记录：docs/v3-release-test-plan-log.md §15 DM-V3-005。
        */
       const startedAt = Date.now();
       let previous = await readRaw();

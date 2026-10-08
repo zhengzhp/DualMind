@@ -47,7 +47,7 @@
 > （夹具直接写底层 storage，与 `runMigrations()` 的读-改-写交错）。
 > 真实用户路径不存在该窗口（产品内写入都经 `getSettings()/saveSettings()` 与迁移串行）。
 > 夹具已修为「写入 + 回读校验 + 重试」，有头全量 E2E 连续两轮 `83 passed / 0 failed`。
-> 因此该条**已从产品已知缺陷中移除**；排查记录见测试计划第 15 节 DM-V3-005。
+> 因此该条**已从产品已知缺陷中移除**；排查记录见 [v3-release-test-plan-log.md](./v3-release-test-plan-log.md) §15 DM-V3-005。
 
 ## 4. 权限与隐私提示（对用户可见）
 

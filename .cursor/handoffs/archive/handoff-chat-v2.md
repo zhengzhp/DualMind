@@ -1,5 +1,6 @@
 # 交接：V2 网页摘要 / 网页问答（功能已可用，待实机验收）
 
+> **已归档（V2 已封板）**：仅历史背景，按需检索、勿整体阅读；当前交接见 [../../handoff-agent-v3.md](../../handoff-agent-v3.md)。
 > 生成于 2026-10-07，承接 V1.5 交接（[handoff-immersive.md](./handoff-immersive.md)）之后。
 > 用途：开新会话只带本文件即可接着干，无需回读上一会话记录。
 > 上一会话完整记录：`agent-transcripts/65765c36-a4d0-4614-a93c-a0e4e0c215f1.jsonl`（可按关键词检索回溯）。
@@ -193,5 +194,5 @@ export PATH="$HOME/.nvm/versions/node/v22.23.3/bin:$PATH"   # 本机默认 node 
 1. ~~实机验收 / V2 封板~~ ✅ 完成。
 2. ~~五项技术债（钉底 / 跨页分隔 / SPA 提示 / TTL+过期提示 / E2E flake）~~ ✅ 见 `docs/decisions-v2.md`「封板后技术债处理」。
 3. 工程：本地 commits 是否 `git -c http.version=HTTP/1.1 push` 由用户决定。
-4. ~~**V3 立项 + 文档切档**~~ ✅ 见 `docs/decisions.md` 与 [.cursor/handoff-agent-v3.md](./handoff-agent-v3.md)。
+4. ~~**V3 立项 + 文档切档**~~ ✅ 见 `docs/decisions.md` 与 [.cursor/handoff-agent-v3.md](../../handoff-agent-v3.md)。
 5. 发布闸门（compile / 全量 e2e / 提审）仍推迟到 V3 完成后。

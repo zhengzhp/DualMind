@@ -14,6 +14,6 @@
 - 仅 Background 调 AI；Provider 不碰 DOM
 - Chat / Agent 能力不得混进翻译服务（Chat 走 `features/chat/`，消息前缀 `chat:*`）
 - 不随意扩大扩展权限
-- 验证节奏见 `AGENTS.md`「改动 → 最小验证」；**Ask first** 仍适用于 test / build / compile
+- 验证节奏见 `.cursor/commands/verify.md`「改动 → 最小验证」；**Ask first** 仍适用于 test / build / compile
 
 用简体中文输出。

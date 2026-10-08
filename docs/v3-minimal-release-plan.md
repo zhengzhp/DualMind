@@ -174,7 +174,7 @@
 | 新增用例 | LIFE-08（补）· 第二入口被拒后第一任务计划 / 确认 / UI 不被改变；LIFE-10 · 运行中切活动 Tab；LIFE-12 · SPA 导航（pushState）；LIFE-19 · 运行中停用当前站点 |
 | 全量 `npx playwright test` | **71 passed / 1 failed / 1 skipped**（2.8 min）。较上轮 68 通过增加 4 条新用例（73 总，3 项差异见下） |
 | 唯一失败 | `selection-toolbar.e2e.ts:83「按 Esc 收起浮层」` —— 与既有登记**同一族 flake**（`.dm-btn.primary` 解析到但 `hidden`，单跑稳定通过），按负责人意见**暂时忽略** |
-| `1 skipped` | `selection-panel-toggle.e2e.ts` 真实 Side Panel（无头自动 skip，有头下已于 §5.3 补齐） |
+| `1 skipped` | `selection-panel-toggle.e2e.ts` 真实 Side Panel（无头自动 skip，有头下已于 log §5.3 补齐） |
 
 **结论**：T12–T16、T18 闭合（T12 走单测记账、T16 部分完成并披露未构造变体）；**T17（NET-01 双 Provider 到 `finish`）未做**，需真实 Provider 人工会话。
 
@@ -244,7 +244,7 @@
 | flake 定性与加固 | `selection-toolbar` 家族「划词后浮层未出现」= **测试夹具竞态**（`seedSettings` 直写底层 storage 与 SW 启动期 `runMigrations()` 的写-写竞态），**非产品缺陷**。`e2e/fixtures.ts` 改为「**先等启动期写入收敛 → 写入 → 连续两次稳定校验**」，失败显式抛错；`selection-toolbar.e2e.ts`「滚动跟随」由固定 `waitForTimeout` 改 `expect.poll` |
 | 证据 | 有头全量 3 轮 `83/0`、`82/1`（同族）、加固后 `83/0`；**最终版定向复跑 15/15（44.1s）** |
 | **拍板：跳过** | **负责人（zp）决定不再补跑「最终包完整有头 E2E」**（判断依据：夹具缺陷非产品缺陷、v2 已在 `83/0` 与定向 15/15 两档通过；全量复跑耗时高、边际信息低） |
-| 影响登记 | ① 这是一次**验证范围裁剪**（非 P0 豁免：E2E 为夹具层验证，产品 P0 判据不变）；② DM-V3-005「不再作为产品已知缺陷」的依据是**代码路径证据 + 定向证据**，非完整套件统计置信度；③ 已同步记入 [v3-release-test-plan.md](./v3-release-test-plan.md) §15 / §16；④ 若发布后同族用例再现浮层未出现，优先按「夹具竞态」复核 |
+| 影响登记 | ① 这是一次**验证范围裁剪**（非 P0 豁免：E2E 为夹具层验证，产品 P0 判据不变）；② DM-V3-005「不再作为产品已知缺陷」的依据是**代码路径证据 + 定向证据**，非完整套件统计置信度；③ 已同步记入 [v3-release-test-plan.md](./v3-release-test-plan.md) §16 与 [v3-release-test-plan-log.md](./v3-release-test-plan-log.md) §15；④ 若发布后同族用例再现浮层未出现，优先按「夹具竞态」复核 |
 | 未触及产品源码 | 本轮仅改测试夹具与文档 ⇒ 已归档的 `1.0.0` 包（sha256 `2a670372…`）**仍有效，无需重新打包** |
 
 **结论**：发版前剩余代码级风险（DM-V3-005）已闭环；完整有头套件的最终包复跑按负责人意见**跳过并登记**。

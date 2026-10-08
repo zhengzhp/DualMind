@@ -1,0 +1,8 @@
+# .cursorignore —— 连 AI 读取一并阻断的噪音（仅放“确实永不阅读”的内容）。
+# 注意：本文件会阻断 Agent 的读取，构建产物（.output 等）不要写在此处（需按需读取 manifest / bundle）。
+# 构建与测试产物目录已由 .gitignore 覆盖（.output / .wxt / .e2e-profile / playwright-report / test-results / dist / node_modules）。
+.e2e-profile/
+playwright-report/
+test-results/
+blob-report/
+web-ext-artifacts/

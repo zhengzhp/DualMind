@@ -71,7 +71,7 @@ isProject: false
    - 规则优先级里的「当前版本」链接
    - Always 里「改架构前先读」的链接
    - `## 细节文档` 表：当前版 + 归档行
-9. `.cursor/rules/dualmind-core.mdc`：`## 文档` 小节的更新目标列表
+9. `.cursor/rules/*.mdc`：确认无指向旧文档 / 旧规则的失效引用（原 `dualmind-core.mdc` 已并入 `AGENTS.md`）
 10. `README.md`：`## 项目文档` 表 + 架构要点段 + 权限说明段落的决策文件链接
 11. `docs/cursor-cheatsheet.md`：「决策 / 架构」入口行
 12. `docs/store-listing.md`：与权限决策的引用行（指向权威那份）
@@ -121,7 +121,7 @@ pnpm test
 | 归档架构 | `docs/architecture-v1.md` 加「已封板」抬头并去 V2 内容 |
 | 活文档 | `docs/decisions.md` / `docs/features.md` 收敛为 V2 |
 | 新架构 | 新建 `docs/architecture-v2.md` |
-| 指针同步 | `AGENTS.md`、`.cursor/rules/dualmind-core.mdc`、`README.md`、`docs/cursor-cheatsheet.md`、`docs/store-listing.md` |
+| 指针同步 | `AGENTS.md`、`.cursor/rules/dualmind-extension.mdc`、`README.md`、`docs/cursor-cheatsheet.md`、`docs/store-listing.md` |
 | 注释重定向 | `features/immersive/{controller,controller.test,types,validate}.ts`、`entrypoints/options/diff.test.ts`、`e2e/selection-panel-toggle.e2e.ts` |
 
 > 切换到 V3 时：把上表的 `v1` → `v2`、`v2` → `v3` 平移即可；核心理念是

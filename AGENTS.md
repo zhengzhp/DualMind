@@ -1,81 +1,60 @@
 # DualMind 代理入口
 
-本仓库是 **DualMind** 浏览器扩展（WXT + React + MV3）。当前阶段：**V1 + V1.5 + V2 已封板**；**V3（本页浏览器 Agent）已立项、实现中**（零新增权限 + 计划批准 + 危险动作再确认，见 `docs/decisions.md`）。扩大 V3.0 范围或开 V3.1+ 须先 `/plan-feature` 并更新决策 / 架构 / 契约。
+本仓库是 **DualMind** 浏览器扩展（WXT + React + MV3）。**本文件是唯一通用入口**；当前阶段与边界见「产品边界」。扩大 V3.0 范围或开 V3.1+ 须先 `/plan-feature` 并更新决策 / 架构 / 契约。
 
 ## 规则优先级
 
 1. 用户明确指令
-2. 本文件（`AGENTS.md`）与 `.cursor/rules/`
-3. [docs/decisions.md](docs/decisions.md)、[docs/architecture-v3.md](docs/architecture-v3.md)（当前权威 = V3 已立项；V2 归档见 [docs/architecture-v2.md](docs/architecture-v2.md)；V1 / V1.5 见 [docs/architecture-v1.md](docs/architecture-v1.md)）
+2. 本文件（`AGENTS.md`）+ `.cursor/rules/`
+3. `docs/decisions.md`、`docs/architecture-v3.md`（当前权威 = V3 已立项；V2 / V1 归档见对应 `-vN` 文档）
 4. 训练数据（可能过期，不得覆盖上述任意一层）
 
 写代码前先读 decisions / architecture；自动生效细则见 `.cursor/rules/`。
 
+## 产品边界
+
+- **已封板（仅修 bug）**：划词翻译、沉浸译、Side Panel / 工作台、网页助手（摘要 / 问答）、BYOK、共享 `page-fab`
+- **进行中**：V3.0 本页 Agent（`features/agent/`，零新增权限 + 计划批准 + 危险动作再确认）
+- **不做（须再立项）**：`debugger` / CDP、跨 Tab 自动化、MCP、PDF、自有后端、云同步
+- 参考 Monica 的分层入口，禁止 All-in-One 堆功能
+
 ## 项目概况
 
-- 技术栈：WXT `0.21.x` + React + TypeScript + Tailwind；Node `>=22`；Chrome / Edge 优先
+- 技术栈：WXT `0.21.x` + React + TypeScript + Tailwind；Node `>=22`；Chrome / Edge 优先；包管理 `pnpm`
 - 目录：`entrypoints/`、`features/`、`providers/`、`shared/`
 - AI：仅 Background 发起；BYOK（OpenAI Compatible）+ 本地 Ollama；无自有后端
-- 包管理：`pnpm`
+- storage 走 `wxt/utils/storage`；feature 间消息走 `shared/messaging`；设置走 `shared/storage`
+- 常用命令：`pnpm dev` / `build` / `compile`（`tsc --noEmit`）/ `test` / `test:e2e`（无头，需 build + Ollama）/ `test:e2e:headed` / `zip`。**默认不执行**，除非用户明确要求
 
-## 命令
+### 改动 → 最小验证
 
-| 命令 | 作用 |
-|------|------|
-| `pnpm dev` | 开发（WXT） |
-| `pnpm build` | 生产构建 |
-| `pnpm compile` | `tsc --noEmit` |
-| `pnpm test` | Vitest 单测 |
-| `pnpm test:e2e` | E2E（默认**无头**；需 `wxt build` + 本地 Ollama） |
-| `pnpm test:e2e:headed` | E2E 有头（`E2E_HEADED=1`；真实 Side Panel / 肉眼观察用） |
-| `pnpm zip` | 打包 zip |
-
-**默认不执行** `dev` / `build` / `compile` / `zip`，除非用户明确要求。
-
-### 改动 → 最小验证（对照表）
-
-按改动类型选**最小**验证；全量 `compile` / `test:e2e` 仍推迟到 V3 发布闸门（见 `docs/decisions.md`）。  
-**Ask first 不变**：下表是「该跑什么 / 请用户验什么」的菜单，Agent **仍须先征得用户同意**再执行任何 test / build / compile / e2e。
-
-| 改动类型 | 建议验证（征得同意后） | 不要默认做 | 请用户验证 |
-|----------|------------------------|------------|------------|
-| 纯函数 / storage / prompts | `pnpm test`（相关文件即可） | build / e2e / compile | 一般无需 |
-| UI 文案 / Tailwind / 布局 | 通常不跑命令 | e2e | Side Panel / Options / 浮层对应路径 |
-| messaging / Feature 契约 | 相关单测 | 全量 e2e | 一条主路径（发消息 / 划词 / 摘要等） |
-| Content Script / DOM 注入 | 相关单测（若有） | 无头硬跑 Side Panel | 目标页实机点一次 |
-| 扩展加载 / `sidePanel.open()` | 提醒改用 `pnpm test:e2e:headed` | 无头当有头用 | 有头 E2E 或人工开侧栏 |
-| 权限 / manifest | 征得同意后 `pnpm build`，核对产物 manifest | 擅自扩权 | Options + 一条需权限的路径 |
-
-完成后在「完成报告」写明：跑了什么、未跑什么、请用户验哪条路径。更细的手工清单用 `/test-plan`；按改动选验证用 `/verify`。
+按改动类型选**最小**验证；全量 `compile` / `test:e2e` 推迟到 V3 发布闸门（见 `docs/decisions.md`）。**Ask first 不变**：仍须先征得用户同意再执行任何 test / build / compile / e2e。对照表与执行细则见 [`.cursor/commands/verify.md`](.cursor/commands/verify.md)（`/verify`）；更细手工清单用 `/test-plan`。
 
 ### E2E 有头 / 无头 —— 必须主动提醒用户
 
-- 默认 `pnpm test:e2e` 为**无头**。
-- 当任务涉及 **真实 Side Panel（`sidePanel.open()`）/ 需要肉眼观察界面 / 无头下扩展未加载** 时，
-  **主动提醒用户改用 `pnpm test:e2e:headed`**（`E2E_HEADED=1`）；无头下
-  `e2e/selection-panel-toggle.e2e.ts` 的真实侧栏用例会自动 skip，只有该模式才执行。
-- 无头依赖 `channel: 'chromium'` 走完整 Chromium 新无头模式（headless shell 不支持加载扩展）。
-- 细节见 `docs/decisions-v1.md`「本地 E2E 运行须知」。
+默认 `pnpm test:e2e` 为**无头**。涉及**真实 Side Panel（`sidePanel.open()`）/ 需肉眼观察界面 / 无头下扩展未加载**时，**主动提醒改用 `pnpm test:e2e:headed`**（`E2E_HEADED=1`）；细节见 [`.cursor/commands/verify.md`](.cursor/commands/verify.md)。
 
 ## 代理边界
 
 ### Always
 
-- 与用户用 **简体中文** 交流；代码默认 TypeScript，UI 优先 Tailwind；核心逻辑加中文注释
+- 与用户用 **简体中文**；代码默认 TypeScript，UI 优先 Tailwind；核心逻辑加中文注释
 - **仅 Background** 调用 LLM / Ollama；Content Script 不持有 API Key、不直连模型
-- Feature 经 `shared/llm` 调模型；错误经 `shared/errors` 映射文案；契约见 `docs/features.md`
+- Feature 经 `shared/llm` 调模型；错误经 `shared/errors` 映射文案
 - Provider（`providers/`）永不碰 DOM；新能力放 `features/<name>/`，勿塞进 `TranslateService`
-- Side Panel：Translate + 网页助手（Chat）可用；Agent 按 `docs/decisions.md` V3.0 范围实现（未合入前 Tab 仍可为占位）
-- 改架构或产品边界前先读并更新 `docs/decisions.md` 与 `docs/architecture-v3.md`（V2 / V1 归档见对应 `-vN` 文档）
+- **Agent 用 `agent:*`，勿混进 `chat:*`**
+- 改架构或产品边界前先读并更新 `docs/decisions.md` 与 `docs/architecture-v3.md`
 - 处理空值、loading、错误态
+- 大文档（>`v3-*` 发布材料）先 `rg` 定位再局部读，禁止整读
+- 环境与验证纪律（不杀用户进程 / 优先 prod 产物 / 临时脚本 `_tmp-*` 用完即删 / 外网走本机代理）见 [`.cursor/commands/verify.md`](.cursor/commands/verify.md)
 
 ### Ask first
 
 - 引入新依赖、改目录结构、改 messaging 协议
-- 扩大 `host_permissions` 或添加自动化相关权限（含 `debugger` / `scripting`；V3.0 红线禁止）
-- 扩大已立项的 V3.0 范围、启动 V3.1+，或做 PDF / 自有后端 / 云同步等
+- 扩大 `host_permissions` 或加自动化权限（含 `debugger` / `scripting`；V3.0 红线禁止）
+- 扩大 V3.0 范围、启动 V3.1+，或做 PDF / 自有后端 / 云同步
 - 执行 lint / build / compile / zip / 测试（默认不跑）
-- 需求不明确时直接问，不要靠猜测 + 反复试错
+- 需求不明确时直接问，勿靠猜测 + 反复试错
 
 ### Never
 
@@ -84,25 +63,12 @@
 - V1 默认开启强打扰悬浮球；站点禁用能力被破坏
 - 未经确认引入第三方 UI / 动画库，或 All-in-One 堆功能
 
-## 细节文档
+## 文档与命令入口
 
-| 文档 | 用途 |
-|------|------|
-| [docs/decisions.md](docs/decisions.md) | 当前权威（V3 已立项）决策 |
-| [docs/architecture-v3.md](docs/architecture-v3.md) | 当前权威（V3）架构摘要与数据流 |
-| [docs/features.md](docs/features.md) | 当前权威（V3）Feature 契约表（消息 / storage / UI） |
-| [docs/decisions-v2.md](docs/decisions-v2.md) · [docs/architecture-v2.md](docs/architecture-v2.md) · [docs/features-v2.md](docs/features-v2.md) | V2 归档（已封板） |
-| [docs/decisions-v1.md](docs/decisions-v1.md) · [docs/architecture-v1.md](docs/architecture-v1.md) · [docs/features-v1.md](docs/features-v1.md) | V1 / V1.5 归档（已封板） |
-| [docs/cursor-cheatsheet.md](docs/cursor-cheatsheet.md) | Cursor 快捷键与 `/` 命令 |
-| `.cursor/rules/` | 始终 / 按 glob 生效的代码约束 |
-| `.cursor/commands/` | 项目自定义斜杠命令（`/review`、`/verify`、`/arch-check` 等） |
-| `.cursor/handoff-TEMPLATE.md` | 功能交接文档模板（目标 / 已完成 / 下一步 / 勿动 / 过期条件） |
+- `docs/` 文档地图（活文档 / 归档 / 发布材料，含入口 · 使用时机 · 权威性）见 [docs/README.md](docs/README.md)
+- `.cursor/rules/` 代码约束；`.cursor/commands/` 斜杠命令（`/review` `/verify` `/arch-check` 等）；`.cursor/handoff-TEMPLATE.md` 交接模板
+- Feature 契约表见 [docs/features.md](docs/features.md)
 
 ## 完成报告格式
 
-任务结束时按下列结构汇报（保持简短）：
-
-1. **改动**：改了哪些文件（路径即可；新建说明主要结构）
-2. **未验证**：未跑哪些命令、为什么
-3. **请用户验证**：Chrome 中划词浮层 / Side Panel / Options 的哪些路径
-4. **假设与风险**：未决问题、权限或兼容性风险
+任务结束时按下列结构简短汇报：**改动**（文件路径）/ **未验证**（未跑什么、为什么）/ **请用户验证**（Chrome 路径）/ **假设与风险**。

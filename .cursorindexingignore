@@ -1,0 +1,13 @@
+# .cursorindexingignore —— 仅移出“语义索引”，仍可按需读取（路径、Read、rg 均可用）。
+# 适用：体量大或高度重复、语义检索价值低，但排查时偶尔要看的资产。
+# 说明：.gitignore 已排除 .output / .wxt / .e2e-profile / playwright-report / test-results 等，
+#       故此处只列 .gitignore 未覆盖的项，不重复计入收益。
+
+# 上架截图（6 张 PNG，约 580K）：按需查看路径见 docs/README.md 与 docs/store-screenshots.md
+docs/assets/
+
+# 依赖锁定文件（约 100K）：需要时直接打开，无需进语义索引
+pnpm-lock.yaml
+
+# 产品图标位图（多分辨率 PNG）：以文件名检索即可，无需语义索引
+public/icon/

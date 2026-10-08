@@ -1,6 +1,7 @@
 # DualMind 决策记录 · V2（已封板）
 
-> 状态：**V2（摘要 / 聊天）已封板（功能冻结，仅修 bug）**；本文件为历史归档，不再随新版本更新。  
+> 状态：**V2（摘要 / 聊天）已封板（功能冻结，仅修 bug）**；本文件为历史归档，不再随新版本更新。
+> 阅读：仅历史背景，**按需检索、勿整体阅读**，不作为当前规则来源；地图见 [README.md](./README.md)。
 > 当前版本（V3）决策见 [decisions.md](./decisions.md)。  
 > V1 / V1.5 历史决策见 [decisions-v1.md](./decisions-v1.md)。  
 > 架构见 [architecture-v2.md](./architecture-v2.md)（V2）与 [architecture-v3.md](./architecture-v3.md)（V3）。  
@@ -101,7 +102,7 @@
 
 ## V2 封板 · 验收快照（2026-10-07）
 
-**背景**：V2 主链路（网页摘要 / 网页问答 / 会话持久化 / 右键与 FAB「总结本页」/ 跨页确认 / 禁用站点菜单置灰 / 历史 Markdown 导出 / 共享 `page-content` 与 `page-fab`）代码与 E2E 已落地；用户按 [.cursor/handoff-chat-v2.md](../.cursor/handoff-chat-v2.md) 第 6 节清单**实机验收全过**。
+**背景**：V2 主链路（网页摘要 / 网页问答 / 会话持久化 / 右键与 FAB「总结本页」/ 跨页确认 / 禁用站点菜单置灰 / 历史 Markdown 导出 / 共享 `page-content` 与 `page-fab`）代码与 E2E 已落地；用户按 [.cursor/handoffs/archive/handoff-chat-v2.md](../.cursor/handoffs/archive/handoff-chat-v2.md) 第 6 节清单**实机验收全过**。
 
 **决定**：V2 **功能封板**（冻结范围，仅修 bug）。下一版本（V3 Agent）已于 2026-10-07 在 [decisions.md](./decisions.md) 立项；文档切档按 [.cursor/plans/dualmind-docs-versioning.plan.md](../.cursor/plans/dualmind-docs-versioning.plan.md) 执行完毕。
 

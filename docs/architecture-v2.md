@@ -1,6 +1,7 @@
 # DualMind 浏览器插件 · 技术架构（V2 · 已封板）
 
-> 状态：**V2 已封板（功能冻结，仅修 bug）**；本文件为归档，不再随新版本更新。  
+> 状态：**V2 已封板（功能冻结，仅修 bug）**；本文件为归档，不再随新版本更新。
+> 阅读：仅历史背景，**按需检索、勿整体阅读**，不作为当前规则来源；地图见 [README.md](./README.md)。
 > 当前版本（V3）架构见 [architecture-v3.md](./architecture-v3.md)。  
 > V1 / V1.5 架构见 [architecture-v1.md](./architecture-v1.md)。  
 > 决策摘要见 [decisions-v2.md](./decisions-v2.md)；契约表见 [features-v2.md](./features-v2.md)。  
