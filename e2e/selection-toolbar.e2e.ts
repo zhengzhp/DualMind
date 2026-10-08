@@ -139,10 +139,14 @@ test.describe('划词工具栏', () => {
     await seedSettings(serviceWorker, OLLAMA_SETTINGS);
     await page.goto('https://example.com');
 
-    // 等影子宿主就位再划词。content.ts 是 `await settings:get` 之后才 mount 的，
-    // 所以宿主出现即代表 toolbarTrigger 已加载；否则 mouseup 早于内容脚本挂载，
-    // 浮层不会弹出，用例会偶发失败（2026-10-06 观察到约 1/3 概率）。
-    await expect(page.locator('dualmind-toolbar')).toHaveCount(1);
+    /*
+     * 必须等 `data-dm-toolbar-ready`，不能只等宿主出现：
+     * `ui.mount()`（插入 dualmind-toolbar 宿主）先于 `document.addEventListener('mouseup')`
+     * 注册鼠标监听（见 features/selection-toolbar/mount.ts:75 与 :331），
+     * 而就绪标记是监听挂好之后才写的（:370）。只等宿主就派发 mouseup，监听可能还没挂上，
+     * 浮层不会弹出 —— 这正是本用例「元素在但 hidden」的失败原因（与 selectText 助手同一坑）。
+     */
+    await page.waitForSelector('[data-dm-toolbar-ready="1"]', { timeout: 15_000 });
 
     // 造一个贴在视口底部的段落，选区底边几乎触底
     const selection = await page.evaluate(() => {

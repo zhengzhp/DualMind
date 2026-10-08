@@ -240,7 +240,16 @@ test.describe('沉浸式全文翻译', () => {
      * 静止形态（2026-10-07 改版）：把手**贴住**视口左边缘（`x = 0`，不再出界），
      * 且只是一块「窄把手」（宽 < 高）—— 旧版是「藏进视口外 1/3、露出 2/3 的半圆」，
      * 那种裁出来的弧在贴边处宽度趋近 0，读起来像图标坏了。
+     *
+     * ⚠️ 松手后 `data-reveal` 会立刻变 false，但宽度是从拖拽态的 40px **收缩**过去的
+     * （`.dm-pf-trigger` 的 `transition: width 0.16s`）。若紧接着量 boundingBox，
+     * 量到的是过渡首帧的 40px，`width < height` 会假失败 —— 这正是 2026-10-08 的失败原因。
+     * 这里显式轮询等收缩结束，再读取终态（只修测试时序，不改产品）。
      */
+    await expect
+      .poll(async () => (await trigger.boundingBox())?.width ?? Infinity)
+      .toBeLessThan(40);
+
     const parked = await trigger.boundingBox();
     expect(parked).not.toBeNull();
     expect(parked!.x).toBeCloseTo(0, 0);

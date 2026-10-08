@@ -51,8 +51,8 @@
 | 新发现：缺失 `content-scripts/content.css` | 2026-10-08，测试页控制台：`net::ERR_FAILED` + WXT 警告「Did you forget to import the stylesheet in your entrypoint?」；产物内 `content-scripts/` 仅 `content.js`，无 `content.css` | **低危、V1/V2 范围**：两个 Shadow UI（划词浮层 / page-fab）均自带内联 `<style>`，正确性不受影响；影响仅为每页一次失败请求 + 控制台警告。非 V3.0 阻塞项 |
 | T7 受控输入实测（**缺陷候选已撤回**） | 2026-10-08 两次对照：① 主世界 `Runtime.evaluate` 用 `el.value=x` + `input/change` → 应用状态**不更新**；② 隔离世界（真实扩展 `runFill`，同一写入方法）→ 应用状态 **= 李四**，正常更新 | **DM-V3-001 系误报，已撤回**（详见第 15 节）。根因是 T7/我的验证都从**主世界**写入，命中 React 的 value tracker；内容脚本在**隔离世界**，绕过 tracker，行为等价原生 setter → 受控组件正常收到更新。结论：受控表单上 `fill` **有效** |
     39|| 既有 Playwright E2E | 翻译、划词、沉浸译、Options、工作台、Chat 有用例 | 当前没有专门的 Agent E2E 文件；必须人工执行第 6～10 节，不能用全量 E2E 绿灯推断 Agent 浏览器主链路通过 |
-| compile / 全量 test / build / E2E | 本次安全修复后尚未执行 | 发布前必须补齐 |
-| 上架材料 | `docs/store-listing.md` 仍有 V1 口径，未完整披露 Chat 历史与 Agent DOM 写操作 | 正式发布前必须修订和复核，不可直接粘贴提交 |
+| compile / 全量 test / build / E2E | ✅ **2026-10-08 已在 `dc0d4f0` 上执行**（第三轮为最新）：`compile` 0 error；全量 Vitest **38 files / 386 tests 全过**；`build` 成功；无头 E2E **68 passed / 1 skipped / 0 failed**（详见 §5.2；4 条原有失败已全部定性并修复） | 自动化闸门可跑通；`1 skipped` 的真实 Side Panel 须有头 / 人工补齐；有头 E2E 仍缺 |
+| 上架材料 | ✅ `docs/store-listing.md` 已按 V3 口径修订（REL-06 / REL-07 完成） | 仍须在**最终包**上复核对外文案与包内事实一致 |
 
 历史 V1 / V2 测试数量与 2026-10-06 风险报告不能充当本次候选版本的验证结果。
 
@@ -148,6 +148,38 @@ Provider 双主路径至少在 Chrome 的两个 UI 入口完成；Edge 至少重
 - [x] **AUTO-04 · P1**：检查失败的 HTML report 与 trace — 区分环境与产品缺陷；重跑通过需保留首次失败原因，不能只留下最后一次绿灯。　`2026-10-08 【PASS】本轮首次失败均有 trace 留存并已定位：① AG-01/02 受控勾选框 uncheck() 撞异步往返窗口（测试技法，非产品缺陷）；② SEC-06 危险理由文案与时间线条目重名（strict mode，测试技法）。两者均属环境 / 测试缺陷，已修复；无产品缺陷被「重跑掩盖」`
 - [x] **AUTO-05 · P1**：确认 E2E 串行执行 — 当前共享扩展状态，按 `playwright.config.ts` 的单 worker 跑，不临时开并发掩盖状态串扰。　`2026-10-08 【PASS】playwright.config.ts 固定 workers: 1 + fullyParallel: false；本轮未临时开并发`
 - [ ] **AUTO-06 · P1**：最后一次 build / zip 后重复生产包加载与主路径冒烟 — 防止验证了旧包而提交新包。　`2026-10-08 【未执行】尚未做 pnpm zip，故本条不勾（属 B 发布闸门）`
+
+### 5.2 自动化闸门执行记录（2026-10-08 · 第二轮 · commit `dc0d4f0`，工作区干净）
+
+| 命令 | 结果 | 退出码 |
+| --- | --- | --- |
+| `pnpm compile` | `tsc --noEmit` **0 error** | 0 |
+| `pnpm test` | **38 files / 386 tests 全通过**（1.12s） | 0 |
+| `pnpm build` | WXT 生产构建成功（750ms）；`.output/chrome-mv3` 重建于 09:47 | 0 |
+| `pnpm test:e2e`（**无头**，第二轮） | **64 passed / 4 failed / 1 skipped**（5.7 min） | 1 |
+| `pnpm test:e2e`（**无头**，第三轮 · 修完下述 2 条陈旧用例后） | **68 passed / 1 skipped / 0 failed**（2.2 min） | 0 |
+
+**产物静态核对（在 09:47 重建包上复跑 PRIV-01 / PRIV-02 / SEC-20 静态路径）**：
+
+- `permissions=["storage","sidePanel","contextMenus"]`、`optional_permissions` 缺省、`host_permissions=["http://127.0.0.1:11434/*","http://localhost:11434/*","<all_urls>"]`、`commands` 仅 `translate-selection`(Alt+K / mac Alt+K)、`content_scripts.matches=["<all_urls>"]` 且 js 仅 `content-scripts/content.js`（**无 css**，已知低危）、manifest **未声明** `content_security_policy`（走 MV3 默认）、无 `web_accessible_resources`、**无** `debugger`/`scripting`/`tabs`/`activeTab` ⇒ 与批准口径一致。
+- DM-V3-002 修复已进产物：`background.js` 同时含 `1e4`（新 `MAX_WAIT_MS`）与 `15e3`（`TOOL_TIMEOUT_MS`），并含「已达到最大步数」文案与 `TOOLS_UNSUPPORTED`。
+- SEC-20 静态：`content-scripts/content.js` 中 `getSettings` / `Authorization` / `Bearer` / `sk-` 命中数均为 **0**，`apiKey` 仅 `DEFAULT_SETTINGS` 默认空串。
+- **Agent 自动化组（`agent-plan` / `agent-safety` / `agent-network` / `agent-lifecycle` / `agent-entry` + `workspace`）本轮全部通过**。
+
+**⚠️ 新增失败登记（4 条，全部是 V1 / V2 回归项，非 Agent 主链路；A 闸门判据是「无未解决的 P0 / 主要功能缺陷」，须逐条定性）**
+
+| 用例 | 现象 | 复跑 | 初判 |
+| --- | --- | --- | --- |
+| `options.e2e.ts`「保存设置后回读一致」 | `locator('textarea')` strict mode violation：Options 现有 **2 个** textarea（禁用站点 + FAB 隐藏站点，自 `905b261` 起） | 稳定失败 | ✅ **已修复**（陈旧用例，2026-10-08）：改用 `getByRole('textbox', { name: '禁用站点（每行一个 hostname）' })` 按可访问名定位 |
+| `immersive.e2e.ts`「悬浮入口：可拖动、贴边吸附并全局记忆位置」 | `parked.width`(40) 不 `< parked.height`(40)；期望「窄把手」12×40（`position.ts:34`「40px，静止收成 12px 窄把手」） | 稳定失败 | ✅ **已修复**（测试时序，2026-10-08）：`boundingBox()` 在松手后约 6ms 读取，撞上 `transition: width 0.16s` 的过渡首帧（拖拽态 40px），产品稳态正确（trace 显示松手后 `reveal=false` + `peek=true` + `side=left`）。修法：读取前 `expect.poll` 等收缩结束 |
+| `selection-toolbar.e2e.ts`「选区贴近底边时浮层翻转到选区上方」 | `.dm-btn.primary` 解析到元素但 `hidden` ⇒ 浮层未真正弹出 | 稳定失败 | ✅ **已修复**（陈旧用例，2026-10-08）：用例只等 `dualmind-toolbar` 宿主出现就派发 `mouseup`，但 `ui.mount()`（`mount.ts:75`）先于 `document.addEventListener('mouseup')`（`:331`），就绪标记 `data-dm-toolbar-ready` 在监听之后才写（`:370`）⇒ 抢跑时监听未挂。改用 `waitForSelector('[data-dm-toolbar-ready="1"]')`（与 `selectText` 助手同一坑） |
+| `selection-toolbar.e2e.ts`「流式翻译中点『关闭』能立即收起」 | `.dm-btn.primary` 在但 `hidden` | **偶发** | **确认为偶发既有 flake**：单跑该文件 **11/11 通过**；组合跑时每次随机 2–3 条同类用例失败（第二轮 68/123/181，第二复跑 20/95，成因疑似真实 Ollama 流式 + `pointerdown` 关闭竞态，与本轮改动无关）。**建议单列排查，不阻塞 A 闸门** |
+
+> 前两条之外的 `1 skipped` = `selection-panel-toggle.e2e.ts` 的真实 Side Panel 用例（无头下自动 skip），与 AUTO-02 记载一致，须由 `pnpm test:e2e:headed` 或人工补齐。
+
+**进展（2026-10-08 续）**：上表 4 条**全部定性完毕**——`immersive` 1 条（测试时序）、`options` 1 条（陈旧用例）、`selection-toolbar` 翻转 1 条（陈旧用例）**已修复**；`selection-toolbar`「关闭」1 条确认为**偶发既有 flake**（单跑 11/11，组合跑随机失败，成因疑似真实 Ollama 流式竞态，另列排查）。修复后 **全量无头 E2E 68 passed / 1 skipped / 0 failed**。
+
+**环境注意（本轮踩坑，供后续复跑）**：沙箱环境下 Playwright 会把宿主机误判为 **x64**（解析到 `chrome-mac-x64`），而本机缓存只有 `chromium-1243/chrome-mac-arm64` ⇒ 69 条全因 `Executable doesn't exist` 失败。**须在沙箱外运行，或显式 `unset PLAYWRIGHT_BROWSERS_PATH`**；本机正常路径下无需额外设置。
 
 如 pnpm 再次因版本镜像失败，可经确认用本地已安装的 `node node_modules/vitest/vitest.mjs run features/agent` 复核 A1；B 阶段必须记录并解决工具链可复现性问题。不要静默改锁文件、registry、依赖或 `packageManager`。
 

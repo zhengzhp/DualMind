@@ -84,8 +84,13 @@ test.describe('Options 设置页', () => {
     await seedSettings(serviceWorker, OLLAMA_SETTINGS);
     await page.goto(`chrome-extension://${extensionId}/options.html`);
 
-    // 禁用站点：换行/逗号分隔的 hostname 应被规整为数组
-    const hosts = page.locator('textarea');
+    // 禁用站点：换行/逗号分隔的 hostname 应被规整为数组。
+    // 必须按**可访问名**定位到「禁用站点」那个 textarea —— Options 现在有两个
+    // textarea（禁用站点 / 不显示悬浮按钮的站点，见 options/App.tsx 的 Field），
+    // 光用 locator('textarea') 会撞 strict mode violation。
+    const hosts = page.getByRole('textbox', {
+      name: '禁用站点（每行一个 hostname）',
+    });
     await hosts.fill('mail.google.com\nexample.com, foo.test');
     await page.getByRole('button', { name: '保存设置' }).click();
     await expect(page.getByText('已保存')).toBeVisible();
