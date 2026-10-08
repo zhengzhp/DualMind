@@ -38,7 +38,8 @@ SEC、LIFE 工具段）都不能成立。
 | B5 | 停止 / 超时 / 导航 | Side Panel | `/t4-waiting`、`/t3-dynamic` | LIFE-01 LIFE-02 LIFE-03 LIFE-04 LIFE-05 LIFE-06 LIFE-07 LIFE-11 LIFE-12 LIFE-13 |
 | B6 | 并发与 UI 生命周期 | Side Panel **+ 工作台** | `/t1-static-form` | LIFE-08 LIFE-09 LIFE-10 LIFE-14 LIFE-15 LIFE-16 LIFE-17 LIFE-18 LIFE-19 LIFE-20 |
 | B7 | Provider / 网络与恢复 | Side Panel | `/t1-static-form` | NET-01 NET-02 NET-03 NET-04 NET-06 NET-07 NET-08 NET-09 |
-| B8 | UI 入口 / 禁用 / 能力限制 | Side Panel + 工作台 + Options | `/t1-static-form`、`/t5-long-text`、`/t6-limits`、`/t6-csp` | UI-01 ~ UI-12 |
+| B8 | UI 入口 / 禁用 / 能力限制 | Side Panel + 工作台 + Options | `/t1-static-form`、`/t5-long-text`、`/t6-limits`、`/t6-csp` | UI-01 ~ UI-12（**S3 收敛后仅跑** UI-01 / 03 / 04 / 05 / 09 / 11；UI-02 / 07 / 10 / 12 按 S5 延后） |
+| B10 | 回归与升级（**S3 / S4 收敛**） | Side Panel + 工作台 + Options | `/t1-static-form`、`/t5-long-text` | REG-01 04 08 10 11 13 17 19 · DATA-03 DATA-04（其余 REG / DATA 按 S3 / S4 / S5 已声明延后） |
 
 批次内建议顺序：**先只读、再写入；先可逆、再不可逆；先单入口、再多入口**。
 所有支付类动作只在 T2 与金融路径页执行，用计数器证明；不碰真实资金页。
@@ -1024,6 +1025,88 @@ curl -s http://127.0.0.1:11434/v1/chat/completions -H 'Content-Type: application
 **判定**：**两侧各自四条判据全部命中**才算 NET-01 PASS。**单侧不达 ⇒ NET-01 仍不闭合**，须记 BLOCKED 并写明卡在哪条判据（不要用「主链路已通」替代 finish 判据）。
 
 **完成后**：勾选测试清单 NET-01；更新本文件「问题台账」中 `DM-V3-UNTESTED` ② 与 `DM-V3-ENV-06` 的残留说明。
+
+### B8 · UI 入口 / 禁用 / 能力限制（按 **S3 收敛**，聚焦 UI-01 / 03 / 04 / 05 / 09 / 11；2026-10-08 编制 · **待执行**）
+
+> **为什么收敛**：S3 把 V1/V2 回归收窄到「被改动的共享面」（`features/page-fab`、`shared/storage`、`providers`、`entrypoints`、`shared/messaging`、`features/chat`）。本批只跑**与 Agent 入口 + 共享 FAB 相关**的条目；UI-02 / 07 / 10 / 12 按 S5 已声明延后。
+> **UI-01 必须用有头 / 人工**：无头下拿不到真实 `SIDE_PANEL`（会 skip）。
+
+**Step 1 · UI-01（FAB → 真实 Side Panel + 切 Agent）**
+
+| # | 操作 | 期望 |
+|---|------|------|
+| 1 | 打开 `/t1-static-form`，点「重置计数」 | `counts` 为空 |
+| 2 | 鼠标移到右下角 DualMind 悬浮按钮，展开动作 | 动作列表含「请 Agent 操作本页」 |
+| 3 | 点「请 Agent 操作本页」 | **真实 Side Panel** 打开（浏览器侧栏，非标签页）且停在 **Agent** Tab |
+| 4 | 断言「只刷新绑定、不自动启动」 | 目标框**为空**；**无**计划卡；**无**批准按钮；`dmTest.state().actions` **为空** |
+| 5 | 断言绑定页 | 面板显示「T1 静态表单 · 127.0.0.1」（= 当前页），不是别的页 |
+
+> ⚠️ 若第 3 步打开的是普通标签页而非真实侧栏 ⇒ 本条判 **FAIL**（`sidePanel.open()` 的手势窗口失效是已知易踩点）。
+
+**Step 2 · UI-03 / UI-04（关闭 / 隐藏 / 整站禁用）**
+
+| # | 操作 | 期望 |
+|---|------|------|
+| 1 | Options 关闭 FAB 显示 | 页面右下角入口消失；**Agent Tab 仍可用**（入口分离） |
+| 2 | 把当前站点加入「隐藏 FAB 列表」 | FAB 不出现，但**划词仍可用**（隐藏 FAB ≠ 整站禁用） |
+| 3 | 把当前站点加入「禁用站点」 | 划词浮层与 FAB **都不注入**；Agent 启动被拒且文案可读（见 LIFE-19） |
+| 4 | 打开 `chrome://extensions`、`chrome-extension://…/options.html`、Chrome 应用商店页 | **不做**非法 DOM 操作；不报错、不误注入；Agent 绑定应拒绝或回退到可读 `http(s)` 页 |
+
+**Step 3 · UI-05 / UI-11（多页并存与三功能并发）**
+
+| # | 操作 | 期望 |
+|---|------|------|
+| 1 | 同窗开 2 个内容页，分别在各自页面开 Agent | 各任务只操作**自己启动时绑定的页**；互不串（对照 LIFE-10） |
+| 2 | `/t5-long-text`：同时启动 沉浸译 + Chat 摘要 + Agent（只读目标） | 三功能并存不互相打断；Chat **保持只读**；Agent 写入只影响其绑定页；计数器与页面事实一致 |
+
+**Step 4 · UI-09（loading / 空值 / 失败态）**
+
+| # | 操作 | 期望 |
+|---|------|------|
+| 1 | 未配模型时点「开始」 | 可读错误（非无限 loading） |
+| 2 | 目标框留空 / 全空格 | 「开始」禁用（对照 AG-16） |
+| 3 | 模型返回 401 / 500（可临时填错 Key / Base URL） | 对应错误文案可读；**不打印 Key**；可重试 |
+
+**证据**：每步截图（重点：第 3 步确为侧栏 + Agent Tab、Step 1-4 的空白目标框）+ 各内容页 `dmTest.state()` 导出。
+
+---
+
+### B10 · 回归与升级（**REG / DATA，按 S3 / S4 收敛**；2026-10-08 编制 · **待执行**）
+
+> **收敛口径**：S3 ⇒ REG 只跑与改动共享面相关的 6～8 条冒烟；S4 ⇒ DATA 只保留 **DATA-03 + DATA-04**，其余（DATA-01/02/05～09）按 S4/S5 已声明延后。
+> **本批不需要 tools**（除 Step 6 外），可先用任一能连通即可的模型跑。
+
+**Step 5 · REG 冒烟（6 条，各一条主路径）**
+
+| # | 条目 | 操作 | 期望 |
+|---|------|------|------|
+| 1 | **REG-01** 划词默认行为 | 新安装默认下，普通选区**不自动弹**；按 `Alt/Option+K` 能翻译；切「选中后自动显示」后选区才自动弹 | 三种行为逐条符合 |
+| 2 | **REG-04** 浮层流式 / 关闭 | 翻译中流式输出正常；按 `Esc` 与点浮层外部均可关闭；关闭**立即生效** | 无迟到回包重开、无错误闪回 |
+| 3 | **REG-11** FAB（**重点：本次改动面**） | 拖动 FAB → 松手吸附到左/右边缘；刷新页面后位置**记忆**；隐藏列表生效后恢复 | 入口不丢失、不错位、不抢焦点 |
+| 4 | **REG-08 / REG-10** 沉浸译 | 手动启动整页双语 → 点「显示原文」还原 | 布局不变形；站点原有内容与链接**完整还原**；禁用站点仍不注入 |
+| 5 | **REG-13** Chat（**只读**） | 整页摘要 + 选区问答 + 多轮流式 + 停止 | 流式正常；Chat **不写页面**；与 Agent 使用不同消息 / 取消链路（互不影响） |
+| 6 | **REG-17** Provider 配置 | 两种 Provider 各做：刷新模型列表 → 连接测试 → 保存 → 重开 Options 回读 | 配置与使用结果一致；**Key 文案不泄漏** |
+| 7 | **REG-19** 草稿不覆盖 | 在 Options 留一份旧草稿 → 从侧栏改语言 / 模型 → 回 Options **只保存另一个字段** | 未修改字段**不被旧草稿覆盖** |
+
+**Step 6 · DATA-03 / DATA-04（S4 保留项）**
+
+| # | 条目 | 操作 | 期望 |
+|---|------|------|------|
+| 1 | **DATA-03** toolbar 默认迁移 | 构造「旧默认 `toolbarTrigger: 'auto'` 且**无**迁移标记」的 storage → Reload 扩展 | 首次按迁移规则转 `shortcut`；`local:migrations` 标记写入；随后**用户主动**改回 `auto` 再 Reload **不被重复迁移覆盖** |
+| 2 | **DATA-04** 关闭浏览器再打开 | 配好 Provider、留一条 Chat 历史、启动一个 Agent 任务（停在 `awaiting_plan`）→ **完全退出 Chrome** → 重开 | 设置与 Chat 历史**保留**；Agent 任务**不恢复**、**不重放**页面操作；面板显示为空闲态 |
+
+> **DATA-03 的构造方法**（不依赖旧版本安装）：在扩展页 / SW 控制台写
+> `chrome.storage.local.set({ settings: { ...原值, toolbarTrigger: 'auto' }, migrations: [] })` 后 Reload 扩展。
+> **注意**：正常 E2E 种子会预置 `migrations` 标记（`e2e/fixtures.ts` 的 `APPLIED_MIGRATIONS`），
+> 所以人工验迁移时**必须显式清空该标记**，否则迁移不会触发、会误判为 PASS。
+
+**证据**：迁移前后 `chrome.storage.local.get('settings')` 与 `local:migrations` 导出（DATA-03）、
+重启前后 `settings` + `chat*` 键导出（DATA-04）、各步截图。
+
+**完成后**：勾选 REG-01 / 04 / 08 / 10 / 11 / 13 / 17 / 19 与 DATA-03 / DATA-04；
+在 §16 签收「结论与遗留」里登记 S3/S4 收敛范围。
+
+---
 
 ### B9 · Agent 自动化（mock Provider，**新增能力**，2026-10-08）
 
