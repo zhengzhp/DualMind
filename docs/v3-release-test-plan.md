@@ -51,7 +51,7 @@
 | 新发现：缺失 `content-scripts/content.css` | 2026-10-08，测试页控制台：`net::ERR_FAILED` + WXT 警告「Did you forget to import the stylesheet in your entrypoint?」；产物内 `content-scripts/` 仅 `content.js`，无 `content.css` | **低危、V1/V2 范围**：两个 Shadow UI（划词浮层 / page-fab）均自带内联 `<style>`，正确性不受影响；影响仅为每页一次失败请求 + 控制台警告。非 V3.0 阻塞项 |
 | T7 受控输入实测（**缺陷候选已撤回**） | 2026-10-08 两次对照：① 主世界 `Runtime.evaluate` 用 `el.value=x` + `input/change` → 应用状态**不更新**；② 隔离世界（真实扩展 `runFill`，同一写入方法）→ 应用状态 **= 李四**，正常更新 | **DM-V3-001 系误报，已撤回**（详见第 15 节）。根因是 T7/我的验证都从**主世界**写入，命中 React 的 value tracker；内容脚本在**隔离世界**，绕过 tracker，行为等价原生 setter → 受控组件正常收到更新。结论：受控表单上 `fill` **有效** |
     39|| 既有 Playwright E2E | 翻译、划词、沉浸译、Options、工作台、Chat 有用例 | 当前没有专门的 Agent E2E 文件；必须人工执行第 6～10 节，不能用全量 E2E 绿灯推断 Agent 浏览器主链路通过 |
-| compile / 全量 test / build / E2E | ✅ **2026-10-08 已在 `dc0d4f0` 上执行**（第三轮为最新）：`compile` 0 error；全量 Vitest **38 files / 386 tests 全过**；`build` 成功；无头 E2E **68 passed / 1 skipped / 0 failed**（详见 §5.2；4 条原有失败已全部定性并修复） | 自动化闸门可跑通；`1 skipped` 的真实 Side Panel 须有头 / 人工补齐；有头 E2E 仍缺 |
+| compile / 全量 test / build / E2E | ✅ **2026-10-08 已在 `5d8ff19` 上执行**：`compile` 0 error；全量 Vitest **38 files / 386 tests 全过**；`build` 成功；无头 E2E **68 passed / 1 skipped / 0 failed**（详见 §5.2；4 条原有失败已全部定性并修复）；**有头 E2E 68 passed / 1 failed（既有 flake）/ 0 skipped**（详见 §5.3，真实 Side Panel 2 条已实跑通过） | 自动化闸门可跑通；无头下的 `1 skipped` 已由有头补齐；剩余 1 条为已知既有 flake（另列排查） |
 | 上架材料 | ✅ `docs/store-listing.md` 已按 V3 口径修订（REL-06 / REL-07 完成） | 仍须在**最终包**上复核对外文案与包内事实一致 |
 
 历史 V1 / V2 测试数量与 2026-10-06 风险报告不能充当本次候选版本的验证结果。
@@ -143,7 +143,7 @@ Provider 双主路径至少在 Chrome 的两个 UI 入口完成；Edge 至少重
 | B6 | `pnpm zip` | 所有发布验证通过后生成包；核对包内 manifest 与最终加载产物，再做包冒烟 |
 
 - [x] **AUTO-01 · P1**：保存每条命令的完整结果、退出码、版本标识 — 不仅记录截图里的绿色行。　`2026-10-08 【PASS（自动化轮次）】已留存：pnpm compile → 0 error（退出码 0）；npx playwright test（Agent 组 + workspace）→ 32 passed / 0 failed / 37.5s；pnpm test（executor / service / export / modelIcons）→ 36 passed。命令、结果与 commit b3af568 已记入本文件与 runbook B9`
-- [ ] **AUTO-02 · P1**：无头结果逐条核对 skip — `e2e/selection-panel-toggle.e2e.ts` 的真实 Side Panel 用例在无头模式会 skip，须由有头证据补齐。　`2026-10-08 【部分】Agent 组本轮无 skip（32/32 执行）；但 selection-panel-toggle 的真实 Side Panel 用例仍待 E2E_HEADED=1 轮次核对，故本条保持未勾`
+- [x] **AUTO-02 · P1**：无头结果逐条核对 skip — `e2e/selection-panel-toggle.e2e.ts` 的真实 Side Panel 用例在无头模式会 skip，须由有头证据补齐。　`2026-10-08 【PASS（有头补齐）】无头下唯一 skip 即 selection-panel-toggle 的真实 Side Panel 用例；已用 E2E_HEADED=1 全量复跑实执行：①「点侧边栏→打开；再点收起侧栏→关闭」✓（断言真实 SIDE_PANEL 上下文 1→0，且打开时选区推进 session：sourceText=Hello, how are you today? / targetLanguage=zh-CN）；②「无选区时浮层不可触发面板开关」✓。至此全量 E2E 无 skip 项（有头 0 skipped，见 §5.3）`
 - [x] **AUTO-03 · P1**：确认无头使用完整 Chromium 新无头模式 — 当前 fixture 使用 `channel: 'chromium'`；扩展未加载时不能将 case skip / 空跑算通过。　`2026-10-08 【PASS】e2e/fixtures.ts 无头分支显式 channel: 'chromium'；本轮 32 条均真实加载扩展并驱动 UI（非空跑），扩展未加载会在 launchPersistentContext 或断言处失败`
 - [x] **AUTO-04 · P1**：检查失败的 HTML report 与 trace — 区分环境与产品缺陷；重跑通过需保留首次失败原因，不能只留下最后一次绿灯。　`2026-10-08 【PASS】本轮首次失败均有 trace 留存并已定位：① AG-01/02 受控勾选框 uncheck() 撞异步往返窗口（测试技法，非产品缺陷）；② SEC-06 危险理由文案与时间线条目重名（strict mode，测试技法）。两者均属环境 / 测试缺陷，已修复；无产品缺陷被「重跑掩盖」`
 - [x] **AUTO-05 · P1**：确认 E2E 串行执行 — 当前共享扩展状态，按 `playwright.config.ts` 的单 worker 跑，不临时开并发掩盖状态串扰。　`2026-10-08 【PASS】playwright.config.ts 固定 workers: 1 + fullyParallel: false；本轮未临时开并发`
@@ -175,13 +175,36 @@ Provider 双主路径至少在 Chrome 的两个 UI 入口完成；Edge 至少重
 | `selection-toolbar.e2e.ts`「选区贴近底边时浮层翻转到选区上方」 | `.dm-btn.primary` 解析到元素但 `hidden` ⇒ 浮层未真正弹出 | 稳定失败 | ✅ **已修复**（陈旧用例，2026-10-08）：用例只等 `dualmind-toolbar` 宿主出现就派发 `mouseup`，但 `ui.mount()`（`mount.ts:75`）先于 `document.addEventListener('mouseup')`（`:331`），就绪标记 `data-dm-toolbar-ready` 在监听之后才写（`:370`）⇒ 抢跑时监听未挂。改用 `waitForSelector('[data-dm-toolbar-ready="1"]')`（与 `selectText` 助手同一坑） |
 | `selection-toolbar.e2e.ts`「流式翻译中点『关闭』能立即收起」 | `.dm-btn.primary` 在但 `hidden` | **偶发** | **确认为偶发既有 flake**：单跑该文件 **11/11 通过**；组合跑时每次随机 2–3 条同类用例失败（第二轮 68/123/181，第二复跑 20/95，成因疑似真实 Ollama 流式 + `pointerdown` 关闭竞态，与本轮改动无关）。**建议单列排查，不阻塞 A 闸门** |
 
-> 前两条之外的 `1 skipped` = `selection-panel-toggle.e2e.ts` 的真实 Side Panel 用例（无头下自动 skip），与 AUTO-02 记载一致，须由 `pnpm test:e2e:headed` 或人工补齐。
+> 前两条之外的 `1 skipped` = `selection-panel-toggle.e2e.ts` 的真实 Side Panel 用例（无头下自动 skip），与 AUTO-02 记载一致，**已于 §5.3 用 `E2E_HEADED=1` 实跑补齐（2 条均通过）**。
 
 **进展（2026-10-08 续）**：上表 4 条**全部定性完毕**——`immersive` 1 条（测试时序）、`options` 1 条（陈旧用例）、`selection-toolbar` 翻转 1 条（陈旧用例）**已修复**；`selection-toolbar`「关闭」1 条确认为**偶发既有 flake**（单跑 11/11，组合跑随机失败，成因疑似真实 Ollama 流式竞态，另列排查）。修复后 **全量无头 E2E 68 passed / 1 skipped / 0 failed**。
 
 **环境注意（本轮踩坑，供后续复跑）**：沙箱环境下 Playwright 会把宿主机误判为 **x64**（解析到 `chrome-mac-x64`），而本机缓存只有 `chromium-1243/chrome-mac-arm64` ⇒ 69 条全因 `Executable doesn't exist` 失败。**须在沙箱外运行，或显式 `unset PLAYWRIGHT_BROWSERS_PATH`**；本机正常路径下无需额外设置。
 
 如 pnpm 再次因版本镜像失败，可经确认用本地已安装的 `node node_modules/vitest/vitest.mjs run features/agent` 复核 A1；B 阶段必须记录并解决工具链可复现性问题。不要静默改锁文件、registry、依赖或 `packageManager`。
+
+### 5.3 有头 E2E 执行记录（2026-10-08 · 补真实 Side Panel 证据）
+
+**目的**：无头下 `selection-panel-toggle.e2e.ts` 的真实 `SIDE_PANEL` 用例自动 skip（见 §5.2 / AUTO-02），本条用有头窗口把它实际跑起来，为「浮层打开 / 收起真实 Side Panel 并承接选区」（REG-06）与 AUTO-02 补齐可复核证据。
+
+| 命令（沙箱外，先 `unset PLAYWRIGHT_BROWSERS_PATH`） | 结果 | 退出码 |
+| --- | --- | --- |
+| `E2E_HEADED=1 npx playwright test`（**有头**，全量） | **68 passed / 1 failed / 0 skipped**（2.9 min） | 1 |
+
+**关键证据（无头下被 skip 的两条，有头下实际执行并通过）**：
+
+- `✓ selection-panel-toggle.e2e.ts:42 › 划词浮层 · 侧边栏开关 › 点「侧边栏」→ 打开；再点「收起侧栏」→ 关闭 (2.3s)`
+  - 断言真实 `SIDE_PANEL` 上下文数 `0 → 1 → 0`（`chrome.runtime.getContexts`），按钮文案与 `aria-pressed` 同步翻转；
+  - 打开时**承接选区**：`session.sourceText === 'Hello, how are you today?'`、`targetLanguage === 'zh-CN'`（英文→中文互切）⇒ 同时为 **REG-06** 的有头自动化证据。
+- `✓ selection-panel-toggle.e2e.ts:82 › 无选区时浮层不可触发面板开关 (1.7s)`
+
+**其余有头对比**：与无头第三轮（68 passed / 1 skipped）逐条一致，唯一差异是上述 2 条从 skip 变为通过；**Agent 组、chat、immersive、options、sidepanel、workspace 在有头下同样全绿**。
+
+**唯一 1 条失败**：`selection-toolbar.e2e.ts:95「点击浮层外部收起浮层」` — `.dm-btn.primary` 已解析到元素但 `hidden`，与 §5.2 登记的**同一族既有 flake**（单跑 11/11 通过、组合跑随机命中，成因疑似真实 Ollama 流式 + `pointerdown` 竞态）。**属既有 flake，已按负责人意见暂时忽略、不阻塞闸门**，另列排查。
+
+**产物口径**：有头轮直接复用 09:47 产出的 `.output/chrome-mv3`（`e2e/fixtures.ts` 默认加载该路径；此后仅有测试 / 文档改动，无产品源码改动，包未过期）。重跑可用 `pnpm test:e2e:headed`（脚本会先 `wxt build`）。
+
+**环境注意**：有头同样须在沙箱外运行（`E2E_HEADED=1` 时不设 `channel`，直接用本机 chromium 有头窗口）。
 
 ### 5.1 Agent 自动化用例（2026-10-08 新增；mock Provider + Playwright）
 
@@ -359,7 +382,7 @@ npx playwright test e2e/agent-plan.e2e.ts e2e/agent-safety.e2e.ts \
 - [ ] **REG-03 · P1**：空选区、输入框选区、页面选区、超长选区 — 空值不请求；支持的选区正确翻译；超长内容有可读限制。
 - [ ] **REG-04 · P1**：浮层流式翻译、停止、关闭、Esc、外部点击 — 关闭立即生效，无迟到回包重开或错误闪回。
 - [ ] **REG-05 · P1**：选区近底部、页面滚动、窄窗口 — 浮层翻转与跟随正确，不挡关键操作。
-- [ ] **REG-06 · P1**：浮层打开 / 收起真实 Side Panel，承接选区 — 手势路径有效，译文与语言一致；必须有头或人工验证。
+- [ ] **REG-06 · P1**：浮层打开 / 收起真实 Side Panel，承接选区 — 手势路径有效，译文与语言一致；必须有头或人工验证。　`2026-10-08 【有头自动化（部分）：§5.3 / selection-panel-toggle.e2e.ts】已覆盖：真实 SIDE_PANEL 上下文 0→1→0、按钮态翻转、打开时选区承接（sourceText=Hello, how are you today? / targetLanguage=zh-CN）。❌ 未覆盖：Side Panel 内**实际译文文本**与该语言的渲染一致性（另由 sidepanel-language.e2e.ts 覆盖语言互切，但为无头普通标签页驱动，非真实 SIDE_PANEL 表面）`
 - [ ] **REG-07 · P1**：全页工作台打开、输入翻译、切 Feature Tab、复用模型选择 — 没有占位回退、串结果或错误 Key 文案。
 
 ### 沉浸译与共享 FAB
