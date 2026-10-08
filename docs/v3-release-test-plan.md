@@ -52,7 +52,7 @@
 | 新发现：缺失 `content-scripts/content.css` | 2026-10-08，测试页控制台：`net::ERR_FAILED` + WXT 警告「Did you forget to import the stylesheet in your entrypoint?」；产物内 `content-scripts/` 仅 `content.js`，无 `content.css` | **低危、V1/V2 范围**：两个 Shadow UI（划词浮层 / page-fab）均自带内联 `<style>`，正确性不受影响；影响仅为每页一次失败请求 + 控制台警告。非 V3.0 阻塞项 |
 | T7 受控输入实测（**缺陷候选已撤回**） | 2026-10-08 两次对照：① 主世界 `Runtime.evaluate` 用 `el.value=x` + `input/change` → 应用状态**不更新**；② 隔离世界（真实扩展 `runFill`，同一写入方法）→ 应用状态 **= 李四**，正常更新 | **DM-V3-001 系误报，已撤回**（详见第 15 节）。根因是 T7/我的验证都从**主世界**写入，命中 React 的 value tracker；内容脚本在**隔离世界**，绕过 tracker，行为等价原生 setter → 受控组件正常收到更新。结论：受控表单上 `fill` **有效** |
     39|| 既有 Playwright E2E | 翻译、划词、沉浸译、Options、工作台、Chat 有用例 | 当前没有专门的 Agent E2E 文件；必须人工执行第 6～10 节，不能用全量 E2E 绿灯推断 Agent 浏览器主链路通过 |
-| compile / 全量 test / build / E2E | ✅ **2026-10-08 已在 `5d8ff19` 上执行**：`compile` 0 error；全量 Vitest **38 files / 386 tests 全过**；`build` 成功；无头 E2E **68 passed / 1 skipped / 0 failed**（详见 §5.2；4 条原有失败已全部定性并修复）；**有头 E2E 68 passed / 1 failed（既有 flake）/ 0 skipped**（详见 §5.3，真实 Side Panel 2 条已实跑通过） | 自动化闸门可跑通；无头下的 `1 skipped` 已由有头补齐；剩余 1 条为已知既有 flake（另列排查） |
+| compile / 全量 test / build / E2E | ✅ **2026-10-08 已在 `5d8ff19` 上执行**：`compile` 0 error；全量 Vitest **38 files / 386 tests 全过**；`build` 成功；无头 E2E **68 passed / 1 skipped / 0 failed**（详见 §5.2；4 条原有失败已全部定性并修复）；**有头 E2E 68 passed / 1 failed（既有 flake）/ 0 skipped**（详见 §5.3，真实 Side Panel 2 条已实跑通过） | 自动化闸门可跑通；无头下的 `1 skipped` 已由有头补齐；剩余 1 条为已知既有 flake（另列排查）。**2026-10-08 收口**：该 flake 已定位为测试夹具竞态（DM-V3-005）并加固；有头全量复跑 3 轮 `83/0`、`82/1`（同族）、加固后 `83/0`，最终版定向复跑 15/15（完整套件待补跑） |
 | 上架材料 | ✅ `docs/store-listing.md` 已按 V3 口径修订（REL-06 / REL-07 完成） | 仍须在**最终包**上复核对外文案与包内事实一致 |
 
 历史 V1 / V2 测试数量与 2026-10-06 风险报告不能充当本次候选版本的验证结果。
@@ -174,11 +174,17 @@ Provider 双主路径至少在 Chrome 的两个 UI 入口完成；Edge 至少重
 | `options.e2e.ts`「保存设置后回读一致」 | `locator('textarea')` strict mode violation：Options 现有 **2 个** textarea（禁用站点 + FAB 隐藏站点，自 `905b261` 起） | 稳定失败 | ✅ **已修复**（陈旧用例，2026-10-08）：改用 `getByRole('textbox', { name: '禁用站点（每行一个 hostname）' })` 按可访问名定位 |
 | `immersive.e2e.ts`「悬浮入口：可拖动、贴边吸附并全局记忆位置」 | `parked.width`(40) 不 `< parked.height`(40)；期望「窄把手」12×40（`position.ts:34`「40px，静止收成 12px 窄把手」） | 稳定失败 | ✅ **已修复**（测试时序，2026-10-08）：`boundingBox()` 在松手后约 6ms 读取，撞上 `transition: width 0.16s` 的过渡首帧（拖拽态 40px），产品稳态正确（trace 显示松手后 `reveal=false` + `peek=true` + `side=left`）。修法：读取前 `expect.poll` 等收缩结束 |
 | `selection-toolbar.e2e.ts`「选区贴近底边时浮层翻转到选区上方」 | `.dm-btn.primary` 解析到元素但 `hidden` ⇒ 浮层未真正弹出 | 稳定失败 | ✅ **已修复**（陈旧用例，2026-10-08）：用例只等 `dualmind-toolbar` 宿主出现就派发 `mouseup`，但 `ui.mount()`（`mount.ts:75`）先于 `document.addEventListener('mouseup')`（`:331`），就绪标记 `data-dm-toolbar-ready` 在监听之后才写（`:370`）⇒ 抢跑时监听未挂。改用 `waitForSelector('[data-dm-toolbar-ready="1"]')`（与 `selectText` 助手同一坑） |
-| `selection-toolbar.e2e.ts`「流式翻译中点『关闭』能立即收起」 | `.dm-btn.primary` 在但 `hidden` | **偶发** | **确认为偶发既有 flake**：单跑该文件 **11/11 通过**；组合跑时每次随机 2–3 条同类用例失败（第二轮 68/123/181，第二复跑 20/95，成因疑似真实 Ollama 流式 + `pointerdown` 关闭竞态，与本轮改动无关）。**建议单列排查，不阻塞 A 闸门** |
+| `selection-toolbar.e2e.ts`「流式翻译中点『关闭』能立即收起」 | `.dm-btn.primary` 在但 `hidden` | **偶发** | **确认为偶发既有 flake**：单跑该文件 **11/11 通过**；组合跑时每次随机 2–3 条同类用例失败（第二轮 68/123/181，第二复跑 20/95，成因疑似真实 Ollama 流式 + `pointerdown` 关闭竞态，与本轮改动无关）。**建议单列排查，不阻塞 A 闸门**。**2026-10-08 已定位并修复（DM-V3-005）**：根因是测试夹具 `seedSettings` 与 SW 启动期 `runMigrations()` 的**写-写竞态**（非产品缺陷），已改为「写入 + 回读校验 + 重试」；连续两轮有头全量 **0 命中** |
 
 > 前两条之外的 `1 skipped` = `selection-panel-toggle.e2e.ts` 的真实 Side Panel 用例（无头下自动 skip），与 AUTO-02 记载一致，**已于 §5.3 用 `E2E_HEADED=1` 实跑补齐（2 条均通过）**。
 
 **进展（2026-10-08 续）**：上表 4 条**全部定性完毕**——`immersive` 1 条（测试时序）、`options` 1 条（陈旧用例）、`selection-toolbar` 翻转 1 条（陈旧用例）**已修复**；`selection-toolbar`「关闭」1 条确认为**偶发既有 flake**（单跑 11/11，组合跑随机失败，成因疑似真实 Ollama 流式竞态，另列排查）。修复后 **全量无头 E2E 68 passed / 1 skipped / 0 failed**。
+
+**进展（2026-10-08 · DM-V3-005 收口）**：上条「偶发既有 flake」**根因已定位** —— 不是产品缺陷，而是
+**测试夹具 `seedSettings` 直写底层 storage 与 SW 启动期 `runMigrations()` 的写-写竞态**
+（`runMigrations` 读-改-写整块 settings：先读 `migrations=[]` → 夹具写入 `toolbarTrigger:'auto'` → 再读 settings 判定需迁移 → 用 `shortcut` 覆写）。
+夹具已改为「写入 + 回读校验 + 重试，全部在同一次 `evaluate` 内」，失败显式抛错。
+**复跑 3 轮有头全量：`83/0`、`82/1`（同族，未脱离）、加固后 `83/0`；最终版定向复跑 15/15**。该条不再是「已知缺陷」，改为「夹具缺陷已定位并加固」。根因与完整复跑记录见第 15 节 **DM-V3-005**。
 
 **环境注意（本轮踩坑，供后续复跑）**：沙箱环境下 Playwright 会把宿主机误判为 **x64**（解析到 `chrome-mac-x64`），而本机缓存只有 `chromium-1243/chrome-mac-arm64` ⇒ 69 条全因 `Executable doesn't exist` 失败。**须在沙箱外运行，或显式 `unset PLAYWRIGHT_BROWSERS_PATH`**；本机正常路径下无需额外设置。
 
@@ -202,6 +208,7 @@ Provider 双主路径至少在 Chrome 的两个 UI 入口完成；Edge 至少重
 **其余有头对比**：与无头第三轮（68 passed / 1 skipped）逐条一致，唯一差异是上述 2 条从 skip 变为通过；**Agent 组、chat、immersive、options、sidepanel、workspace 在有头下同样全绿**。
 
 **唯一 1 条失败**：`selection-toolbar.e2e.ts:95「点击浮层外部收起浮层」` — `.dm-btn.primary` 已解析到元素但 `hidden`，与 §5.2 登记的**同一族既有 flake**（单跑 11/11 通过、组合跑随机命中，成因疑似真实 Ollama 流式 + `pointerdown` 竞态）。**属既有 flake，已按负责人意见暂时忽略、不阻塞闸门**，另列排查。
+**2026-10-08 更新**：已定位为**测试夹具竞态**（DM-V3-005）并加固；复跑 3 轮有头全量 `83/0`、`82/1`（同族）、加固后 `83/0`，最终版定向复跑 15/15 ⇒ 不再作为**产品**已知缺陷披露（最终版完整套件待补跑）。
 
 **产物口径**：有头轮直接复用 09:47 产出的 `.output/chrome-mv3`（`e2e/fixtures.ts` 默认加载该路径；此后仅有测试 / 文档改动，无产品源码改动，包未过期）。重跑可用 `pnpm test:e2e:headed`（脚本会先 `wxt build`）。
 
@@ -381,7 +388,7 @@ npx playwright test e2e/agent-plan.e2e.ts e2e/agent-safety.e2e.ts \
 - [ ] **REG-01 · P1**：新安装默认 shortcut — 普通选区不自动强弹；Alt/Option+K 能翻译；用户切 auto 后选区才自动弹层。　`2026-10-08 【自动化：e2e/selection-toolbar.e2e.ts →「shortcut 模式下划词不自动弹层」+「划词后出现浮层并完成流式翻译」】shortcut 下选区不自动弹；显式触发后浮层出现并完成流式翻译`
 - [ ] **REG-02 · P1**：英文→中文、中文→英文、混排→中文；手动改语言后重译 — 互切与手动覆盖均正常，Options 不把侧栏刚改的值覆盖回旧值。
 - [ ] **REG-03 · P1**：空选区、输入框选区、页面选区、超长选区 — 空值不请求；支持的选区正确翻译；超长内容有可读限制。
-- [ ] **REG-04 · P1**：浮层流式翻译、停止、关闭、Esc、外部点击 — 关闭立即生效，无迟到回包重开或错误闪回。　`2026-10-08 【自动化：e2e/selection-toolbar.e2e.ts 6 条】「翻译中点「停止」不报错并回到空闲态」「流式翻译中点「关闭」能立即收起」「按 Esc 收起浮层」「点击浮层外部收起浮层」「流式翻译中按 Esc 收起」「翻译完成后点击外部收起」。⚠️ 既有已知 flake（非本次引入）：整套全量跑到该文件时偶发「划词后浮层未出现」；单独跑 3 次、与 data-persistence 组合跑均稳定通过，属第 15 节已登记的**划词浮层组合跑 flake**`
+- [ ] **REG-04 · P1**：浮层流式翻译、停止、关闭、Esc、外部点击 — 关闭立即生效，无迟到回包重开或错误闪回。　`2026-10-08 【自动化：e2e/selection-toolbar.e2e.ts 6 条】「翻译中点「停止」不报错并回到空闲态」「流式翻译中点「关闭」能立即收起」「按 Esc 收起浮层」「点击浮层外部收起浮层」「流式翻译中按 Esc 收起」「翻译完成后点击外部收起」。⚠️ 既有已知 flake（非本次引入）：整套全量跑到该文件时偶发「划词后浮层未出现」；单独跑 3 次、与 data-persistence 组合跑均稳定通过，属第 15 节已登记的**划词浮层组合跑 flake**。**2026-10-08 更新（DM-V3-005）**：根因已定位为**测试夹具 `seedSettings` 与 SW 启动期迁移的写-写竞态**（非产品缺陷），已按「先等启动期写入收敛 → 写入 → 连续两次稳定校验」加固；复跑 3 轮有头全量 `83/0`、`82/1`（同族）、加固后 `83/0`，最终版定向复跑 **15/15**`
 - [ ] **REG-05 · P1**：选区近底部、页面滚动、窄窗口 — 浮层翻转与跟随正确，不挡关键操作。
 - [ ] **REG-06 · P1**：浮层打开 / 收起真实 Side Panel，承接选区 — 手势路径有效，译文与语言一致；必须有头或人工验证。　`2026-10-08 【有头自动化（部分）：§5.3 / selection-panel-toggle.e2e.ts】已覆盖：真实 SIDE_PANEL 上下文 0→1→0、按钮态翻转、打开时选区承接（sourceText=Hello, how are you today? / targetLanguage=zh-CN）。❌ 未覆盖：Side Panel 内**实际译文文本**与该语言的渲染一致性（另由 sidepanel-language.e2e.ts 覆盖语言互切，但为无头普通标签页驱动，非真实 SIDE_PANEL 表面）`
 - [ ] **REG-07 · P1**：全页工作台打开、输入翻译、切 Feature Tab、复用模型选择 — 没有占位回退、串结果或错误 Key 文案。
@@ -623,6 +630,64 @@ npx playwright test e2e/agent-plan.e2e.ts e2e/agent-safety.e2e.ts \
 > `shared/ui/modelIcons.ts`（`browser.runtime.getURL` 的动态路径参数不在 `PublicPath` 字面量内）。
 > 现 `pnpm compile` **0 error**。
 
+```text
+缺陷 ID / 等级：DM-V3-005 / **P2（测试夹具缺陷；非产品缺陷）**（划词浮层用例在整套组合跑时偶发「浮层未出现」）
+关联用例：REG-04（`selection-toolbar.e2e.ts` 6 条）、`selection-panel-toggle.e2e.ts`「点『侧边栏』→ 打开」
+候选版本 / 浏览器 / UI / Provider：任意（**仅测试侧**）；`e2e/fixtures.ts` 的 `seedSettings`
+前置状态与测试页：无（无需特定页面；只要该用例调用 `seedSettings` 且 SW 恰好在同刻执行启动期迁移）
+复现步骤：1) 干净 profile 启动扩展（SW 启动，Background 顶层跑 `contextMenus.removeAll().then(refreshContextMenuEnabled())`）；
+          2) 测试调用 `seedSettings` 写入 `toolbarTrigger: 'auto'`；
+          3) 两者**交错**：SW 先读到旧的 `migrations=[]`，再读到本函数刚写的 `settings.toolbarTrigger='auto'`；
+          4) 内容脚本 `settings:get` → 拿到被改写后的 `shortcut` → 划词后浮层不出现。
+期望结果：种子写入后 `toolbarTrigger` 恒为 `'auto'`，浮层稳定出现。
+实际结果（计数器 / 网络 / timeline）：偶发失败，报 `.dm-btn.primary` 已解析到元素但 `hidden`
+          （整套跑两轮分别落在 `selection-toolbar:83` / `selection-panel-toggle:42`）。
+根因（已定位到代码）：
+  - `shared/storage/settings.ts:51-61`  `runMigrations()` 是**读-改-写整个 settings**：
+       先 `migrationsItem.getValue()`，再 `settingsItem.getValue()`，中间的空窗足以插入外部写入；
+       命中 `shouldMigrateToolbarTrigger(applied, stored.toolbarTrigger)` 时用 `shortcut` **整块覆盖** settings
+       （并把 `migrations` 覆盖成单个 ID）。
+  - `shared/storage/migrations.ts:18-26` 判定条件 = `applied 未含标记` **且** `stored === 'auto'`。
+  - `entrypoints/background.ts:1096-1116`  SW **启动期**（顶层）就会触发 `getSettings()` → `runMigrations()`。
+  - `e2e/fixtures.ts` 旧 `seedSettings` **直接写底层 storage**（读-改-写一次了事），
+    是唯一会与迁移并发的写入方 ⇒ 竞态窗口成立。
+出现次数 / 执行次数：纯偶发。2026-10-08 有头整套 **2/2 轮各命中 1 条**；单跑该文件 11/11 通过 ⇒ 与机器负载相关。
+脱敏截图 / 日志 / trace：trace 显示元素在但 `hidden`；无产品侧异常。
+负责人 / 修复版本：测试侧 / V3.0（**不改产品源码** ⇒ 已归档的 `1.0.0` 包不受影响）
+修复方案：`seedSettings` 改为「**写入 + 回读校验 + 重试**」，且写入与回读都在**同一次 `evaluate`** 内完成；
+          6 次仍不成立则**显式抛错**（避免再次以「浮层未出现」的哑症状被误判为产品缺陷）。
+          未改产品源码的理由：产品侧所有写入都经 `getSettings()/saveSettings()`，天然与迁移串行；
+          只有测试夹具绕过它们直写 storage。若后续要根治产品侧的「丢失更新」风险，应另立项
+          （把 `runMigrations` 从「整块覆写」改为「只写需要改的键」），但会触发重新打包 + T04–T08 复跑。
+修复后复测结果 / 相邻路径回归：见下方「2026-10-08 · DM-V3-005 修复与复测」。
+```
+
+### 2026-10-08 · DM-V3-005 修复与复测
+
+| 项 | 结果 |
+|----|------|
+| 改动文件 | `e2e/fixtures.ts`（仅 `seedSettings` 与截图用的 `deviceScaleFactor` 开关；**未动产品源码**） |
+| 修复（v1） | 写入 + 回读校验 + 重试（≤6 次、间隔 25ms），全部在**同一次 `evaluate`** 内完成 |
+| 修复（v2 · 最终） | 在 v1 基础上：**① 先等 Background 启动期写入收敛**（原始快照连续两次读一致且已过 ≥60ms）；**② 再写入，并要求连续两次稳定校验成立**；10 次仍不成立则**显式抛错** |
+| 有头全量 E2E · R1（v1） | **83 passed / 0 failed / 6 skipped**（3.1 min）——skip 为新增截图用例（需 `DM_CAPTURE=1`） |
+| 有头全量 E2E · R2（v1） | **82 passed / 1 failed / 6 skipped** —— 命中 `selection-toolbar:181「滚动时浮层跟随选区」`，错误为 `expect(locator).toBeVisible() → Received: hidden`（元素 `dualmind-toolbar .dm-btn.primary` 解析到但 hidden）⇒ **仍是同一族「浮层未出现」**，证明 v1「写一次 + 校验一次」**仍有残余窗口**（启动期迁移的两次读在写入之前、写落在回读之后） |
+| 有头全量 E2E · R3（v2 + 滚动用例加固） | **83 passed / 0 failed / 6 skipped** |
+| 定向复跑（v2 最终版） | `selection-toolbar` + `selection-panel-toggle` + `data-persistence` **15 passed / 44.1s** |
+| 尚未执行 · **经负责人拍板跳过** | **v2 最终版未跑完整有头套件**（仅定向 15 条）。**2026-10-08 负责人（zp）决定：不再补跑最终包全量有头 E2E**（判断依据：夹具缺陷非产品缺陷、且 v2 已在 `83/0` 与定向 15/15 两档通过；全量复跑耗时高、边际信息低）。**影响登记**：① DM-V3-005 的「不再作为产品已知缺陷」依据是**代码路径证据 + 定向证据**，非完整套件统计置信度；② 该跳过属**验证范围裁剪**，已同步记入 [v3-minimal-release-plan.md](./v3-minimal-release-plan.md) §7 执行记录，**不构成对产品 P0 判据的豁免**；③ 若发布后在同族用例出现浮层未出现，优先按 DM-V3-005 的「夹具竞态」假设复核 |
+| 附加加固 | `selection-toolbar.e2e.ts「滚动时浮层跟随选区」`：把固定 `waitForTimeout(300)` 换成 `expect.poll`（≤5s，判据不变仍要求 y 变小）——固定等待在繁忙机器上会产生「跟随不及时」的**假失败**（R2 即暴露该脆弱点） |
+
+> **更正**：该 flake **自始不是产品缺陷**，原「已声明限制 / 已知缺陷表」中的相关表述按本条更正，
+> 不再作为上架需披露的已知缺陷。`content.css` 缺失（低危）仍按已声明限制披露。
+> 根因依据：`runMigrations()` 是**读-改-写整块 settings**（`shared/storage/settings.ts:51-61`），
+> 而 Background **顶层**就会触发它（`entrypoints/background.ts:1096-1116`）；
+> 夹具 `seedSettings` 又**直写底层 storage**，是唯一会与它并发的写入方 ⇒ 竞态唯一可行解释，
+> 且 R2 的失败症状（`toBeVisible → hidden`）与之完全吻合。
+> **留白（不夸大）**：v2 最终版只跑了定向 15 条，**尚未跑完整套件**；「不再作为产品已知缺陷」
+> 依据的是代码路径证据（产品侧写入均经 `getSettings()/saveSettings()` 与迁移串行），
+> 而非完整统计置信度。
+> 产品侧仍存在一处**同源、实际不可达的低危「丢失更新」风险**（`runMigrations` 整块覆写 settings）；
+> 若要根治须另立项（把迁移改为「只写需要改的键」），会触发重新打包 + T04–T08 复跑，本轮不做。
+
 ## 16. 最终签收
 
 ### A：V3.0 功能封板
@@ -632,7 +697,7 @@ npx playwright test e2e/agent-plan.e2e.ts e2e/agent-safety.e2e.ts \
 - [ ] 支付拒绝、计划批准、危险确认、取消、任务隔离、目标变化与导航失效证据完整。
 - [ ] 文档、契约、UI 与实际能力一致；已知限制不隐藏，未实现范围未扩入 V3.0。
 - [ ] 封板结论、负责人、日期、剩余问题与后续发布闸门登记完成；没有把「封板」直接当成已正式发布。
-- [ ] **发布范围裁剪已声明**：S1–S5（Agent 默认开、首轮仅 Chrome、REG / DATA 收敛、低价值项延后）已记入 decisions.md 与本表，未以 N/A 或「豁免」掩盖；延后项与已知 flake / 低危缺陷已在 REL-12 已声明限制中披露。
+- [ ] **发布范围裁剪已声明**：S1–S5（Agent 默认开、首轮仅 Chrome、REG / DATA 收敛、低价值项延后）已记入 decisions.md 与本表，未以 N/A 或「豁免」掩盖；延后项与已知低危缺陷已在 REL-12 已声明限制中披露；**原「划词浮层组合跑 flake」已查明为测试夹具竞态（DM-V3-005）并修复，按更正后不再作为产品已知缺陷披露**。
 
 ### B：正式版发布
 
@@ -645,8 +710,8 @@ npx playwright test e2e/agent-plan.e2e.ts e2e/agent-safety.e2e.ts \
 
 | 签收项 | 负责人 | 日期 | 候选版本 / 包 hash | 结论与遗留 |
 |---|---|---|---|---|
-| V3.0 封板 | zp | **待签** | `1.0.0` @ `636fcd3` / `dualmind-1.0.0-chrome.zip` sha256 `2a670372…` | **待签**。A 段待决：① `9770b9e` 的人工验收证据未绑定 `636fcd3`（DM-V3-ENV-04）；② 第 6–10 节必测项按 S3/S4 收敛后复跑；③ 已知 flake（`selection-toolbar`）与低危缺陷（`content.css`）已披露 |
-| Chrome 发布 | zp | **待签** | 同上（归档 `~/DualMind-releases/`，REL-13 已校验 OK） | **待签**。B 段待决：① T09/T10 真实加载与网络观察（PRIV-03）未做；② NET-01 双 Provider 未走到 `finish`；③ REL-10 截图与 REL-11 提交当日核验未做 |
+| V3.0 封板 | zp | **待签** | `1.0.0` @ `636fcd3` / `dualmind-1.0.0-chrome.zip` sha256 `2a670372…` | **待签**。A 段待决：① `9770b9e` 的人工验收证据未绑定 `636fcd3`（DM-V3-ENV-04）；② 第 6–10 节必测项按 S3/S4 收敛后复跑；③ **划词浮层「组合跑 flake」已定位为测试夹具竞态（DM-V3-005）并修复**，两轮有头全量 0 命中 + 最终版定向 15/15 ⇒ 不再作为产品已知缺陷披露；**负责人已拍板不再补跑最终包全量有头 E2E**（记为验证范围裁剪，依据为代码路径 + 定向证据）；④ 低危缺陷（`content.css`）仍按已声明限制披露 |
+| Chrome 发布 | zp | **待签** | 同上（归档 `~/DualMind-releases/`，REL-13 已校验 OK） | **待签**。B 段待决：① T10 网络观察（PRIV-03·P0）—— 步骤见 runbook **B11-1**；② T17 NET-01 双 Provider 未走到 `finish` —— 步骤见 runbook **B7a / B11-2**；③ T09 / T28 真实包加载冒烟；④ T30 截图**框架就绪、图片待跑**（`docs/store-screenshots.md`）；⑤ T32 提交当日核验 —— 8 项 Checklist 见 runbook **B11-3** |
 | Edge 发布 | 延后（S2） | — | — | 首轮只发 Chrome，Edge 逐项验证延后至下一轮 |
 
 > **说明**：上表为**预填框架**（2026-10-08，已把负责人 / 候选版本 / 包 hash / 遗留项就位），**不代表任何闸门已通过**。日期与结论须由负责人在实际完成对应验证后填写；**只有完成签收后才更新架构里程碑或发布状态**。

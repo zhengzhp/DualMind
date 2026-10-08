@@ -71,4 +71,11 @@
 
 **落地清单与估时**：[v3-minimal-release-plan.md](./v3-minimal-release-plan.md)（≈3.5～4.5 人日；关键路径 Phase 3 → 4 → 6）。
 
-**已声明延后须披露的已知项**（写进 REL-12 发布说明 / 已知限制）：本轮仅 Chrome；`selection-toolbar` 家族存在既有偶发 flake（单跑 11/11、组合跑随机命中，疑似真实流式 + `pointerdown` 竞态）；`content-scripts/content.css` 缺失（低危，Shadow UI 自带内联样式，仅每页一次失败请求）。
+**已声明延后须披露的已知项**（写进 REL-12 发布说明 / 已知限制）：本轮仅 Chrome；`content-scripts/content.css` 缺失（低危，Shadow UI 自带内联样式，仅每页一次失败请求）。
+
+> **2026-10-08 更正**：本条原还列入「`selection-toolbar` 家族存在既有偶发 flake」，经排查确认为
+> **E2E 测试夹具与扩展启动期设置迁移的写-写竞态**（夹具 `seedSettings` 直写底层 storage，
+> 与 `runMigrations()` 的读-改-写交错），**不是产品缺陷**；真实用户路径不存在该窗口
+> （产品内写入一律经 `getSettings()/saveSettings()`，与迁移串行）。
+> 夹具已修为「写入 + 回读校验 + 重试」，有头全量 E2E 连续两轮 `83 passed / 0 failed`
+> ⇒ **该项已从「须披露的已知项」中移除**。排查记录见 `docs/v3-release-test-plan.md` 第 15 节 DM-V3-005。

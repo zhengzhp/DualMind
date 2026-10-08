@@ -40,6 +40,7 @@ SEC、LIFE 工具段）都不能成立。
 | B7 | Provider / 网络与恢复 | Side Panel | `/t1-static-form` | NET-01 NET-02 NET-03 NET-04 NET-06 NET-07 NET-08 NET-09 |
 | B8 | UI 入口 / 禁用 / 能力限制 | Side Panel + 工作台 + Options | `/t1-static-form`、`/t5-long-text`、`/t6-limits`、`/t6-csp` | UI-01 ~ UI-12（**S3 收敛后仅跑** UI-01 / 03 / 04 / 05 / 09 / 11；UI-02 / 07 / 10 / 12 按 S5 延后） |
 | B10 | 回归与升级（**S3 / S4 收敛**） | Side Panel + 工作台 + Options | `/t1-static-form`、`/t5-long-text` | REG-01 04 08 10 11 13 17 19 · DATA-03 DATA-04（其余 REG / DATA 按 S3 / S4 / S5 已声明延后） |
+| B11 | **发布前真机项**（T10 / T17 / T32） | 真实 Chrome + 商店后台 | 任意真实外文页、`/t1-static-form` | PRIV-03（T10）· NET-01（T17）· REL-11（T32）。**需真实浏览器 / 真实 Provider / 提交日期，Agent 不能代跑** |
 
 批次内建议顺序：**先只读、再写入；先可逆、再不可逆；先单入口、再多入口**。
 所有支付类动作只在 T2 与金融路径页执行，用计数器证明；不碰真实资金页。
@@ -1189,8 +1190,9 @@ npx playwright test e2e/agent-plan.e2e.ts e2e/agent-safety.e2e.ts \
 | REG-17 | `e2e/options.e2e.ts` 4 条 + `providers/*.test.ts` |
 | REG-19 | `entrypoints/options/diff.test.ts`（单测：草稿差异 → 空补丁 / 只提交变更字段） |
 
-> 注意 REG-04 存在**既有组合跑 flake**（全量跑到该文件时偶发浮层未出现；单独跑与
-> 与 `data-persistence` 组合跑均稳定通过，见第 15 节登记）。属已登记项，非本次改动引入。
+> ~~注意 REG-04 存在**既有组合跑 flake**~~ → **已消除（2026-10-08 · DM-V3-005）**：该 flake 查明为
+> **测试夹具 `seedSettings` 与 SW 启动期 `runMigrations()` 的写-写竞态**（非产品缺陷），
+> 夹具已改为「写入 + 回读校验 + 重试」。有头全量 E2E **连续两轮 83 passed / 0 failed** ⇒ 本项视为稳定。
 
 | # | 条目 | 操作 | 期望 |
 |---|------|------|------|
@@ -1236,14 +1238,87 @@ npx playwright test e2e/agent-plan.e2e.ts e2e/agent-safety.e2e.ts \
 | 命令 | 结果 |
 |------|------|
 | `npx tsc --noEmit` | 0 error（新增 2 个 e2e 文件已纳入 typecheck） |
-| `pnpm test:e2e:headed`（整套 83 条） | **82 passed**；唯一失败为**既有**划词浮层组合跑 flake（本轮落在 `selection-panel-toggle`，上轮落在 `selection-toolbar` 的同症状用例） |
-| 单独复跑该 flake 用例 ×3 | 3 passed（隔离下稳定） |
+| `pnpm test:e2e:headed`（整套，含新增截图用例） | **83 passed / 0 failed / 6 skipped**（此前两轮各命中 1 条 flake；见下「2026-10-08 · DM-V3-005」） |
+| ~~单独复跑该 flake 用例 ×3~~ | 已不需要：根因为在**测试夹具**（非产品），修复后连续两轮整套 0 命中 |
 | `data-persistence` ×3 | 6 passed（DATA-03 的竞态修复后稳定） |
 
 > **环境坑（必读）**：本机缓存在 `~/Library/Caches/ms-playwright`（arm64），而沙箱内运行的是
 > **x64 Node**，会去找不存在的 `chromium-1243/chrome-mac-x64` ⇒ 无头下报
 > 「Executable doesn't exist」。**跑 E2E 必须显式指定并脱离沙箱**：
 > `PLAYWRIGHT_BROWSERS_PATH="$HOME/Library/Caches/ms-playwright" E2E_HEADED=1 npx playwright test`
+
+---
+
+### B11 · 发布前真机项（T10 / T17 / T32；2026-10-08 编制 · **待执行**）
+
+这三项的共同点：**必须真实浏览器 / 真实 Provider / 实际提交日期，自动化无法替代**。
+以下把每一项从「一句判据」降为「照着做 + 照着填」。
+
+> 前置：用**最终归档包**（`~/DualMind-releases/dualmind-1.0.0-chrome.zip`，解压后加载），
+> 不要用 `.output/chrome-mv3` dev 产物 —— 否则又落入「验旧包、交新包」（AUTO-06）。
+
+#### B11-1 · T10 · PRIV-03（**P0**）· DevTools 网络观察
+
+**目标**：证明翻译 / Chat / Agent 三条链路**只打用户配置的端点**，无遥测、无未知第三方。
+
+**步骤**（三条链路同法，逐条记录）：
+
+1. `chrome://extensions` → 开发者模式 → 「加载已解压的扩展程序」→ 选解压目录。
+2. 配置好 Provider（本地 Ollama 或 BYOK），确认功能可用。
+3. 打开 DevTools（F12）→ **Network** 面板 → 勾选 **Preserve log** → 点清空（🚫）。
+4. 过滤选 `Fetch/XHR`（避免被 `model-icons/*.png` 等扩展自身资源干扰）。
+5. 依次执行三条链路：
+   - **A · 翻译**：任意外文页划词 → 点浮层「翻译」。
+   - **B · Chat**：工作台 → 网页助手 → 「总结本页」。
+   - **C · Agent**：起一个**只读**任务（目标：`观察这个页面有哪些可交互元素，然后汇报结果`）→ 批准 → 跑到结束。
+6. 每条链路跑完，记录下表一行。
+
+| 场景 | 请求条数 | 目标 host | 是否∈{用户配置端点}∪{`127.0.0.1:11434`,`localhost:11434`} | 是否出现未知域名 | 证据 |
+|------|----------|-----------|------------------------------------------------------------|------------------|------|
+| A 翻译 | | | | | Network 截图 |
+| B Chat | | | | | Network 截图 |
+| C Agent | | | | | Network 截图 |
+
+**判定口径**：三条链路**全部**只出现用户配置端点 ⇒ PASS。
+只要出现**任何**非用户配置 host（含 `api.*`、`*.sentry.io`、`google-analytics` 等）⇒ **PRIV-03 FAIL（P0）**，
+立即记录该 URL 截图并停止提交。
+
+**常见误判**：DevTools 里 `chrome-extension://<id>/...` 的请求属于扩展本地资源加载，
+不是网络外发，**不计入**未知域名。
+
+#### B11-2 · T17 · NET-01（P1）· 双 Provider 到 `finish`
+
+**步骤与记录模板见本文 [§B7a · NET-01 双 Provider 完整闭环（含 `finish`）](#b7a--net-01-双-provider-完整闭环含-finish2026-10-08-编制--待执行)**。
+要点复述（避免翻页踩坑）：
+
+- 推荐**只读目标** `观察这个页面有哪些可交互元素，然后汇报结果`，避开危险闸门干扰。
+- Step A = 本机 Ollama（`qwen3:4b`），Step B = BYOK；**两侧都要走到 `finish`**。
+- `finish(success:false)` **不算** PASS。
+- **单侧不达即 NET-01 不闭合**。
+
+#### B11-3 · T32 · REL-11（P1）· 提交当日核验
+
+**为什么必须「当日」**：商店后台的构建 / 版本 / 政策 URL 状态可能随时间变化，
+且「一次成包」要求提交的就是被验证过的那一个 zip。
+
+| # | 核验项 | 期望 | 记录 |
+|---|--------|------|------|
+| 1 | 提交的包 = 归档包 | `shasum -a 256 -c ~/DualMind-releases/dualmind-1.0.0-chrome.zip.sha256` → `OK` | sha256： |
+| 2 | 包内版本 | `manifest.json` 的 `version` = `1.0.0` | |
+| 3 | 权限口径 | 仅 `storage` / `sidePanel` / `contextMenus`；无 `debugger` / `scripting` / `optional_permissions` | |
+| 4 | 隐私政策 URL 可访问 | `https://github.com/zhengzhp/DualMind/blob/main/PRIVACY.md` 返回 200 | |
+| 5 | 支持入口可访问 | `https://github.com/zhengzhp/DualMind/issues` 返回 200 | |
+| 6 | 表单字段 | 按 [store-listing.md](./store-listing.md) 的「单一用途 / 权限用途 / 数据使用」填写，无事实冲突 | |
+| 7 | 截图 | 6 张已按 [store-screenshots.md](./store-screenshots.md) 采集，且与最终包实际一致（REL-05） | |
+| 8 | 提交日期 | **YYYY-MM-DD**（当日） | |
+
+**红线**：若当日对**产品源码 / 依赖 / 权限 / 配置 / 打包**有任何改动 ⇒ 必须**重新 `pnpm zip`**
+并在新包上重跑 T04–T08，然后回到第 1 行重新核验（一次成包铁律）。
+
+**结论**：8 项全绿 ⇒ 可提交；任一不达 ⇒ 先修后交，不得带病提交。
+
+> 另：T09（AUTO-06 最终包加载 + 主路径冒烟）与 T28（REL-04 主路径逐一打开）**同为真机项**，
+> 已在上表第 1–7 行覆盖「包一致性 + 主路径可见」的核心部分；若需完整人工记录，另行执行。
 
 ---
 
