@@ -5,6 +5,7 @@
 > 与 [docs/decisions.md](./decisions.md)（当前权威 · V3 已立项）保持一致；改权限前先改本文件。
 > 注：商店后台多数字段要求英文，文末附英文版可直接粘贴。
 > 修订记录：2026-10-08 按 V3 口径补齐**阅读助手 / 可选本页 Agent**、**本地聊天历史**与 **DOM 写操作**披露，并修正「Key 不上传任何服务器」「页面信息不外发」等绝对声明（对应 REL-06 / REL-07）。
+> 修订记录：2026-10-08（三）**已发布公开隐私政策**（[PRIVACY.md](../PRIVACY.md)，中英双语）与**支持入口**（GitHub Issues），对应 REL-08；下文「数据使用」字段与该政策口径一致，**提交当日须以最终包为准再核验一次**。
 > 修订记录：2026-10-08（二）**首轮仅提交 Chrome**（Edge 延后，见 [decisions.md](./decisions.md)「V3.0 正式版发布范围裁剪」）；并**修正 Agent 默认状态的事实描述** —— 代码默认为启用（`agentPrefs.enabled = true`，`shared/storage/types.ts`），故不再宣称「默认关闭」，改为「安装后可用，但不会自动启动任务」。
 
 ## 单一用途（Single purpose）
@@ -42,6 +43,8 @@
 - **Data collection（是否收集用户数据）**：否（仅在本机/用户端点间传输，开发者不接收）
 - **Host permission justification**：见上表两行 `host_permissions`
 - **Content script justification**：划词 / 沉浸译需常驻读取用户选区与页面正文；可选 Agent 需在用户批准后对当前页执行 DOM 操作
+- **Privacy policy URL（隐私政策）**：<https://github.com/zhengzhp/DualMind/blob/main/PRIVACY.md>
+- **Support URL（支持入口）**：<https://github.com/zhengzhp/DualMind/issues>
 
 ---
 

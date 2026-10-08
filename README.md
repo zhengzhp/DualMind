@@ -77,6 +77,7 @@ Chrome 打开 `chrome://extensions` → 开启开发者模式 → 加载 `.outpu
 | [docs/decisions-v2.md](docs/decisions-v2.md) · [docs/architecture-v2.md](docs/architecture-v2.md) · [docs/features-v2.md](docs/features-v2.md) | V2 归档（已封板） |
 | [docs/decisions-v1.md](docs/decisions-v1.md) · [docs/architecture-v1.md](docs/architecture-v1.md) · [docs/features-v1.md](docs/features-v1.md) | V1 / V1.5 归档（已封板） |
 | [docs/store-listing.md](docs/store-listing.md) | 上架权限用途 / 单一用途 / 数据使用说明 |
+| [PRIVACY.md](PRIVACY.md) | 隐私政策（中英双语，对外公开） |
 | [docs/cursor-cheatsheet.md](docs/cursor-cheatsheet.md) | Cursor 快捷键与 `/` 命令速查 |
 | [AGENTS.md](AGENTS.md) | 给 AI / 协作者的入口说明 |
 | `.cursor/rules/` | Cursor 项目规则（自动约束后续对话） |

@@ -49,7 +49,7 @@
 ### Phase 2 · 隐私实证（P0，≈1～2h）
 
 - [ ] **T10** · PRIV-03 · P0 ｜ DevTools 网络观察：翻译 / Chat / Agent 各一条，确认仅打用户配置端点，无遥测 / 未知第三方 | 0.5h
-- [ ] **T11** · REL-08 · P0 ｜ **新建**公开可访问隐私政策 + 支持入口（商店硬要求；当前 `docs/` 下不存在对应文件） | 1～1.5h
+- [x] **T11** · REL-08 · P0 ｜ ✅ **完成**：新建根目录 `PRIVACY.md`（中英双语，生效 2026-10-08，适用 v1.0.0 起），口径与 `store-listing.md` 及代码事实逐条对齐（无后端 / 无遥测 / 无远程代码；密码框掩码；Key 仅 Background；删除方式；Agent 边界）。公开 URL：政策 `https://github.com/zhengzhp/DualMind/blob/main/PRIVACY.md`（仓库 public），支持入口 `https://github.com/zhengzhp/DualMind/issues`；README 与 store-listing 已互链 | 1～1.5h
 
 ### Phase 3 · Agent 硬性补齐（P0，≈0.5～1 天）★关键路径
 
