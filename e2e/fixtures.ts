@@ -43,6 +43,9 @@ export function launchExtensionContext(
   return chromium.launchPersistentContext(userDataDir, {
     headless: !E2E_HEADED,
     ...(E2E_HEADED ? {} : { channel: 'chromium' as const }),
+    // 截图采集（DM_CAPTURE=1）时锁定 DPR=1：Retina 上默认可能是 2x，
+    // 会把 1280×800 截成 2560×1600，不满足商店对截图尺寸的要求
+    ...(process.env.DM_CAPTURE === '1' ? { deviceScaleFactor: 1 } : {}),
     args: [
       `--disable-extensions-except=${EXTENSION_PATH}`,
       `--load-extension=${EXTENSION_PATH}`,
@@ -125,22 +128,93 @@ export async function seedSettings(
       const KEY = 'settings';
       const MIGRATIONS_KEY = 'migrations';
 
-      const stored = await chrome.storage.local.get(KEY);
-      const current = (stored[KEY] ?? {}) as Record<string, unknown>;
       // 嵌套的 openai / ollama 需要浅合并，避免覆盖掉未传的字段
       const merge = (a: unknown, b: unknown): Record<string, unknown> => ({
         ...((a ?? {}) as Record<string, unknown>),
         ...((b ?? {}) as Record<string, unknown>),
       });
-      await chrome.storage.local.set({
-        [KEY]: {
-          ...current,
-          ...payload,
-          openai: merge(current.openai, payload.openai),
-          ollama: merge(current.ollama, payload.ollama),
-        },
-        [MIGRATIONS_KEY]: applied,
-      });
+
+      const sleep = (ms: number) =>
+        new Promise((resolve) => setTimeout(resolve, ms));
+
+      /** 读取原始快照（字符串化，仅用于比较「有没有人在写」） */
+      const readRaw = async (): Promise<string> =>
+        JSON.stringify(await chrome.storage.local.get([KEY, MIGRATIONS_KEY]));
+
+      /** 写入一次种子（读-改-写，等价于 Options 页保存） */
+      const writeSeed = async (): Promise<void> => {
+        const stored = await chrome.storage.local.get(KEY);
+        const current = (stored[KEY] ?? {}) as Record<string, unknown>;
+        await chrome.storage.local.set({
+          [KEY]: {
+            ...current,
+            ...payload,
+            openai: merge(current.openai, payload.openai),
+            ollama: merge(current.ollama, payload.ollama),
+          },
+          [MIGRATIONS_KEY]: applied,
+        });
+      };
+
+      /** 回读校验：种子关心的顶层字段与迁移标记是否仍原样在库 */
+      const isSeedIntact = async (): Promise<boolean> => {
+        const check = await chrome.storage.local.get([KEY, MIGRATIONS_KEY]);
+        const settings = (check[KEY] ?? {}) as Record<string, unknown>;
+        const migrations = (check[MIGRATIONS_KEY] ?? []) as string[];
+        // 迁移器会用「只含 1 个 ID」覆盖掉我们的全量标记，长度即可识别
+        if (migrations.length !== applied.length) return false;
+        for (const [key, value] of Object.entries(payload)) {
+          // 嵌套字段走浅合并，不做严格相等比较
+          if (key === 'openai' || key === 'ollama') continue;
+          // 走 JSON 比较：storage 往返后数组 / 对象是**新引用**，`!==` 会永远不相等
+          if (JSON.stringify(settings[key]) !== JSON.stringify(value)) return false;
+        }
+        return true;
+      };
+
+      /*
+       * ① 先等 Background 的「启动期写入」收敛。
+       *
+       * Background 顶层会立刻执行 `contextMenus.removeAll().then(... refreshContextMenuEnabled())`
+       * → `getSettings()` → `runMigrations()`，而 `runMigrations()` 是**读-改-写整个 settings**：
+       * 只要它的「读 migrations」在我们的写入之前、「读 settings」在我们写入之后，就会看到
+       * `toolbarTrigger === 'auto'`，判定需要迁移，随后用 `shortcut` **整块覆写**我们的种子
+       * （并把 migrations 覆写成单个 ID）。
+       *
+       * 关键点：SW 的顶层代码在我们的 `evaluate` 之前就已启动，所以这段并发写入在时间上是
+       * 可预期的「一瞬间」。这里先等原始快照**连续两次读一致且已过最短等待**，再动种子。
+       *
+       * ② 写入后仍要「回读校验」（连续两次成立才算稳定），以覆盖极端调度下的残余窗口。
+       *
+       * 注意：这是**测试夹具的缺陷**，不是产品缺陷 —— 产品侧写入都经
+       * `getSettings()/saveSettings()`，天然与迁移串行；只有本函数直接写底层 storage。
+       * 故修法也留在测试侧（不改产品源码 ⇒ 已归档的发布包不受影响）。
+       * 诊断记录：docs/v3-release-test-plan.md 第 15 节 DM-V3-005。
+       */
+      const startedAt = Date.now();
+      let previous = await readRaw();
+      for (let i = 0; i < 12; i += 1) {
+        await sleep(25);
+        const current = await readRaw();
+        if (current === previous && Date.now() - startedAt >= 60) break;
+        previous = current;
+      }
+
+      let stable = 0;
+      for (let attempt = 0; attempt < 10 && stable < 2; attempt += 1) {
+        await writeSeed();
+        await sleep(25);
+        stable = (await isSeedIntact()) ? stable + 1 : 0;
+      }
+
+      // 仍不成立就显式失败：宁可暴露「种子写不进去」，也不要让用例以
+      // 「浮层未出现」这种哑症状失败，从而再次把夹具问题误判成产品缺陷
+      if (stable < 2) {
+        const finalCheck = await chrome.storage.local.get(KEY);
+        throw new Error(
+          `seedSettings 未能稳定落盘：settings=${JSON.stringify(finalCheck[KEY])}`,
+        );
+      }
     },
     { payload: patch, applied: APPLIED_MIGRATIONS },
   );

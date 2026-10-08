@@ -191,16 +191,25 @@ test.describe('划词工具栏', () => {
     await expect(primary).toBeVisible();
 
     const before = await primary.boundingBox();
-    await page.mouse.wheel(0, 600);
-    // 等 autoUpdate 重算
-    await page.waitForTimeout(300);
-    const after = await primary.boundingBox();
-
     expect(before).not.toBeNull();
-    expect(after).not.toBeNull();
+
+    await page.mouse.wheel(0, 600);
+
+    /*
+     * 等 `autoUpdate` 重算位置。
+     * 这里刻意用 `expect.poll` 而不是固定 `waitForTimeout(300)`：
+     * 机器繁忙时重算可能超过固定等待，会造成「跟随不及时」的**假失败**
+     * （2026-10-08 整套复跑即命中此症状），而行为本身是正确的。
+     * 轮询仍保留真实判据：y 必须变小；若始终不跟随依然会失败。
+     */
+    await expect
+      .poll(
+        async () => (await primary.boundingBox())?.y ?? Number.POSITIVE_INFINITY,
+        { timeout: 5_000, message: '浮层未跟随选区上移' },
+      )
+      .toBeLessThan(before!.y);
+
     await expect(primary).toBeVisible();
-    // 向下滚动后选区在视口中上移，浮层应跟随（y 变小）
-    expect(after!.y).toBeLessThan(before!.y);
   });
 
   test('禁用站点不注入划词工具栏', async ({ page, serviceWorker }) => {
