@@ -119,7 +119,10 @@ export function getModelIconUrl(model: string): string | null {
   let url: string | null = null;
   if (id && typeof browser !== 'undefined' && browser.runtime?.getURL) {
     try {
-      url = browser.runtime.getURL(`/model-icons/${id}.svg`);
+      // WXT 的 `getURL` 入参在类型层被收窄为编译期已知的 public 路径字面量；
+      // 这里按厂商 id 运行期拼接动态路径，故显式放宽为 string 入参。
+      const getUrl = browser.runtime.getURL as (path: string) => string;
+      url = getUrl(`/model-icons/${id}.svg`);
     } catch {
       url = null;
     }

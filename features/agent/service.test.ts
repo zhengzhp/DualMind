@@ -20,7 +20,10 @@ function options(patch: Partial<RunAgentTaskOptions> = {}): RunAgentTaskOptions 
     taskId: 'task', goal: '填写姓名', pageUrl: 'https://example.com/form', pageTitle: '表单',
     maxSteps: 3, signal: new AbortController().signal,
     gate: { waitPlanApproval: async () => 'approved', waitDangerConfirm: async () => 'confirmed' },
-    post: vi.fn(), executeTool: vi.fn(async () => ({ ok: true, tool: 'finish', summary: '完成', data: { success: true } })),
+    post: vi.fn(),
+    executeTool: vi.fn(
+      async (): Promise<AgentToolResult> => ({ ok: true, tool: 'finish', summary: '完成', data: { success: true } }),
+    ),
     ...patch,
   };
 }

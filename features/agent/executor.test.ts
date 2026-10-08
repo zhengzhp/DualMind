@@ -19,7 +19,7 @@ class FakeElement {
   getBoundingClientRect() { return { width: 100, height: 30 }; }
 }
 class FakeButton extends FakeElement {
-  tagName = 'BUTTON';
+  override tagName = 'BUTTON';
   type = 'button';
   disabled = false;
   form: FakeElement | null = null;

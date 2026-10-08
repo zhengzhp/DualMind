@@ -92,12 +92,14 @@ export function formatAllSessionsMarkdown(sessions: ChatSession[]): string {
   ];
 
   for (let i = 0; i < ordered.length; i += 1) {
+    const session = ordered[i];
+    if (!session) continue;
     if (i > 0) {
       parts.push('---', '');
     }
     // 去掉单会话文档自带的一级标题井号层次冲突：整包已有总标题，
     // 各会话仍保留 `# 标题`，阅读时结构清晰。
-    parts.push(formatSessionMarkdown(ordered[i]).trimEnd(), '');
+    parts.push(formatSessionMarkdown(session).trimEnd(), '');
   }
 
   return parts.join('\n');
