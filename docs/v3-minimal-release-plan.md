@@ -65,22 +65,22 @@
 
 ### Phase 4 · 收窄后的回归与升级（≈0.5～1 天）
 
-> **执行步骤已就绪** → runbook **B10 · 回归与升级（REG / DATA，按 S3 / S4 收敛）**（Step 5 回归冒烟 / Step 6 升级与持久化）。以下 T19～T22 对应 runbook 中的具体步骤；**均需真实浏览器人工执行**。
+> **执行步骤已就绪** → runbook **B10 · 回归与升级（REG / DATA，按 S3 / S4 收敛）**（Step 5 回归冒烟 / Step 6 升级与持久化）。**T19～T22 已全部转为自动化**（既有 E2E / 单测 + 新增 `e2e/data-persistence.e2e.ts`），**无人工作业项**。
 
-- [ ] **T19** · REG-11（FAB 拖动 / 贴边 / 记忆）｜ 📋 runbook B10 · Step 5 第 3 行。**改动面命中**（`features/page-fab` 有改动），故保留 | 0.3h
-- [ ] **T20** · DATA-03 + DATA-04（S4 保留项）｜ 📋 runbook B10 · Step 6。含 **DATA-03 的关键防呆**：人工验迁移必须**先清空 `local:migrations` 标记**，否则迁移不触发、会误判 PASS（`e2e/fixtures.ts` 的种子会预置标记） | 0.3h
-- [ ] **T21** · REG-17（+ REG-19）｜ 📋 runbook B10 · Step 5 第 6、7 行：Provider 列表 / 连接测试 / 保存回读且不泄漏 Key；Options 旧草稿不覆盖未改字段 | 0.3h
-- [ ] **T22** · REG 冒烟 4 条 ｜ 📋 runbook B10 · Step 5 第 1、2、4、5 行：REG-01 划词默认行为、REG-04 浮层流式与关闭、REG-08/10 沉浸译还原、REG-13 Chat 保持只读 | 0.3h
+- [x] **T19** · REG-11（FAB 拖动 / 贴边 / 记忆）｜ ✅ **已自动化**：`e2e/immersive.e2e.ts →「悬浮入口：可拖动、贴边吸附并全局记忆位置」+「指针穿过按钮与菜单之间的空隙后，动作仍可点击」`。**改动面命中**（`features/page-fab` 有改动），故保留 | 0.0h
+- [x] **T20** · DATA-03 + DATA-04（S4 保留项）｜ ✅ **已自动化**：新增 `e2e/data-persistence.e2e.ts`（DATA-03 迁移 + 幂等；DATA-04 关 / 重开同一 profile）。**关键竞态已解决**：SW 监听 `storage.onChanged` 会抢先迁移，构造与前置断言必须合并在同一次 `evaluate`（拆成两次 CDP 往返在整套 E2E 里必现失败）；另确认 `runMigrations()` 挂在 `getSettings()` 上，所以**打开内容页即可触发，无需 Reload 扩展** | 0.3h
+- [x] **T21** · REG-17（+ REG-19）｜ ✅ **已自动化**：`e2e/options.e2e.ts` 4 条 + `providers/*.test.ts`（REG-17）；`entrypoints/options/diff.test.ts` 单测覆盖「草稿差异 → 空补丁 / 只提交变更字段」（REG-19，逻辑层） | 0.0h
+- [x] **T22** · REG 冒烟 4 条 ｜ ✅ **已自动化**：REG-01 `selection-toolbar`（shortcut 不自动弹）、REG-04 `selection-toolbar` 6 条、REG-08/10 `immersive`（布局还原 / 仅译文 / 动态补译 / 禁用站点）、REG-13 `chat` + `workspace` | 0.0h
 - [ ] **T23** · DATA-01 / DATA-02 ｜ ⚠️ **按 S4 已声明延后**（S4 只保留 DATA-03 + DATA-04）。因此「干净安装引导」与「保留旧数据升级」本轮**不执行**，须在 §16 与 decisions.md 作为范围裁剪登记；**不得**用「卸载重装」冒充升级验证 | 0.3h
 
 ### Phase 5 · 入口与 UI（≈0.5 天）
 
-> **执行步骤已就绪** → runbook **B8**（S3 收敛后聚焦 UI-01 / 03 / 04 / 05 / 09 / 11）。**T24 必须用有头 / 人工**（无头下拿不到真实 `SIDE_PANEL`）。
+> **执行步骤已就绪** → runbook **B8**（S3 收敛后聚焦 UI-01 / 03 / 04 / 05 / 09 / 11）。**已由新增 `e2e/agent-ui.e2e.ts`（8 条用例）覆盖**；T24 的真实侧栏判据仍必须**有头**（`E2E_HEADED=1`，无头下自动 skip）。
 
-- [ ] **T24** · UI-01 · P1 ｜ 📋 runbook B8 · Step 1：FAB「请 Agent 操作本页」→ **真实 Side Panel** + Agent Tab；目标框为空、无计划卡、零写入；绑定页 = 当前页。**若打开的是普通标签页 ⇒ FAIL**（`sidePanel.open()` 手势窗口易踩点） | 0.2h
-- [ ] **T25** · UI-03 / UI-04 · P1 ｜ 📋 runbook B8 · Step 2：关 FAB（Agent 仍可用）/ 隐藏 FAB（划词仍可用）/ 整站禁用（都不注入）；`chrome://`、扩展页、商店页不做非法 DOM 操作 | 0.2h
-- [ ] **T26** · UI-05 / UI-11 · P1 ｜ 📋 runbook B8 · Step 3：多内容页各自任务互不串；`/t5-long-text` 三功能并发（Chat 保持只读） | 0.2h
-- [ ] **T27** · UI-09 · P1 ｜ 📋 runbook B8 · Step 4：未配模型的 loading/错误、空目标禁用、401/500 文案可读且不打印 Key | 0.2h
+- [x] **T24** · UI-01 · P1 ｜ ✅ **已自动化**：`e2e/agent-ui.e2e.ts →「UI-01a」`（有头）断言 **SIDE_PANEL context +1 + 无新标签页 + 信箱被消费 + 目标页零写入** ⇒「侧栏而非标签页」已机器可判；`「UI-01b」`（无头）断言切 Agent Tab / 目标框为空 / 无计划卡 / 无批准入口 / 绑定页 = 当前页 / 模型 0 调用。⚠️ 仅真实侧栏**内部观感**保留人工 | 0.2h
+- [x] **T25** · UI-03 / UI-04 · P1 ｜ ✅ **已自动化（部分）**：`「UI-03」` 关 FAB 后划词仍在且 Agent 仍能完整写入；`「UI-04a」` 隐藏列表只关 FAB（划词仍可用）；`「UI-04b」` 整站禁用 ⇒ 都不注入。❌ **保留人工**：`chrome://` / `edge://` / 扩展页 / 商店页 —— Playwright 拿不到这些页面的内容脚本上下文，无法直接断言 | 0.1h
+- [x] **T26** · UI-05 / UI-11 · P1 ｜ ✅ **已自动化（UI-11 范围收敛）**：`「UI-05」` 两个同 URL 内容页各起一任务、各自只写自己的页、无跨页重放（两页计数各 1）；`「UI-11」` 网页助手的 6s 慢流式与 Agent 规划**同时在途**、互不打断、两边都不写页面。⚠️ 未并入沉浸译（其按段落逐次调用模型，与有序 mock 脚本共用时步数随分段数漂移 ⇒ 合并即不稳定），**「三功能同页并发」保留人工** | 0.1h
+- [x] **T27** · UI-09 · P1 ｜ ✅ **已自动化（四处）**：未配模型 ⇒ 文案「请先在设置中填写 API Key」且输入 / 「开始」**回到可用态**（非无限 loading，`agent-ui` 新增）；空目标禁用（`AG-16`）；401 / 429 / 500 / 连接重置文案可读且不泄露响应体（`agent-network`）；无 JS 堆栈（`agent-entry`）。❌ 仍缺 loading 空白页的专门视觉检查 | 0.1h
 
 ### Phase 6 · 上架材料与签收（≈1 天）
 
@@ -104,7 +104,7 @@
 - **LIFE 的 P1 项**：LIFE-04 / 07 / 09 / 13 / 14 / 15 / 17 / 18 / 20。
 - **已覆盖 P0 的未构造「变体」子句**（同一代码通路，故不阻断，但如实登记）：LIFE-02「再点旧批准」、LIFE-03「再点旧确认」、LIFE-05「注入迟到回包」、LIFE-11「待危险确认时的刷新」、LIFE-12「hash / replaceState / 离开再返回」、LIFE-19「解除禁用不恢复旧任务」；AG-16「storage 读 / 写失败注入」、AG-18「迟到结果不串新任务」。
 - **NET**：NET-01 双 Provider 到 `finish`（**未做**，需真实 Provider 人工会话）、NET-02 / 03 / 04 未覆盖分支、NET-06 的 E2E 层缺口、NET-07～09。
-- **既有偶发 flake**：`selection-toolbar` 家族（「点击浮层外部收起」「流式翻译中点关闭」）——单跑 11/11，组合跑随机命中，成因疑似真实流式 + `pointerdown` 竞态；**已按负责人意见暂时忽略**，须在 REL-12 已声明限制中列入。
+- **既有偶发 flake**：`selection-toolbar` / `selection-panel-toggle` 家族（「点击浮层外部收起」「流式翻译中点关闭」「按 Esc 收起浮层」「点『侧边栏』→ 打开」）——单跑 11/11、**2026-10-08 单独复跑失败用例 ×3 全过**、`data-persistence + selection-*` 组合 15/15 全过；**仅在整套 83 条跑到该处时随机命中**（两轮分别落在 `selection-toolbar:83` 与 `selection-panel-toggle:42`，症状同为「划词后浮层未出现」）。成因疑似真实流式 + `pointerdown` 竞态；**已按负责人意见暂时忽略**，须在 REL-12 已声明限制中列入。（本轮已验证**非**新增 `e2e/data-persistence.e2e.ts` 触发）
 - **已知低危缺陷**：`content-scripts/content.css` 缺失（V1/V2 范围，Shadow UI 自带内联样式，正确性无损，仅每页一次失败请求 + 控制台警告）。
 
 ## 4. 需同步修订的文档

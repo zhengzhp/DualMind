@@ -25,7 +25,30 @@ export const EXTENSION_PATH = process.env.DM_EXTENSION_PATH
   ? path.resolve(process.env.DM_EXTENSION_PATH)
   : path.resolve(here, '../.output/chrome-mv3');
 /** 独立的浏览器 profile，避免污染真实浏览器数据 */
-const USER_DATA_DIR = path.resolve(here, '../.e2e-profile');
+export const USER_DATA_DIR = path.resolve(here, '../.e2e-profile');
+
+/**
+ * 用同一份 profile 启动扩展 context。
+ *
+ * 抽出来的目的：DATA-04（关闭浏览器再打开）需要在同一条用例里
+ * **关掉再重开**同一个 profile，才能证明设置 / Chat 历史真的落盘、
+ * 而 Agent 运行态确实没有被恢复。若只有 `context` fixture 内部能用，
+ * 这条用例就无法复用完全相同的启动参数（--load-extension 等）。
+ */
+export function launchExtensionContext(
+  userDataDir: string = USER_DATA_DIR,
+): Promise<BrowserContext> {
+  // 默认无头；无头下必须走完整 Chromium 的新无头模式（channel: 'chromium'），
+  // 否则 Playwright 默认用的 headless shell 不支持 --load-extension，扩展不会加载。
+  return chromium.launchPersistentContext(userDataDir, {
+    headless: !E2E_HEADED,
+    ...(E2E_HEADED ? {} : { channel: 'chromium' as const }),
+    args: [
+      `--disable-extensions-except=${EXTENSION_PATH}`,
+      `--load-extension=${EXTENSION_PATH}`,
+    ],
+  });
+}
 
 /**
  * 是否使用有头窗口。默认**无头**（适合本地批量执行）；
@@ -58,16 +81,7 @@ export const test = base.extend<ExtensionFixtures>({
   context: async ({}, use) => {
     // 每个用例从干净 profile 起，避免 storage / service worker 互相污染
     fs.rmSync(USER_DATA_DIR, { recursive: true, force: true });
-    const context = await chromium.launchPersistentContext(USER_DATA_DIR, {
-      // 默认无头；无头下必须走完整 Chromium 的新无头模式（channel: 'chromium'），
-      // 否则 Playwright 默认用的 headless shell 不支持 --load-extension，扩展不会加载。
-      headless: !E2E_HEADED,
-      ...(E2E_HEADED ? {} : { channel: 'chromium' as const }),
-      args: [
-        `--disable-extensions-except=${EXTENSION_PATH}`,
-        `--load-extension=${EXTENSION_PATH}`,
-      ],
-    });
+    const context = await launchExtensionContext();
     await use(context);
     await context.close();
   },

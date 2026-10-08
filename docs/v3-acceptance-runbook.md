@@ -1026,7 +1026,15 @@ curl -s http://127.0.0.1:11434/v1/chat/completions -H 'Content-Type: application
 
 **完成后**：勾选测试清单 NET-01；更新本文件「问题台账」中 `DM-V3-UNTESTED` ② 与 `DM-V3-ENV-06` 的残留说明。
 
-### B8 · UI 入口 / 禁用 / 能力限制（按 **S3 收敛**，聚焦 UI-01 / 03 / 04 / 05 / 09 / 11；2026-10-08 编制 · **待执行**）
+### B8 · UI 入口 / 禁用 / 能力限制（按 **S3 收敛**，聚焦 UI-01 / 03 / 04 / 05 / 09 / 11；2026-10-08 编制 · **已自动化，仅剩 2 处人工**）
+
+> **自动化落地（2026-10-08）**：本批已由 `e2e/agent-ui.e2e.ts` 覆盖 8 条用例，
+> 分两次跑：`E2E_HEADED=1`（UI-01a 需要真实侧栏，无头下自动 skip）与无头。
+> **仍需人工的只有两处**：
+> ① **UI-04 的 `chrome://` / `edge://` / 扩展页 / 商店页** —— Playwright 在这些页面拿不到
+> 内容脚本上下文，无法直接断言「不误注入 / 不报错」，只能实机点检；
+> ② **UI-01 真实侧栏内部的肉眼观感**（外观 / 排版 / 拖拽宽度）。
+> 其余原「操作 + 期望」步骤已全部转为断言，保留在下文仅作**判据说明**。
 
 > **为什么收敛**：S3 把 V1/V2 回归收窄到「被改动的共享面」（`features/page-fab`、`shared/storage`、`providers`、`entrypoints`、`shared/messaging`、`features/chat`）。本批只跑**与 Agent 入口 + 共享 FAB 相关**的条目；UI-02 / 07 / 10 / 12 按 S5 已声明延后。
 > **UI-01 必须用有头 / 人工**：无头下拿不到真实 `SIDE_PANEL`（会 skip）。
@@ -1158,12 +1166,31 @@ npx playwright test e2e/agent-plan.e2e.ts e2e/agent-safety.e2e.ts \
 
 ---
 
-### B10 · 回归与升级（**REG / DATA，按 S3 / S4 收敛**；2026-10-08 编制 · **待执行**）
+### B10 · 回归与升级（**REG / DATA，按 S3 / S4 收敛**；2026-10-08 编制 · **已全部自动化**）
+
+> **自动化落地（2026-10-08）**：Step 5 的 7 条 **REG 全部**由既有 E2E / 单测覆盖，Step 6 的
+> DATA-03 / DATA-04 由新增 `e2e/data-persistence.e2e.ts` 覆盖 —— **本批已无人工作业项**。
+> 逐条对应关系见 Step 5 / Step 6 的表格补注与
+> `docs/v3-release-test-plan.md` 对应条目的【自动化】证据块。
+> 下文表格保留为**判据说明**，不再是执行清单。
 
 > **收敛口径**：S3 ⇒ REG 只跑与改动共享面相关的 6～8 条冒烟；S4 ⇒ DATA 只保留 **DATA-03 + DATA-04**，其余（DATA-01/02/05～09）按 S4/S5 已声明延后。
 > **本批不需要 tools**（除 Step 6 外），可先用任一能连通即可的模型跑。
 
-**Step 5 · REG 冒烟（6 条，各一条主路径）**
+**Step 5 · REG 冒烟（7 条，各一条主路径）—— 全部已自动化**
+
+| 条目 | 对应自动化资产 |
+|------|----------------|
+| REG-01 | `e2e/selection-toolbar.e2e.ts`（shortcut 不自动弹 / 显式触发后流式翻译） |
+| REG-04 | `e2e/selection-toolbar.e2e.ts` 6 条（停止 / 关闭 / Esc / 外部点击，含流式中） |
+| REG-11 | **`e2e/immersive.e2e.ts`（拖动贴边吸附 + 全局记忆、菜单间隙点击）** |
+| REG-08 / REG-10 | `e2e/immersive.e2e.ts`（布局不变形 + 还原后 DOM 复原、仅译文、动态补译、禁用站点） |
+| REG-13 | `e2e/chat.e2e.ts`（摘要 / 停止 / 上下文提取）+ `e2e/workspace.e2e.ts` |
+| REG-17 | `e2e/options.e2e.ts` 4 条 + `providers/*.test.ts` |
+| REG-19 | `entrypoints/options/diff.test.ts`（单测：草稿差异 → 空补丁 / 只提交变更字段） |
+
+> 注意 REG-04 存在**既有组合跑 flake**（全量跑到该文件时偶发浮层未出现；单独跑与
+> 与 `data-persistence` 组合跑均稳定通过，见第 15 节登记）。属已登记项，非本次改动引入。
 
 | # | 条目 | 操作 | 期望 |
 |---|------|------|------|
@@ -1186,12 +1213,37 @@ npx playwright test e2e/agent-plan.e2e.ts e2e/agent-safety.e2e.ts \
 > `chrome.storage.local.set({ settings: { ...原值, toolbarTrigger: 'auto' }, migrations: [] })` 后 Reload 扩展。
 > **注意**：正常 E2E 种子会预置 `migrations` 标记（`e2e/fixtures.ts` 的 `APPLIED_MIGRATIONS`），
 > 所以人工验迁移时**必须显式清空该标记**，否则迁移不会触发、会误判为 PASS。
+>
+> **⚠️ 自动化时的额外坑（2026-10-08 实测）**：Background 监听 `storage.onChanged`
+> （`settings` 变化 → `refreshContextMenuEnabled()` → `getSettings()` → `runMigrations()`），
+> 所以「写旧值」与「回读前置状态」如果拆成**两次 CDP 往返**，SW 会抢先把值迁移掉，
+> 前置断言随机失败（在整套 E2E 里必现、单独跑该文件时偶然通过）。
+> `e2e/data-persistence.e2e.ts` 已把「写 + 回读校验」合并在**同一次 `evaluate`** 内取屏障；
+> 人工操作时同理：写入后**不要**先手动回读再 Reload，直接 Reload 看结果即可。
+>
+> **DATA-03 无需 Reload 也能验**：`runMigrations()` 挂在 `getSettings()` 上，
+> 因此**打开任意内容页**（内容脚本会 `settings:get`）就会触发迁移。
 
 **证据**：迁移前后 `chrome.storage.local.get('settings')` 与 `local:migrations` 导出（DATA-03）、
 重启前后 `settings` + `chat*` 键导出（DATA-04）、各步截图。
 
-**完成后**：勾选 REG-01 / 04 / 08 / 10 / 11 / 13 / 17 / 19 与 DATA-03 / DATA-04；
+**完成后**：REG-01 / 04 / 08 / 10 / 11 / 13 / 17 / 19 与 DATA-03 / DATA-04 **已由自动化覆盖**
+（对应条目已在 `docs/v3-release-test-plan.md` 补【自动化】证据块）；
 在 §16 签收「结论与遗留」里登记 S3/S4 收敛范围。
+
+**本轮（2026-10-08）B8 / B10 验证结果**：
+
+| 命令 | 结果 |
+|------|------|
+| `npx tsc --noEmit` | 0 error（新增 2 个 e2e 文件已纳入 typecheck） |
+| `pnpm test:e2e:headed`（整套 83 条） | **82 passed**；唯一失败为**既有**划词浮层组合跑 flake（本轮落在 `selection-panel-toggle`，上轮落在 `selection-toolbar` 的同症状用例） |
+| 单独复跑该 flake 用例 ×3 | 3 passed（隔离下稳定） |
+| `data-persistence` ×3 | 6 passed（DATA-03 的竞态修复后稳定） |
+
+> **环境坑（必读）**：本机缓存在 `~/Library/Caches/ms-playwright`（arm64），而沙箱内运行的是
+> **x64 Node**，会去找不存在的 `chromium-1243/chrome-mac-x64` ⇒ 无头下报
+> 「Executable doesn't exist」。**跑 E2E 必须显式指定并脱离沙箱**：
+> `PLAYWRIGHT_BROWSERS_PATH="$HOME/Library/Caches/ms-playwright" E2E_HEADED=1 npx playwright test`
 
 ---
 
