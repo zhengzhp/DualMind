@@ -5,7 +5,10 @@ export default defineConfig({
   modules: ['@wxt-dev/module-react'],
   manifest: {
     name: 'DualMind',
-    description: 'AI 浏览器助手 — 划词翻译 / Side Panel / 本地 Ollama',
+    description:
+      'AI 浏览器助手（BYOK）：划词与整页翻译、网页摘要与问答，以及逐次批准的本页操作 Agent',
+    // sidePanel API 需 Chrome 114+；显式声明最低版本，避免老版本上 chrome.sidePanel 为 undefined
+    minimum_chrome_version: '114',
     icons: {
       16: 'icon/16.png',
       32: 'icon/32.png',

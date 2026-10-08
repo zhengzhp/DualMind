@@ -81,12 +81,12 @@
 ### Phase 6 · 上架材料与签收（≈1 天）
 
 - [ ] **T28** · REL-04 · P1 ｜ Chrome 加载最终解压包，Options / 真实 Side Panel / 工作台 / 划词 / 沉浸译 / Chat / Agent 主路径逐一打开 | 0.3h
-- [x] **T29** · REL-05 · P1 ｜ ✅ **产物核对完成，并发现 1 处待修**：名称 / 版本 / `action.default_title` / 四个图标（有效 PNG + 尺寸正确）/ 无开发标记 全部通过。⚠️ **`description` 仍是 V1 口径**（未提阅读助手与 Agent）→ 需改 `wxt.config.ts` 并**重新 build + zip + 重跑 T04–T08**。**待你拍板是否本轮修** | 0.3h
+- [x] **T29** · REL-05 · P1 ｜ ✅ 完成：名称 / 版本 / `default_title` / 四图标（有效 PNG + 尺寸正确）/ 无开发标记 全通过；**修复 V1-only 描述**（改为覆盖三类能力、不夸大，并写明 Agent「可选 + 逐次批准」）；**顺带修复 P1-3**：新增 `minimum_chrome_version: "114"`。已重新 build + zip + 在新包重跑 T04–T08 全通过 | 0.4h
 - [x] **T34** · REL-09 · P1 ｜ ✅ 新建 `docs/reviewer-reproduction.md`：安装 → 配置（`ollama pull qwen3:4b`，无需账号 / 付费）→ 翻译 → 阅读助手 → Agent 计划批准 → 危险二次确认 → **资金类动作被拒** → 停止；含无模型降级路径与「勿粘贴真实 Key」提示 | 0.4h
 - [ ] **T30** · REL-10 · P1 ｜ 正式包截图与功能说明（含模型前提、安全确认、已知限制） | 0.5h
-- [x] **T31** · REL-12 · P1 ｜ ✅ 新建 `docs/release-notes-v1.0.0.md`：发布说明 + 已知限制 + 已知缺陷表 + **回滚 / 暂停发布预案**（含「无后端 ⇒ 只能商店下架」的影响追踪）。⚠️ **负责人仍为待填** | 0.3h
+- [x] **T31** · REL-12 · P1 ｜ ✅ 新建 `docs/release-notes-v1.0.0.md`：发布说明 + 已知限制 + 已知缺陷表 + **回滚 / 暂停发布预案**（含「无后端 ⇒ 只能商店下架」的影响追踪）；负责人已填 **zp** | 0.3h
 - [ ] **T32** · REL-11 · P1 ｜ 提交表单**当日**核验（记录日期） | 0.3h
-- [ ] **T35** · REL-13 · P1 ｜ 把正式包**另存到不受 build 影响的目录** + 生成 `.sha256` 文件，并在 §16 记录日期（当前只存在于会被覆盖的 `.output`） | 0.2h
+- [x] **T35** · REL-13 · P1 ｜ ✅ 正式包已归档到**仓库外** `~/DualMind-releases/`（zip + `.sha256` + README），`shasum -c` 校验 OK，不再依赖会被覆盖的 `.output` | 0.2h
 - [ ] **T33** · §16 ｜ 填写签收表（V3.0 封板 + Chrome 发布），登记剩余问题与已声明延后 | 0.3h
 
 ## 3. Phase D · 明确延后并披露（不勾选、也不豁免）
@@ -146,8 +146,8 @@
 | 项 | 结果 |
 |----|------|
 | 打包命令 | `pnpm zip` → 退出码 0，`✔ Finished in 893 ms` |
-| **产物（最终）** | `.output/dualmind-1.0.0-chrome.zip` · 227,845 B · **sha256 `487f11836ea86d94822a0034e597096c31f82a29b27fa6976ceff5fc13456f1e`** |
-| 旧包（已废弃） | `dualmind-0.1.0-chrome.zip`（sha256 `3d741a39…`）—— 因版号变更已删除，其核对结论不再有效 |
+| **产物（最终，2026-10-08 重打包）** | `.output/dualmind-1.0.0-chrome.zip` · **227,927 B** · **sha256 `2a6703722098cba7e583c96f56bc9b5da7090307fe5280153c347d41629b08c1`** · 已归档 `~/DualMind-releases/` |
+| 上一版包（已废弃） | `dualmind-1.0.0-chrome.zip`（sha256 `487f1183…`）—— 因 **REL-05 描述修正 + 新增 `minimum_chrome_version`** 重新打包而作废；`dualmind-0.1.0-chrome.zip`（`3d741a39…`）因版号变更早已作废 |
 | 解压规模 | 72 个文件 / 788K |
 | 顶层结构 | `manifest.json`、`background.js`(56.6K)、`content-scripts/content.js`(112.4K)、`chunks/`(5 个：Workbench/options/sidepanel/tailwind/workspace)、`options.html`、`sidepanel.html`、`workspace.html`、`icon/`、`model-icons/`(57)、`assets/`、`wordmark.svg` |
 | **T05 敏感文件** | 无 `.env*` / `*.map` / `*.ts(x)` / `*.log` / `credentials*` / `*.e2e*` ⇒ 干净 |
@@ -184,3 +184,17 @@
 | **REL-13** | ⏳ 未做：正式包仍只存在于会被 build 覆盖的 `.output`，需另存 + `.sha256` |
 
 **结论**：T29 / T31 / T34 完成；**T29 附带一处 REL-05 发现需拍板**（是否本轮修 manifest 描述 → 会触发重打包 + T04–T08 重跑）。
+
+### 2026-10-08 · Phase 6 收口（描述修正 + 归档）
+
+**拍板**：① 修 `description`；② 同时加 `minimum_chrome_version`；③ 归档到仓库外；④ 负责人 = zp。
+
+| 项 | 结果 |
+|----|------|
+| 代码改动 | `wxt.config.ts`：`description` → `AI 浏览器助手（BYOK）：划词与整页翻译、网页摘要与问答，以及逐次批准的本页操作 Agent`（48 字符，未超 132 上限）；新增 `minimum_chrome_version: '114'`（修复 review-risk-report P1-3） |
+| 重新验证 | `pnpm compile` 0 error；`pnpm zip` → **新包 227,927 B / sha256 `2a670372…`**；重跑 T04–T08：描述 / 最低版本 114 / 权限三项 / 无 `optional_permissions` / 无 CSP / 无 WAR / 图标 4 个 / `content.js` 敏感串全 0 / 掩码与超时常量均在 —— **全通过** |
+| 归档（REL-13） | `~/DualMind-releases/`：zip + `.sha256` + `README.txt`；`shasum -a 256 -c` **OK** |
+| 文档修订 | `review-risk-report.md`：P1-2 标注「原判断前提失效（Chat/Agent 已实现）」并记录按 V3 口径处理；P1-3 标注已修复 |
+| 连带更新 | `release-notes-v1.0.0.md` 版本表（新 hash / 最低版本 / 负责人 zp）、测试计划 §3 登记表与 REL-05 / REL-12 / REL-13 |
+
+**结论**：**T29 / T31 / T34 / T35 完成**；剩余 Phase 6 仅 T28（真实加载）、T30（截图）、T32（提交当日核验）、T33（签收表）。

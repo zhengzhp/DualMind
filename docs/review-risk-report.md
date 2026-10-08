@@ -63,17 +63,17 @@
   1. 保持现状，准备一份面向审核员的 `host_permissions` 论证（推荐，成本最低）；
   2. 改造为 `optional_host_permissions` + 运行时申请。注意 `decisions.md:78` 已记录：因 `content_scripts.matches` 仍是 `<all_urls>`，**安装警告不变**，收益有限且多一处运行时失败点。
 
-#### P1-2 description 过宽，触碰单一用途
+#### P1-2 description 过宽，触碰单一用途 —— 【2026-10-08 重评：原判断前提失效，已按 V3 口径处理】
 
-- **证据**：manifest description = `AI 浏览器助手 — 划词翻译 / Side Panel / 本地 Ollama`。
-- **问题**：「AI 浏览器助手」+ `<all_urls>` + 侧栏「工作台」（`WorkbenchApp.tsx` 含 Chat / Agent 占位）容易被判"用途过宽"。
-- **建议**：改为纯翻译表述（如「划词与整页双语翻译，支持自带模型」），并在审核说明里说明 Chat / Agent 仅为占位、无实际能力。**零代码成本**。
+- **证据（更新）**：manifest `description` 已改为 `AI 浏览器助手（BYOK）：划词与整页翻译、网页摘要与问答，以及逐次批准的本页操作 Agent`。
+- **原判断已失效**：本条原建议「改为**纯翻译**表述」，理由是「Chat / Agent 仅为占位、无实际能力」。**该前提不成立**：V2 阅读助手（Chat）已封板、V3 本页 Agent 已实现。若照原建议改窄，会与 `decisions.md` / `store-listing.md` 的 V3 口径（翻译 + 阅读助手 + 可选本页 Agent）**互相矛盾**，并新增「未申报已实现能力」的审核风险。
+- **处理（2026-10-08）**：改为**如实覆盖三类能力且不夸大**的描述，并把 Agent 的「可选 + 逐次批准」写进去，避免「隐藏能力」质疑。单一用途仍以 `store-listing.md` 为准。
 
-#### P1-3 缺 `minimum_chrome_version`
+#### P1-3 缺 `minimum_chrome_version` —— 【2026-10-08 已修复】
 
-- **证据**：产物 manifest 无该字段；`sidePanel` 需 Chrome 114+。
+- **证据（更新）**：`wxt.config.ts` 已增加 `minimum_chrome_version: '114'`；产物 manifest 已核对该字段存在。
 - **影响**：老版本浏览器上 `chrome.sidePanel` 为 `undefined`，可能抛错，reviewer 视为兼容性缺陷。
-- **建议**：`wxt.config.ts` 增加 `minimum_chrome_version: '114'`。
+- **处理**：已修复（2026-10-08）。
 
 ### P2 —— 建议准备口径，非阻塞
 

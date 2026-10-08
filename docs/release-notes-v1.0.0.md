@@ -8,12 +8,13 @@
 | 字段 | 值 |
 |------|-----|
 | 版本号 | `1.0.0`（首个正式版；`package.json` 与最终 `manifest.version` 一致） |
-| 目标浏览器 | **Chrome（Chromium）**；Edge 延后至下一轮 |
+| 目标浏览器 | **Chrome（Chromium）≥ 114**（`minimum_chrome_version: "114"`，因 `sidePanel` API 需 114+）；Edge 延后至下一轮 |
 | manifest | MV3；`permissions = storage / sidePanel / contextMenus`；**无** `debugger` / `scripting` / `tabs` / `activeTab` |
-| 正式包 | `.output/dualmind-1.0.0-chrome.zip` |
-| 包大小 / hash | 227,845 B；sha256 `487f11836ea86d94822a0034e597096c31f82a29b27fa6976ceff5fc13456f1e` |
-| 发布负责人 | 待填 |
-| 回滚负责人 | 待填 |
+| 描述 | `AI 浏览器助手（BYOK）：划词与整页翻译、网页摘要与问答，以及逐次批准的本页操作 Agent` |
+| 正式包 | `.output/dualmind-1.0.0-chrome.zip`（归档：`~/DualMind-releases/dualmind-1.0.0-chrome.zip`） |
+| 包大小 / hash | 227,927 B；sha256 `2a6703722098cba7e583c96f56bc9b5da7090307fe5280153c347d41629b08c1` |
+| 发布负责人 | zp |
+| 回滚负责人 | zp |
 
 ## 2. 本次发布内容
 
@@ -33,6 +34,7 @@
 - **部分页面无法操作**：Shadow DOM、跨域 iframe、严格 CSP 下的部分元素可能失败（会给出可读失败提示）。
 - **Agent 运行态不持久化**：步骤计划 / 轨迹 / 中止标志只存在于内存；关闭或重启浏览器后不恢复，也**不重放**页面操作，须重新发起并重新批准。
 - **首轮仅 Chrome**：Edge 尚未验证，本轮不声明支持。
+- **最低版本 Chrome 114**：`sidePanel` API 需 114+，低于该版本无法安装（已用 `minimum_chrome_version` 声明）。
 
 ### 3.2 已知缺陷（低危 / 已声明）
 
