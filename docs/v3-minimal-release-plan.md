@@ -44,11 +44,11 @@
 - [x] **T06** · PRIV-01 / PRIV-02 · P0 ｜ 最终包 manifest 口径 ✅ `permissions=[storage,sidePanel,contextMenus]`、无 `optional_permissions`、无 `debugger`/`scripting`/`tabs`/`activeTab`、无 `web_accessible_resources`、无 `content_security_policy`（走 MV3 默认）；`commands` 仅 `translate-selection`(Alt+K) | 0.2h
 - [x] **T07** · PRIV-05 · P0 ｜ 最终包 `content.js` 静态复跑 ✅ `getSettings`/`Authorization`/`Bearer`/`sk-` 命中 **均为 0**；`apiKey` 仅默认空串（`apiKey:""`） | 0.2h
 - [x] **T08** · PRIV-04 / PRIV-06 · P0 ｜ 最终包复跑 ✅ 密码掩码 `••••` 存在于 `content.js`；`background.js` 含 `Authorization`/`Bearer` 各 1（仅请求头）、`debugger`/`scripting` 命中 0；DM-V3-002 超时常量 `1e4`/`15e3` 均在包内 | 0.2h
-- [ ] **T09** · AUTO-06 · P1 ｜ 最终包加载 + 主路径冒烟（防止「验旧包、交新包」）—— **待真实 Chrome 加载** | 0.2h
+- [x] **T09** · AUTO-06 · P1 ｜ ✅ **真机 PASS（2026-10-08）**：负责人用**最终归档包**（sha256 `2a670372…`，version 1.0.0）加载，Options / 侧栏 / 工作台 / 划词 / 沉浸译 / Chat / Agent 主路径冒烟正常；加载源 = 提交源（同一归档包）⇒ 无「验旧包、交新包」偏差 | 0.2h
 
 ### Phase 2 · 隐私实证（P0，≈1～2h）
 
-- [ ] **T10** · PRIV-03 · P0 ｜ DevTools 网络观察：翻译 / Chat / Agent 各一条，确认仅打用户配置端点，无遥测 / 未知第三方 —— 📋 **步骤已就绪，待你执行**：runbook **B11-1 · T10 · PRIV-03**（三链路操作 + 记录表 + 判定口径「出现任何非用户配置 host 即 **P0 FAIL**」+ 常见误判提示）。需真实浏览器抓包，**Agent 不能代跑** | 0.5h
+- [x] **T10** · PRIV-03 · P0 ｜ ✅ **真机 PASS（2026-10-08）**：负责人按 runbook **B11-1** 在 DevTools Network（Preserve log + Fetch/XHR 过滤）观察翻译 / Chat / Agent 三条链路，**仅命中用户配置端点（Ollama 127.0.0.1:11434 与第三方 OpenAI 兼容端点），无任何非配置 host、无遥测 / 未知第三方**；判定口径下无 P0 FAIL 项 | 0.5h
 - [x] **T11** · REL-08 · P0 ｜ ✅ **完成**：新建根目录 `PRIVACY.md`（中英双语，生效 2026-10-08，适用 v1.0.0 起），口径与 `store-listing.md` 及代码事实逐条对齐（无后端 / 无遥测 / 无远程代码；密码框掩码；Key 仅 Background；删除方式；Agent 边界）。公开 URL：政策 `https://github.com/zhengzhp/DualMind/blob/main/PRIVACY.md`（仓库 public），支持入口 `https://github.com/zhengzhp/DualMind/issues`；README 与 store-listing 已互链 | 1～1.5h
 
 ### Phase 3 · Agent 硬性补齐（P0，≈0.5～1 天）★关键路径
@@ -60,7 +60,7 @@
 - [x] **T14** · LIFE-12 · P0 ｜ ✅ **E2E PASS**：新增「LIFE-12 · SPA 导航（pushState）使旧计划与确认失效」——同文档 pushState 后旧计划失效、批准入口 `toHaveCount(0)` | 0.2h
 - [x] **T15** · LIFE-19 · P0 ｜ ✅ **E2E PASS**：新增「LIFE-19 · 运行中停用当前站点 → 后续工具被拒且零写入」——运行中改 `disabledHosts` 后，下一次工具被拒、UI 提示「当前站点已停用…」、页面零写入 | 0.2h
 - [x] **T16** · LIFE-02/03/05/08/11 ｜ ✅ **部分完成**：新增「LIFE-08（补）· 第二入口被拒后，第一任务的计划 / 确认 / UI 不被改变」（前后对比 + 批准仍有效）。其余子分支（迟到回包注入、旧批准 / 旧确认竞态点击、待危险确认时的刷新变体、hash / replaceState）**未构造**，已在测试计划逐条披露（同一 `invalidate()` / 丢弃非当前 taskId 通路），并登记为已声明延后 | 0.5h
-- [ ] **T17** · NET-01 · P1 ｜ 📋 **步骤已就绪，待执行**：runbook 新增 **B7a · NET-01 双 Provider 完整闭环（含 `finish`）** —— 含四条判据、推荐**只读**目标（`观察这个页面有哪些可交互元素，然后汇报结果`，避开危险闸门干扰）、Step A（Ollama `qwen3:4b`）/ Step B（BYOK）、**记录模板**（逐格：判据 1–4 / 轮数 / finish / 页面写入数 / 证据）、常见失败处理，以及判定口径「**单侧不达即 NET-01 不闭合**」。需真实 Provider，**待你提供端点后执行**（要点复述见 runbook **B11-2**） | 0.5h
+- [x] **T17** · NET-01 · P1 ｜ ✅ **真机 PASS · NET-01 闭合（2026-10-08）**：负责人按 runbook **B7a / B11-2** 实跑 —— Provider A（Ollama `qwen3:4b`）与 Provider B（第三方 OpenAI 兼容端点）**两侧均 `finish(success:true)`**，四条判据（计划 / 结构化参数 / 多轮 ≥2 / finish）双侧命中；「单侧不达即不闭合」条件已满足 | 0.5h
 - [x] **T18** · AG-16 / AG-18 · P1 ｜ ✅ **确认既有覆盖并勾选**：`agent-plan.e2e.ts` 已有「AG-16 · 空目标或全空格时『开始』不可用」「AG-18 · 工具调用被拒后模型换策略并完成」且全绿；未覆盖部分（storage 故障注入、迟到回包）已披露为延后 | 0.2h
 
 ### Phase 4 · 收窄后的回归与升级（≈0.5～1 天）
@@ -84,7 +84,7 @@
 
 ### Phase 6 · 上架材料与签收（≈1 天）
 
-- [ ] **T28** · REL-04 · P1 ｜ Chrome 加载最终解压包，Options / 真实 Side Panel / 工作台 / 划词 / 沉浸译 / Chat / Agent 主路径逐一打开 | 0.3h
+- [x] **T28** · REL-04 · P1 ｜ ✅ **真机 PASS（Chrome，2026-10-08）**：负责人用最终归档包加载，Options / 真实 Side Panel / 工作台 / 划词 / 沉浸译 / Chat / Agent 主路径**均能打开 / 完成**；Edge 按 S2 已声明延后 | 0.3h
 - [x] **T29** · REL-05 · P1 ｜ ✅ 完成：名称 / 版本 / `default_title` / 四图标（有效 PNG + 尺寸正确）/ 无开发标记 全通过；**修复 V1-only 描述**（改为覆盖三类能力、不夸大，并写明 Agent「可选 + 逐次批准」）；**顺带修复 P1-3**：新增 `minimum_chrome_version: "114"`。已重新 build + zip + 在新包重跑 T04–T08 全通过 | 0.4h
 - [x] **T34** · REL-09 · P1 ｜ ✅ 新建 `docs/reviewer-reproduction.md`：安装 → 配置（`ollama pull qwen3:4b`，无需账号 / 付费）→ 翻译 → 阅读助手 → Agent 计划批准 → 危险二次确认 → **资金类动作被拒** → 停止；含无模型降级路径与「勿粘贴真实 Key」提示 | 0.4h
 - [x] **T30** · REL-10 · P1 ｜ ✅ **6 张截图已用最终归档包采集（2026-10-08）**：`docs/store-screenshots.md`（6 张清单 + 可粘贴文案 + 模型前提 / 安全确认 / 已知限制 + Checklist + 采集记录）与用例 `e2e/store-screenshots.e2e.ts`（仅 `DM_CAPTURE=1`、DPR 锁 1）。**采集证据**：源 = `/tmp/dm-1.0.0`（解压自归档包 sha256 `2a670372…`）、`manifest version=1.0.0`、有头、**6 passed / 27.4s**、产物 6 张经 `sips` 实测均 **1280×800**（落在 `docs/assets/store/`）。⚠️ **保留人工**：真实 Side Panel 形态（Playwright 截不到浏览器 UI，仅在 `workspace.html` 采工作台 / 阅读助手 / Agent 三张）与肉眼观感核对（见 `store-screenshots.md` §6） | 0.5h

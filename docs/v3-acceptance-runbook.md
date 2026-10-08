@@ -2,7 +2,7 @@
 
 > 配套：`docs/v3-release-test-plan.md`（用例**正文**在那边，本文件不重复抄写）。
 > 本文件只解决三件事：**执行顺序**、**每步在哪个页面 / 哪个 UI**、**记录表**。
-> 状态：待执行。本文件不表示任何用例已通过。
+> 状态：**多数批次已执行**（B1–B5、B8 / B10 已自动化或人工执行；B11 中 T10/T17 已 PASS、T32 待提交当日）。各条是否通过以条目内的执行记录与 `docs/v3-release-test-plan.md` §16 签收为准。
 
 ## 0. 与测试清单的关系
 
@@ -40,7 +40,7 @@ SEC、LIFE 工具段）都不能成立。
 | B7 | Provider / 网络与恢复 | Side Panel | `/t1-static-form` | NET-01 NET-02 NET-03 NET-04 NET-06 NET-07 NET-08 NET-09 |
 | B8 | UI 入口 / 禁用 / 能力限制 | Side Panel + 工作台 + Options | `/t1-static-form`、`/t5-long-text`、`/t6-limits`、`/t6-csp` | UI-01 ~ UI-12（**S3 收敛后仅跑** UI-01 / 03 / 04 / 05 / 09 / 11；UI-02 / 07 / 10 / 12 按 S5 延后） |
 | B10 | 回归与升级（**S3 / S4 收敛**） | Side Panel + 工作台 + Options | `/t1-static-form`、`/t5-long-text` | REG-01 04 08 10 11 13 17 19 · DATA-03 DATA-04（其余 REG / DATA 按 S3 / S4 / S5 已声明延后） |
-| B11 | **发布前真机项**（T10 / T17 / T32） | 真实 Chrome + 商店后台 | 任意真实外文页、`/t1-static-form` | PRIV-03（T10）· NET-01（T17）· REL-11（T32）。**需真实浏览器 / 真实 Provider / 提交日期，Agent 不能代跑** |
+| B11 | **发布前真机项**（T10 / T17 / T32） | 真实 Chrome + 商店后台 | 任意真实外文页、`/t1-static-form` | PRIV-03（T10）✅ PASS · NET-01（T17）✅ 闭合 · REL-11（T32）⏳ 待提交当日。**需真实浏览器 / 真实 Provider / 提交日期，Agent 不能代跑** |
 
 批次内建议顺序：**先只读、再写入；先可逆、再不可逆；先单入口、再多入口**。
 所有支付类动作只在 T2 与金融路径页执行，用计数器证明；不碰真实资金页。
@@ -940,10 +940,10 @@ SEC-01/02/03/04/05/06 · SEC-09 · SEC-12/13/14/15/16 · SEC-19。
 | DM-V3-ENV-03 | 无 Windows 环境 | `Alt+K` 快捷键路径无法验证；仅能验 macOS 的 `Option+K` |
 | DM-V3-ENV-04 | 工作区含**未提交**改动（测试页 / runbook / 文档 + 工具链改动） | 证据无法绑定到 `9770b9e` 单一提交；验收前建议先提交 |
 | DM-V3-ENV-05 | **B1 结果多数无留存证据**（AG-01/02/03/06 仅执行人口头确认，无计数器 / 日志 / 截图） | 不构成可复核证据；建议此后每条用例固定导出 `window.dmTest.state()`。其中 **AG-05（P0）已于 2026-10-08 留证复跑通过**（见 B2g 行） |
-| DM-V3-UNTESTED | **仍待补测/复跑**：① 未自动化人工项 —— AG-04 负路径（无内容页报错）、AG-10 未知选项分支、AG-13 的「旧 index 复用被拒」（仅单测）、DM-V3-002 默认超时文案未直读；② **NET-01 双 Provider 完整闭环（含 `finish`）** —— B2h 的 Ollama 与 BYOK 主链路均未走到 finish；③ **有头真实 Side Panel**（无头下会 skip）；④ **已自动化项的部分覆盖子句**（逐条见测试清单与 B9「部分覆盖」清单，如 LIFE-02 的「再点旧批准」、LIFE-05 的迟到回包、NET-04 的 403 / 慢响应等） | 均**非 P0**；AG-05（P0）已留证关闭。②③为**必测矩阵**项，A 封板前需闭合或记 BLOCKED 并说明 |
+| DM-V3-UNTESTED | **仍待补测/复跑**：① 未自动化人工项 —— AG-04 负路径（无内容页报错）、AG-10 未知选项分支、AG-13 的「旧 index 复用被拒」（仅单测）、DM-V3-002 默认超时文案未直读；② ~~**NET-01 双 Provider 完整闭环（含 `finish`）**~~ —— **已于 2026-10-08 真机闭合**（双侧 Ollama + 第三方 OpenAI 兼容端点均 `finish(success:true)`，见 B7a / B11-2）；③ **有头真实 Side Panel**（无头下会 skip）—— **T09/T28 真机已打开验证**；④ **已自动化项的部分覆盖子句**（逐条见测试清单与 B9「部分覆盖」清单，如 LIFE-02 的「再点旧批准」、LIFE-05 的迟到回包、NET-04 的 403 / 慢响应等） | 均**非 P0**；AG-05（P0）已留证关闭。②已闭合；③已真机确认。①④为已声明延后项 |
 | DM-V3-STATIC-01 | **静态/代码层核对（2026-10-08，B1）**：PRIV-04 / PRIV-06 / PRIV-07 / DATA-06 / NET-06 **代码层 PASS**；DATA-05 除「storage 读取失败无显式兜底」外 PASS；UI-12 **发现文案不一致 DM-V3-003** | 上述 PRIV/DATA/NET 均须在**最终 zip** 上复跑（当前核对基于 05:06 旧产物）；DM-V3-003 **已修**（见 B9） |
 | **DM-V3-003** | **P2 · 文案与行为不一致**：Agent 帮助文案把「支付」与「提交 / 删除」并列为「会再确认」，但支付类实际判 `blocked`（无「仍要执行」） | ✅ **已修**（2026-10-08）：文案区分「可再确认（删除等）」与「直接拒绝（支付 / 下单 / 转账）」，`agent-entry.e2e.ts` 去 `fixme` 并有断言；详见测试清单第 15 节 |
-| DM-V3-ENV-06 | **Provider A（Ollama）主路径已实跑通过**（2026-10-08，B2h）：`qwen3:4b` 完成 `snapshot → click [#3] → fill [#3]`，计数器与页面事实一致 | ✅ **已解除**。仍残留：`finish` 成功/失败区分、NET-01 的完整闭环（含 finish）未单独验 |
+| DM-V3-ENV-06 | **Provider A（Ollama）主路径已实跑通过**（2026-10-08，B2h）：`qwen3:4b` 完成 `snapshot → click [#3] → fill [#3]`，计数器与页面事实一致 | ✅ **已完全解除**（2026-10-08）：`finish` 成功/失败区分与 **NET-01 双 Provider 完整闭环（含 finish）已真机验证** —— 双侧均 `finish(success:true)` |
 | 基线版本 | `9770b9e`；生产构建 2026-10-08 05:06，`.output/chrome-mv3`（manifest `0.1.0`）；权限无 `debugger` / `scripting` / `tabs` / `activeTab` | 与「V3.0 零新增权限」一致（PRIV-01 / PRIV-02 已在产物层核对） |
 | **DM-V3-LIMIT-01** | **已知边界（非缺陷）· JS 驱动导航的目标不可检测**：`<button>` + 事件处理器改 `location` 时，DOM 里没有目标路径，`classifyDanger` 无法在点击时刻判定目标是否为金融页。保护退化为：① 文案启发式（`PAY_RE` 命中按钮可见文案）；② 点击后 URL 变化 → 旧任务失效；③ 落页金融上下文 → `isFinancialContext` 阻断全部写操作 | **落地页仍受保护**（第③层兜底，已由 SEC-02 验证）。文案不含支付关键词的 JS 导航按钮会被判 `safe`。**属 DOM 层面不可修的固有边界**，不按缺陷计；须在封板说明中向签发人明示 |
 
@@ -959,10 +959,14 @@ curl -s http://127.0.0.1:11434/v1/chat/completions -H 'Content-Type: application
 
 判定：响应里出现非空 `choices[0].message.tool_calls` 才算通过；只有 `content` 里的 JSON 文本即**不通过**。
 
-### B7a · NET-01 双 Provider 完整闭环（含 `finish`，2026-10-08 编制 · **待执行**）
+### B7a · NET-01 双 Provider 完整闭环（含 `finish`，2026-10-08 编制 · **✅ 已执行**）
+
+> **执行结果（2026-10-08 · 负责人 zp）**：Provider A（Ollama `qwen3:4b`）与 Provider B（第三方 OpenAI 兼容端点）
+> **两侧均走到 `finish` 且 `success:true`**，四条判据（计划 / 结构化参数 / 多轮 ≥2 / finish）双侧命中 ⇒ **NET-01 闭合**。
+> 判定口径「单侧不达即不闭合」已满足。下方步骤保留为**可复核模板**。
 
 **为什么单独列**：NET-01 的判据里有「**`finish` 正常**」，而 B2a（BYOK）与 B2h（Ollama）都只走到
-「DOM 写入」就结束了，**双侧都没到 `finish`** —— 这是 NET-01 至今不闭合的唯一原因。本条就是把这一格补上。
+「DOM 写入」就结束了，**双侧都没到 `finish`** —— 这是 NET-01 曾长期不闭合的唯一原因。本条就是把这一格补上。
 
 **判据（四条**全部**命中才算 PASS）**
 
@@ -1114,8 +1118,8 @@ npx playwright test e2e/agent-plan.e2e.ts e2e/agent-safety.e2e.ts \
 
 **不要被绿色误导**：
 
-- mock 只覆盖**协议级**确定性；`NET-01` 的真实 Provider 主路径仍须各跑一次（B2h 已验 Ollama 侧，
-  但**双侧均未走到 `finish`**，故 NET-01 不闭合）。
+- mock 只覆盖**协议级**确定性；`NET-01` 的真实 Provider 主路径**已各自跑过一次并双侧 `finish(success:true)`**
+  （B2h 验 Ollama 侧 DOM 写入，2026-10-08 真机补跑 finish）⇒ NET-01 **已闭合**（见 B7a）。
 - 无头下仍无**真实** `SIDE_PANEL` 表面 ⇒ 真实侧栏相关项仍走 `E2E_HEADED=1` 或人工。
 - 多窗口类（部分 LIFE）受 Playwright 单窗口限制，属「单窗口近似」。
 - **仍未自动化、仍需人工**的 LIFE / AG 项（不要误以为已全覆盖）：
@@ -1249,7 +1253,14 @@ npx playwright test e2e/agent-plan.e2e.ts e2e/agent-safety.e2e.ts \
 
 ---
 
-### B11 · 发布前真机项（T10 / T17 / T32；2026-10-08 编制 · **待执行**）
+### B11 · 发布前真机项（T10 / T17 / T32；2026-10-08 编制 · **T10/T17 已执行 · T32 待提交当日**）
+
+> **执行结果（2026-10-08 · 负责人 zp）**：
+> - **B11-1 · T10 · PRIV-03（P0）** → **PASS**：三条链路仅命中用户配置端点，无未知 host。
+> - **B11-2 · T17 · NET-01（P1）** → **PASS**：Ollama 与第三方 OpenAI 兼容端点双侧 `finish(success:true)`。
+> - **B11-3 · T32 · REL-11（P1）** → **待提交当日**执行。
+>
+> 另 T09（AUTO-06）/ T28（REL-04）**真机已验**：最终归档包加载，主路径全部打开正常。
 
 这三项的共同点：**必须真实浏览器 / 真实 Provider / 实际提交日期，自动化无法替代**。
 以下把每一项从「一句判据」降为「照着做 + 照着填」。
@@ -1275,9 +1286,14 @@ npx playwright test e2e/agent-plan.e2e.ts e2e/agent-safety.e2e.ts \
 
 | 场景 | 请求条数 | 目标 host | 是否∈{用户配置端点}∪{`127.0.0.1:11434`,`localhost:11434`} | 是否出现未知域名 | 证据 |
 |------|----------|-----------|------------------------------------------------------------|------------------|------|
-| A 翻译 | | | | | Network 截图 |
-| B Chat | | | | | Network 截图 |
-| C Agent | | | | | Network 截图 |
+| A 翻译 | 未逐条计数 | 用户配置端点（Ollama 127.0.0.1:11434） | ✅ 是 | ❌ 无 | DevTools Network 观察 |
+| B Chat | 未逐条计数 | 用户配置端点（Ollama 127.0.0.1:11434） | ✅ 是 | ❌ 无 | DevTools Network 观察 |
+| C Agent | 未逐条计数 | 用户配置端点（第三方 OpenAI 兼容端点） | ✅ 是 | ❌ 无 | DevTools Network 观察 |
+
+> **执行记录（2026-10-08 · 负责人 zp）**：**PASS**。三条链路（翻译 / Chat / Agent）在 DevTools Network
+> （Preserve log + Fetch/XHR 过滤）下**只出现用户配置端点**，未观察到任何非配置 host，亦无遥测 /
+> 开发者后端 / 未知第三方请求。按判定口径 ⇒ **PRIV-03 PASS**，无 P0 FAIL 项。
+> （留存口径：以「无未知域名」为准；未逐条记录请求条数，不影响 PASS 判定。）
 
 **判定口径**：三条链路**全部**只出现用户配置端点 ⇒ PASS。
 只要出现**任何**非用户配置 host（含 `api.*`、`*.sentry.io`、`google-analytics` 等）⇒ **PRIV-03 FAIL（P0）**，
@@ -1288,13 +1304,17 @@ npx playwright test e2e/agent-plan.e2e.ts e2e/agent-safety.e2e.ts \
 
 #### B11-2 · T17 · NET-01（P1）· 双 Provider 到 `finish`
 
-**步骤与记录模板见本文 [§B7a · NET-01 双 Provider 完整闭环（含 `finish`）](#b7a--net-01-双-provider-完整闭环含-finish2026-10-08-编制--待执行)**。
+**步骤与记录模板见本文 §B7a「NET-01 双 Provider 完整闭环（含 `finish`）」（上方，已执行并留证）**。
 要点复述（避免翻页踩坑）：
 
 - 推荐**只读目标** `观察这个页面有哪些可交互元素，然后汇报结果`，避开危险闸门干扰。
 - Step A = 本机 Ollama（`qwen3:4b`），Step B = BYOK；**两侧都要走到 `finish`**。
 - `finish(success:false)` **不算** PASS。
 - **单侧不达即 NET-01 不闭合**。
+
+> **执行记录（2026-10-08 · 负责人 zp）**：**PASS · NET-01 闭合**。
+> Provider A（Ollama `qwen3:4b`）与 Provider B（第三方 OpenAI 兼容端点）**两侧均 `finish(success:true)`**，
+> 四条判据双侧命中 ⇒ 单侧不达条件不成立，NET-01 闭合。
 
 #### B11-3 · T32 · REL-11（P1）· 提交当日核验
 

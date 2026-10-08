@@ -83,8 +83,8 @@
 | 工具链 | Node `v24.21.0`；pnpm `12.9.1`（原 `9.5.1` 镜像获取失败，已由工作区改动修好并实测 `pnpm build` 通过）；WXT `^0.21.4`；Vitest `^3.2.7`；Playwright `^1.63.0`；TypeScript `^5.7.2` |
 | 扩展 | manifest 版本 **`1.0.0`**（2026-10-08 由负责人拍板定版，见 REL-01；与产品阶段名「V3.0」不等价）；**`minimum_chrome_version: 114`**（`sidePanel` 依赖）；加载路径 `.output/chrome-mv3`（生产构建）／正式包 `.output/dualmind-1.0.0-chrome.zip`（sha256 `2a670372…`，已归档至 `~/DualMind-releases/`）；扩展 ID 随加载变化，验收时记录实际值 |
 | 权限核对（PRIV-01 / PRIV-02） | `permissions: ["storage","sidePanel","contextMenus"]`；`host_permissions: ["http://127.0.0.1:11434/*","http://localhost:11434/*","<all_urls>"]`；`optional_permissions: null`；`commands: ["translate-selection"]`。**无 `debugger` / `scripting` / `tabs` / `activeTab`**，与「V3.0 零新增权限」一致 |
-| Provider A | Ollama `http://127.0.0.1:11434`（服务版本 0.35.1）。模型 **`qwen3:4b`（4.0B, 2.50GB）**：2026-10-08 实测返回结构化 `tool_calls`（`finish_reason: "tool_calls"`）→ **tools 能力通过**。原 `qwen-coder-8k:latest` / `qwen2.5-coder:7b` 不支持（`tool_calls: null`），不得再用作 Agent 验收模型。**tools 主路径已实跑（见 runbook B2h）**：`PLAN → 批准 → snapshot → click [#3] → fill [#3]`，计数器与页面事实一致。⚠️ 但仍**未走到 `finish`**，故 NET-01「双 Provider 完整闭环」尚未闭合 |
-| Provider B | **`deepseek-flash`**（OpenAI Compatible / BYOK）；Key 已脱敏、未记录。**B2 的全部主链路证据来自本 Provider**（计划 → 批准 → `runChatWithTools` → DOM 写入），但同样**未走到 `finish`** |
+| Provider A | Ollama `http://127.0.0.1:11434`（服务版本 0.35.1）。模型 **`qwen3:4b`（4.0B, 2.50GB）**：2026-10-08 实测返回结构化 `tool_calls`（`finish_reason: "tool_calls"`）→ **tools 能力通过**。原 `qwen-coder-8k:latest` / `qwen2.5-coder:7b` 不支持（`tool_calls: null`），不得再用作 Agent 验收模型。**tools 主路径已实跑（见 runbook B2h）**：`PLAN → 批准 → snapshot → click [#3] → fill [#3]`，计数器与页面事实一致。**2026-10-08 真机补跑**：双侧（Ollama + 第三方 OpenAI 兼容端点）均走到 `finish(success:true)` ⇒ NET-01 已闭合 |
+| Provider B | **`deepseek-flash`**（第三方 OpenAI 兼容端点 / BYOK，`api.deepseek.com`）；Key 已脱敏、未记录。**B2 的全部主链路证据来自本 Provider**（计划 → 批准 → `runChatWithTools` → DOM 写入）；**2026-10-08 真机补跑已走到 `finish(success:true)`** ⇒ NET-01 双侧闭合 |
 | 构建与包 | 2026-10-08 05:06 首次生产构建 `pnpm build` 成功（WXT 1.048s）；核对产物含本次改动（Options 的 Agent 设置项、`background.js` 的 `TOOLS_UNSUPPORTED` / `已达到最大步数` 逻辑）。**2026-10-08 11:32 因 REL-05（描述）+ P1-3（`minimum_chrome_version`）重打包**：`pnpm compile` 0 error、`pnpm zip` 成功 → `.output/dualmind-1.0.0-chrome.zip`（227,927 B / sha256 `2a670372…`）；并在该新包上重跑 T04–T08（描述 / 最低版本 114 / 权限三项 / 无 `optional_permissions` / 无 CSP / 无 WAR / 图标 4 个有效 / `content.js` 敏感串全 0 / 掩码与超时常量均在）**全通过** |
 | 验证产物 | 封板测试页与计数器见 `e2e/pages/README.md`；手工验收记录表见 `docs/v3-acceptance-runbook.md` 第 3 节 |
 
@@ -148,7 +148,7 @@ Provider 双主路径至少在 Chrome 的两个 UI 入口完成；Edge 至少重
 - [x] **AUTO-03 · P1**：确认无头使用完整 Chromium 新无头模式 — 当前 fixture 使用 `channel: 'chromium'`；扩展未加载时不能将 case skip / 空跑算通过。　`2026-10-08 【PASS】e2e/fixtures.ts 无头分支显式 channel: 'chromium'；本轮 32 条均真实加载扩展并驱动 UI（非空跑），扩展未加载会在 launchPersistentContext 或断言处失败`
 - [x] **AUTO-04 · P1**：检查失败的 HTML report 与 trace — 区分环境与产品缺陷；重跑通过需保留首次失败原因，不能只留下最后一次绿灯。　`2026-10-08 【PASS】本轮首次失败均有 trace 留存并已定位：① AG-01/02 受控勾选框 uncheck() 撞异步往返窗口（测试技法，非产品缺陷）；② SEC-06 危险理由文案与时间线条目重名（strict mode，测试技法）。两者均属环境 / 测试缺陷，已修复；无产品缺陷被「重跑掩盖」`
 - [x] **AUTO-05 · P1**：确认 E2E 串行执行 — 当前共享扩展状态，按 `playwright.config.ts` 的单 worker 跑，不临时开并发掩盖状态串扰。　`2026-10-08 【PASS】playwright.config.ts 固定 workers: 1 + fullyParallel: false；本轮未临时开并发`
-- [ ] **AUTO-06 · P1**：最后一次 build / zip 后重复生产包加载与主路径冒烟 — 防止验证了旧包而提交新包。　`2026-10-08 【未执行】尚未做 pnpm zip，故本条不勾（属 B 发布闸门）`
+- [x] **AUTO-06 · P1**：最后一次 build / zip 后重复生产包加载与主路径冒烟 — 防止验证了旧包而提交新包。　`2026-10-08 【PASS · 真机】负责人用**最终归档包**（`~/DualMind-releases/dualmind-1.0.0-chrome.zip`，sha256 2a670372…，包内 version 1.0.0）加载：Options / 真实 Side Panel / 工作台 / 划词 / 沉浸译 / Chat / Agent 主路径**逐一打开正常**，无异常。加载源与提交源为同一归档包 ⇒ 无「验旧包、交新包」偏差`
 
 ### 5.2 自动化闸门执行记录（2026-10-08 · 第二轮 · commit `dc0d4f0`，工作区干净）
 
@@ -356,7 +356,7 @@ npx playwright test e2e/agent-plan.e2e.ts e2e/agent-safety.e2e.ts \
 
 ## 9. Provider、网络与恢复（A / B）
 
-- [ ] **NET-01 · P1**：Ollama 与 OpenAI Compatible 分别完成一次 Agent 主路径 — 计划、tools 参数、多轮 tool result、finish 正常；工具结果与真实 DOM 一致。　`2026-10-08 【部分：双侧均未含 finish】Provider A（Ollama qwen3:4b，runbook B2h）已实跑「PLAN → 批准 → snapshot → click [#3] → fill [#3]」，计数器与页面事实一致；Provider B（BYOK deepseek-flash）为 B2 主链路证据来源。❌ 双侧均未走到 finish，故本条不闭合；mock 不能替代（AUTO-08）。📋 **可执行步骤与记录模板已备好**：runbook **B7a · NET-01 双 Provider 完整闭环（含 finish）**（2026-10-08 编制）——含四条判据、推荐只读目标、Step A/B、记录模板、常见失败处理与「单侧不达即不闭合」的判定口径`
+- [x] **NET-01 · P1**：Ollama 与 OpenAI Compatible 分别完成一次 Agent 主路径 — 计划、tools 参数、多轮 tool result、finish 正常；工具结果与真实 DOM 一致。　`2026-10-08 【PASS · 真机闭合】负责人按 runbook B7a / B11-2 实跑：**Provider A（Ollama qwen3:4b）与 Provider B（第三方 OpenAI 兼容端点）两侧均走到 `finish` 且 `success:true`** ⇒ 四条判据（计划 / 结构化参数 / 多轮 tool result / finish）双侧命中，NET-01 闭合。此前「双侧均未含 finish」的残留已解除；mock 不能替代的限制（AUTO-08）不影响本条`
 - [ ] **NET-02 · P1**：Ollama 未运行 / host 错误 / 模型不存在 — 可读错误，修正配置后可重试；没有静默切换到别的 Provider。
 - [ ] **NET-03 · P1**：BYOK 缺 Key、错误 Key、错误 Base URL / 模型 — 对应错误可读，不打印凭据；保存正确配置后恢复。
 - [ ] **NET-04 · P1**：模拟 401 / 403 / 429 / 5xx、断网、连接重置与慢响应 — 不无限 loading、不重复发危险工具；未成功的任务不标成功。　`2026-10-08 【自动化（部分）：e2e/agent-network.e2e.ts → NET-04 四条】已覆盖：401（鉴权文案，且可再试）/ 429（限流文案）/ 500（通用失败文案 + 不泄露响应体，PRIV-06）/ 连接重置（网络失败文案）；均不无限 loading、不标成功。❌ 未覆盖：403、断网、慢响应、「不重复发危险工具」`
@@ -433,7 +433,7 @@ npx playwright test e2e/agent-plan.e2e.ts e2e/agent-safety.e2e.ts \
 
 - [ ] **PRIV-01 · P0**：核对生产 manifest — 权限仍为已批准的 storage / sidePanel / contextMenus 与既有 host permissions；无 debugger / scripting / activeTab / tabs 等未批准新增声明。　`2026-10-08 【静态核对 PASS，待最终包复跑】`.output/chrome-mv3/manifest.json`：`permissions=["storage","sidePanel","contextMenus"]`、无 `optional_permissions`、`host_permissions=["127.0.0.1:11434/*","localhost:11434/*","<all_urls>"]`、**无** `debugger`/`scripting`/`tabs`/`activeTab`。⚠️ 该产物构建于 05:06（早于 DM-V3-002 修复），权限项不受该修复影响，但**正式判定须在最终 zip 上重跑**`
 - [ ] **PRIV-02 · P0**：核对 matches、host permissions、commands、资源暴露与 CSP — 与批准配置一致；无因为调试扩大范围或残留远程脚本入口。　`2026-10-08 【静态核对 PASS，待最终包复跑】`content_scripts.matches=["<all_urls>"]`、仅 `content-scripts/content.js`（无 css）、`commands` 仅 `translate-selection`(Alt+K，mac 同)；manifest **未声明** `content_security_policy` ⇒ 用 MV3 默认 `script-src 'self'`；**无** `web_accessible_resources`、无远端脚本入口。⚠️ 附已知低危：`content.js` 运行时引用不存在的 `content-scripts/content.css`（V1/V2 范围，正确性无损）`
-- [ ] **PRIV-03 · P0**：拦截 / 观察翻译、Chat、Agent 网络 — 仅用户配置模型端点接收该功能必要数据；无遥测、开发者后端、未知第三方请求或远程代码。
+- [x] **PRIV-03 · P0**：拦截 / 观察翻译、Chat、Agent 网络 — 仅用户配置模型端点接收该功能必要数据；无遥测、开发者后端、未知第三方请求或远程代码。　`2026-10-08 【PASS · 真机】负责人按 runbook B11-1 在 DevTools Network（Preserve log + Fetch/XHR 过滤）观察三条链路：**翻译 / Chat / Agent 只出现用户配置端点（Ollama 127.0.0.1:11434 与第三方 OpenAI 兼容端点），无任何非配置 host、无遥测 / 开发者后端 / 未知第三方请求**。判定口径：三条链路全部仅命中配置端点 ⇒ PASS（无 PRIV-03 FAIL 项）`
 - [ ] **PRIV-04 · P0**：检查 Agent snapshot 密码框 — 不回传密码明文；普通表单值可能进快照，使用虚构值检查并据实披露，不宣称「从不发送表单内容」。　`2026-10-08 【代码层 PASS，待最终包复跑】`executor.ts:131-137`：`inputType==='password'` 时 `stub.value = el.value ? '••••' : ''`（**掩码，不回传明文**）；`executor.ts:183-184` 的 `nodeSignature` 对密码框取 `''`，故签名也不含明文；非密码控件的 `value` 会进快照并按 `MAX_VALUE_CHARS` 截断（**与本次上架材料披露一致：已改为「元素快照可能含表单值」**）。SEC-08 人工实测快照内密码框显示为「••••」可交叉印证`
 - [ ] **PRIV-05 · P0**：检查 Content Script 代码、消息、页面 DOM 与控制台 — 无 API Key 的读取 / 存储 / 明文传播；Provider 不碰 DOM，模型调用只在 Background。　`2026-10-08 【静态核对 PASS，待最终包复跑】`content-scripts/content.js`（112,336 B）检索：`getSettings`=0、`Authorization`=0、`Bearer`=0、`sk-`=0；唯一 `apiKey` 为 `DEFAULT_SETTINGS` 默认空串（`openai:{baseUrl:'https://api.openai.com/v1',apiKey:'',model:'gpt-4o-mini'}`）⇒ 非真实密钥。🟡 卫生项（非缺陷）：content 产物携带整段 `DEFAULT_SETTINGS`（传递性依赖），当前无利用面，可考虑拆分常量`
 - [ ] **PRIV-06 · P0**：将 Provider 错误中混入假 Key、内部地址、响应 body — 面向用户的错误与公开附件不泄漏秘密。　`2026-10-08 【代码层 PASS，待最终包复跑】`openai-compatible.ts:131` 对 `!res.ok` 执行 `await res.text().catch(()=>'')` 后**丢弃**响应体（不进入错误对象）；错误只经 `toUserMessage(code, detail)` 生成，`detail` 仅为 `${res.status}` 或（404 时）模型名；`shared/errors.ts:60-77` 的 `toUserMessage` **仅**对 `CHAT_FAILED`/`LIST_MODELS_FAILED`/`MODEL_NOT_FOUND` 追加 detail，其余（含 `UNKNOWN`）**不追加**；`formatErrorForUi` 对 `UNKNOWN` 走 `toUserMessage` 基础文案「出错了，请稍后重试」⇒ **通用 Error.message 不外显**。`Authorization: Bearer` 仅存在于请求头（`headers()`），不在任何错误路径复用`
@@ -446,7 +446,7 @@ npx playwright test e2e/agent-plan.e2e.ts e2e/agent-safety.e2e.ts \
 - [x] **REL-01 · P1**：确定正式版 version，核对 package 与最终 manifest — ✅ **2026-10-08 负责人拍板 = `1.0.0`**（首个正式版）；`package.json` 已改为 `1.0.0`，WXT 取 package version 写入 manifest（无硬编码），最终包 `dualmind-1.0.0-chrome.zip` 内 `manifest.version = "1.0.0"` 已核对。未自动等同于产品阶段「V3」。
 - [ ] **REL-02 · P1**：在干净构建环境 / 明确工具链下生成产物 — 无开发热更新依赖；构建日志可复现，包能独立加载。
 - [ ] **REL-03 · P0**：解压最终 zip，检查 manifest、权限、脚本、资源与校验值 — 与已验候选一致；zip 后再构建或更改包需重新核对。
-- [ ] **REL-04 · P1**：Chrome 与 Edge 分别加载最终解压包 — Options、真实 Side Panel、工作台、划词、沉浸译、Chat、Agent 主路径均能打开 / 完成。
+- [x] **REL-04 · P1**：Chrome 与 Edge 分别加载最终解压包 — Options、真实 Side Panel、工作台、划词、沉浸译、Chat、Agent 主路径均能打开 / 完成。　`2026-10-08 【PASS · 真机（Chrome）】负责人用最终归档包（sha256 2a670372…，version 1.0.0）加载，Options / 真实 Side Panel / 工作台 / 划词 / 沉浸译 / Chat / Agent 主路径**均能打开 / 完成**。Edge 按 S2 已声明延后（首轮仅 Chrome），本行按 Chrome 判定`
 - [x] **REL-05 · P1**：扩展名、描述、图标、版本、快捷键说明 — 无开发版标识、失效资源和 V1-only 宣传；不夸大支持范围。　`2026-10-08 【完成】✅ 名称 `DualMind`、版本 `1.0.0`、`action.default_title`=「打开 DualMind」、图标 `icon/{16,32,48,128}.png` 均为 `file` 验证的有效 PNG 且尺寸正确、manifest 无开发标记。✅ **已修复 V1-only 描述**：`description` 由旧口径「AI 浏览器助手 — 划词翻译 / Side Panel / 本地 Ollama」改为 `AI 浏览器助手（BYOK）：划词与整页翻译、网页摘要与问答，以及逐次批准的本页操作 Agent`（如实覆盖三类能力、不夸大，Agent 的「可选 + 逐次批准」已写明）。✅ **顺带修复 P1-3**：新增 `minimum_chrome_version: "114"`。已重新 build + zip 并在新包核对（描述 / 最低版本 / 权限 / 图标全部就位）`
 - [x] **REL-06 · P0**：修订 `docs/store-listing.md` 中文和英文单一用途、权限用途、数据传输 — 覆盖翻译 + 阅读助手 + 可选本页 Agent，披露 DOM 写操作、工具快照与 Chat 本地历史。　`2026-10-08 【已修订】单一用途改为三类能力（翻译 / 只读阅读助手 / 可选本页 Agent）；`storage` 补「仅存本机聊天历史」；`content_scripts` 补 Agent DOM 操作通道与「元素快照可能含表单值」；新增「本页操作 Agent（可选）」数据条（计划批准 + 危险再确认 + 仅当前页 + 不跨 Tab + 不用 debugger/CDP）；顶部引用由 `decisions-v1.md` 改指 `decisions.md`。中英文均已同步`
 - [x] **REL-07 · P0**：修正文案中的绝对声明 — 不写「API Key 不上传任何服务器」而忽略 Provider 认证；不写「不外发页面信息」而忽略用户主动发送至配置端点；不把本地会话历史说成不存在。　`2026-10-08 【已修正】Key 条款改为「仅作为认证凭据发往用户所配置的 Provider，不发往任何其他第三方」；删除「不采集页面内容 / 不外发」式绝对表述，改为「用户主动发起时发往所配置端点」；本地 Chat 历史明确为「存于本机、可单条删除或全部清空」；Agent 运行态「不持久化、不重放」`
@@ -688,6 +688,20 @@ npx playwright test e2e/agent-plan.e2e.ts e2e/agent-safety.e2e.ts \
 > 产品侧仍存在一处**同源、实际不可达的低危「丢失更新」风险**（`runMigrations` 整块覆写 settings）；
 > 若要根治须另立项（把迁移改为「只写需要改的键」），会触发重新打包 + T04–T08 复跑，本轮不做。
 
+### 2026-10-08 · 真机项验收（T09 / T28 / T10 / T17）
+
+**执行人**：负责人 zp ｜ **加载源**：最终归档包 `~/DualMind-releases/dualmind-1.0.0-chrome.zip`（sha256 `2a670372…`，包内 `version 1.0.0`）
+
+| 项 | 用例 | 结果 | 说明 |
+|----|------|------|------|
+| T09 | AUTO-06 | ✅ PASS | 最终包加载 + 主路径冒烟；加载源 = 提交源，无「验旧包、交新包」偏差 |
+| T28 | REL-04 | ✅ PASS（Chrome） | Options / 真实 Side Panel / 工作台 / 划词 / 沉浸译 / Chat / Agent 主路径均能打开 / 完成；Edge 按 S2 延后 |
+| T10 | **PRIV-03（P0）** | ✅ PASS | DevTools Network 观察三条链路（翻译 / Chat / Agent）**仅命中用户配置端点**（Ollama 127.0.0.1:11434 与第三方 OpenAI 兼容端点），无任何非配置 host、无遥测 / 未知第三方 |
+| T17 | NET-01（P1） | ✅ **闭合** | Provider A（Ollama `qwen3:4b`）与 Provider B（第三方 OpenAI 兼容端点）**双侧 `finish(success:true)`**，四条判据双侧命中 |
+
+**影响**：PRIV-03（P0）与 NET-01 的历史未闭合状态解除；`DM-V3-UNTESTED` ②③ 与 `DM-V3-ENV-06` 残留说明已在 runbook 更新。
+**剩余发布前待办**：仅 T32（REL-11 提交当日核验，runbook B11-3）；T30 截图的人工目视 / 可选侧栏补拍为可选增强。
+
 ## 16. 最终签收
 
 ### A：V3.0 功能封板
@@ -711,7 +725,7 @@ npx playwright test e2e/agent-plan.e2e.ts e2e/agent-safety.e2e.ts \
 | 签收项 | 负责人 | 日期 | 候选版本 / 包 hash | 结论与遗留 |
 |---|---|---|---|---|
 | V3.0 封板 | zp | **待签** | `1.0.0` @ `636fcd3` / `dualmind-1.0.0-chrome.zip` sha256 `2a670372…` | **待签**。A 段待决：① `9770b9e` 的人工验收证据未绑定 `636fcd3`（DM-V3-ENV-04）；② 第 6–10 节必测项按 S3/S4 收敛后复跑；③ **划词浮层「组合跑 flake」已定位为测试夹具竞态（DM-V3-005）并修复**，两轮有头全量 0 命中 + 最终版定向 15/15 ⇒ 不再作为产品已知缺陷披露；**负责人已拍板不再补跑最终包全量有头 E2E**（记为验证范围裁剪，依据为代码路径 + 定向证据）；④ 低危缺陷（`content.css`）仍按已声明限制披露 |
-| Chrome 发布 | zp | **待签** | 同上（归档 `~/DualMind-releases/`，REL-13 已校验 OK） | **待签**。B 段待决：① T10 网络观察（PRIV-03·P0）—— 步骤见 runbook **B11-1**；② T17 NET-01 双 Provider 未走到 `finish` —— 步骤见 runbook **B7a / B11-2**；③ T09 / T28 真实包加载冒烟；④ T30 截图**已用最终归档包采集（6/6 · 1280×800）**，仅剩人工目视 / 可选侧栏补拍（`docs/store-screenshots.md` §5.1 / §6）；⑤ T32 提交当日核验 —— 8 项 Checklist 见 runbook **B11-3** |
+| Chrome 发布 | zp | **待签** | 同上（归档 `~/DualMind-releases/`，REL-13 已校验 OK） | **待签**。**已闭合**：① T10 网络观察（PRIV-03·P0）→ **PASS**（仅配置端点，无未知 host）；② T17 NET-01 双 Provider → **PASS·闭合**（双侧 `finish(success:true)`）；③ T09 / T28 真实包加载冒烟 → **PASS**（主路径全开）；④ T30 截图**已用最终归档包采集（6/6 · 1280×800）**，仅剩人工目视 / 可选侧栏补拍。**待办**：T32 提交当日核验（8 项 Checklist 见 runbook **B11-3**） |
 | Edge 发布 | 延后（S2） | — | — | 首轮只发 Chrome，Edge 逐项验证延后至下一轮 |
 
 > **说明**：上表为**预填框架**（2026-10-08，已把负责人 / 候选版本 / 包 hash / 遗留项就位），**不代表任何闸门已通过**。日期与结论须由负责人在实际完成对应验证后填写；**只有完成签收后才更新架构里程碑或发布状态**。
