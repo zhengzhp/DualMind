@@ -13,6 +13,7 @@
 - **A：V3.0 功能封板**：安全、任务生命周期、两个 UI 入口、两个 Provider 的主路径通过；没有未解决的安全或主要功能缺陷；已声明的限制有可读提示。
 - **B：正式版发布**：A 通过后，在同一候选版本上完成 compile / 全量单测 / 生产构建 / E2E / Chrome 与 Edge 人工验收 / 升级回归 / 打包与上架材料复核。不得用 A 的最小单测替代 B。
 - 修改代码、依赖、权限、配置或打包产物后，按影响重跑相关验证；影响安全、消息或任务生命周期时，安全与生命周期用例必须重跑。最终发布包必须能关联到被验证的源码版本。
+- **范围裁剪不等于豁免**：如需缩减发布验证范围（例如首轮只发 Chrome、收敛回归项），必须作为**发布范围变更**记入 [decisions.md](./decisions.md) 与 §16 签收，不得静默标记 N/A 或写成「经负责人确认可放行」。P0 判据本身不变。当前已登记的范围裁剪见 [v3-minimal-release-plan.md](./v3-minimal-release-plan.md) 与 decisions.md「V3.0 正式版发布范围裁剪」。
 
 ### 用例等级与缺陷分级
 
@@ -78,7 +79,7 @@
 | --- | --- |
 | 候选版本 / 源码标识 | 人工验收证据绑定 `9770b9e625061c6c82eee1e2daae20f1de501672`（`main`，2026-10-08 04:53:38 +0800）。**自动化轮次（B9）已上移到 `b3af568`**（`main`，含 mock Provider 与 Agent E2E 套件 + DM-V3-003/004 修复 + 工具链提交）；工作区**已干净**，`pnpm compile` 0 error、Agent 组 E2E 32 passed。⚠️ 人工验收证据仍指向旧提交，如需绑定单一不可变版本须重跑（原 DM-V3-ENV-04） |
 | 测试日期 / 执行人 | 2026-10-08；执行人 **待填** |
-| OS / 浏览器 | macOS 14.6.1（build 23G93，arm64）；Google Chrome 155.0.8059.40。**Edge 未安装 → 必测矩阵的 Edge 列 BLOCKED**；Windows 的 `Alt+K` 路径本机无法验证 |
+| OS / 浏览器 | macOS 14.6.1（build 23G93，arm64）；Google Chrome 155.0.8059.40。**Edge 未安装；已拍板首轮只发 Chrome、Edge 已声明延后**（见 decisions.md「V3.0 正式版发布范围裁剪」S2），不再记为 BLOCKED；Windows 的 `Alt+K` 路径本机无法验证 |
 | 工具链 | Node `v24.21.0`；pnpm `12.9.1`（原 `9.5.1` 镜像获取失败，已由工作区改动修好并实测 `pnpm build` 通过）；WXT `^0.21.4`；Vitest `^3.2.7`；Playwright `^1.63.0`；TypeScript `^5.7.2` |
 | 扩展 | manifest 版本 `0.1.0`（与产品阶段名「V3.0」不等价，正式版号见 REL-01）；加载路径 `.output/chrome-mv3`（生产构建）；扩展 ID 随加载变化，验收时记录实际值 |
 | 权限核对（PRIV-01 / PRIV-02） | `permissions: ["storage","sidePanel","contextMenus"]`；`host_permissions: ["http://127.0.0.1:11434/*","http://localhost:11434/*","<all_urls>"]`；`optional_permissions: null`；`commands: ["translate-selection"]`。**无 `debugger` / `scripting` / `tabs` / `activeTab`**，与「V3.0 零新增权限」一致 |
@@ -631,11 +632,13 @@ npx playwright test e2e/agent-plan.e2e.ts e2e/agent-safety.e2e.ts \
 - [ ] 支付拒绝、计划批准、危险确认、取消、任务隔离、目标变化与导航失效证据完整。
 - [ ] 文档、契约、UI 与实际能力一致；已知限制不隐藏，未实现范围未扩入 V3.0。
 - [ ] 封板结论、负责人、日期、剩余问题与后续发布闸门登记完成；没有把「封板」直接当成已正式发布。
+- [ ] **发布范围裁剪已声明**：S1–S5（Agent 默认开、首轮仅 Chrome、REG / DATA 收敛、低价值项延后）已记入 decisions.md 与本表，未以 N/A 或「豁免」掩盖；延后项与已知 flake / 低危缺陷已在 REL-12 已声明限制中披露。
 
 ### B：正式版发布
 
 - [ ] A 通过；最终源码版本与包一致，compile / 全量 Vitest / build / 无头 E2E / 有头 E2E 有完整记录。
 - [ ] 第 11～13 节回归、升级、隐私与权限验收通过；关键 skip 有有头或人工证据补齐。
+- [ ] **首轮范围**：仅 Chrome 提交（Edge 已声明延后，见 decisions.md S2）；第 11～12 节按 S3 / S4 收敛后的范围判定。
 - [ ] 第 14 节正式包、商店材料、隐私政策、审核复现说明与版本口径全部复核。
 - [ ] 没有未解决的 P0 / P1 缺陷；P2 与 N/A 逐项记录并由负责人批准；没有未说明的 BLOCKED。
 - [ ] 正式 zip / hash、证据、发布说明与回滚责任人归档；Chrome / Edge 发布负责人签收。
@@ -644,6 +647,6 @@ npx playwright test e2e/agent-plan.e2e.ts e2e/agent-safety.e2e.ts \
 |---|---|---|---|---|
 | V3.0 封板 | 待填 | 待填 | 待填 | 待填 |
 | Chrome 发布 | 待填 | 待填 | 待填 | 待填 |
-| Edge 发布 | 待填 | 待填 | 待填 | 待填 |
+| Edge 发布 | 延后（S2） | — | — | 首轮只发 Chrome，Edge 逐项验证延后至下一轮 |
 
 **只有完成对应签收后，才更新架构里程碑或发布状态；本文新增不表示任何闸门已通过。**

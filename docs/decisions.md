@@ -48,7 +48,27 @@
 | storage | `local:agentPrefs`（启用开关、最大步数；确认策略固定，Options 仅只读说明）；`local:agentPending`（FAB 信箱）。**收口（2026-10-08）**：V3.0 运行态（计划 / 步骤轨迹 / 中止标志）**仅内存、不持久化** —— SW 重启或刷新后不恢复、不重放页面操作，须重新发起并重新批准 |
 | 入口 | Side Panel / 全页工作台 **Agent** Tab（替换占位）；（可选）`page-fab` 注册「请 Agent 操作本页」→ 开侧栏 + 切 Tab（可复用 pending 信箱模式，前缀独立） |
 | 与 Chat 边界 | Chat = 只读摘要 / 问答；Agent = 可写 DOM；禁止把操作工具塞进 `features/chat/` |
-| 商店口径 | 提审时表述为「翻译 + 阅读助手 + **可选本页操作 Agent**」；Agent 默认可关；单一用途说明与 [store-listing.md](./store-listing.md) 在发布闸门一并复核 |
+| 商店口径 | 提审时表述为「翻译 + 阅读助手 + **可选本页操作 Agent**」；Agent **默认启用但可关**，且不会自动启动任务（每个任务须显式发起 + 计划批准，见「V3.0 正式版发布范围裁剪」S1）；单一用途说明与 [store-listing.md](./store-listing.md) 在发布闸门一并复核 |
 | 已知限制（须在 UI 诚实说明） | Shadow DOM / 跨域 iframe / 严格 CSP 下部分操作可能失败；V3.0 不承诺覆盖难站 |
 
 **对标取舍（公开项目，不照搬）**：学 Goby 的「页内 BYOK + tool loop」、WebOperator 的 plan-act-verify、Oloo/Stagehand 的 observe 优先；不学 Monica All-in-One、不学云浏览器 / CAPTCHA / 开发者向 MCP 全家桶。
+
+## V3.0 正式版发布范围裁剪（2026-10-08 拍板）
+
+**背景**：需要一个**可快速提交上架的正式版**。安全红线 SEC-01～SEC-20 已全部通过，自动化闸门 B1–B5 全绿，故剩余工作量集中在生命周期、隐私复跑与上架材料。为压缩周期，对**发布验证范围**做裁剪并登记如下。
+
+**性质声明**：以下均为**发布范围变更**，不是 P0 豁免。测试清单 [v3-release-test-plan.md](./v3-release-test-plan.md) 第 1 节「P0 全部通过、不得以普通豁免放行」的判据**不变**；被延后的项须以「已声明延后」记入签收表，不得写成「经确认可放行」。
+
+| # | 决定 | 说明 |
+|---|------|------|
+| **S1** | **Agent 保持默认开**（`agentPrefs.enabled = true`） | 不做 opt-in 化；因此 9 条 LIFE P0 **全部必修、不得豁免**。安装后 Agent 可用，但**不会自动启动任务**，每个任务仍需显式发起 + 计划批准 + 危险动作再确认 |
+| **S2** | **首轮只发 Chrome，Edge 延后** | Edge 本机未安装（原为 `BLOCKED`）。本轮对外声明 Chrome-only；Edge 全列延后至下一轮。商店材料须同步「首轮仅 Chrome」口径 |
+| **S3** | **V1/V2 回归收敛到被改动的共享面** | 依据近 60 提交改动面：`features/page-fab`、`shared/storage`、`providers`、`entrypoints`、`shared/messaging`、`features/chat`。REG-01～20 收敛为 6～8 条冒烟（page-fab / storage 迁移 / providers 正常路径 / 划词 / 沉浸译 / Chat 各一条） |
+| **S4** | **升级与持久化（DATA）收敛** | 保留 DATA-03（toolbar / 设置迁移）+ DATA-04（关闭浏览器重启持久化）；DATA-01/02/05～09 延后 |
+| **S5** | **低价值 P1 / P2 延后并披露** | PRIV-07 / PRIV-09、UI-02 / UI-07 / UI-10 / UI-12、ENV-04 / ENV-05 / ENV-07、NET-02 / 03 / 04 未覆盖分支、NET-06～09、LIFE 的 P1 项 |
+
+**与既有决策的关系**：本节只裁剪**验证范围**，不改变 V3.0 功能范围、「零新增权限」「计划批准 + 危险动作再确认」等既有拍板；`## V3 浏览器 Agent · 范围与决策` 中的功能边界仍全部有效。
+
+**落地清单与估时**：[v3-minimal-release-plan.md](./v3-minimal-release-plan.md)（≈3.5～4.5 人日；关键路径 Phase 3 → 4 → 6）。
+
+**已声明延后须披露的已知项**（写进 REL-12 发布说明 / 已知限制）：本轮仅 Chrome；`selection-toolbar` 家族存在既有偶发 flake（单跑 11/11、组合跑随机命中，疑似真实流式 + `pointerdown` 竞态）；`content-scripts/content.css` 缺失（低危，Shadow UI 自带内联样式，仅每页一次失败请求）。
