@@ -349,7 +349,7 @@ npx playwright test e2e/agent-plan.e2e.ts e2e/agent-safety.e2e.ts \
 
 ## 9. Provider、网络与恢复（A / B）
 
-- [ ] **NET-01 · P1**：Ollama 与 OpenAI Compatible 分别完成一次 Agent 主路径 — 计划、tools 参数、多轮 tool result、finish 正常；工具结果与真实 DOM 一致。　`2026-10-08 【部分：双侧均未含 finish】Provider A（Ollama qwen3:4b，runbook B2h）已实跑「PLAN → 批准 → snapshot → click [#3] → fill [#3]」，计数器与页面事实一致；Provider B（BYOK deepseek-flash）为 B2 主链路证据来源。❌ 双侧均未走到 finish，故本条不闭合；mock 不能替代（AUTO-08）`
+- [ ] **NET-01 · P1**：Ollama 与 OpenAI Compatible 分别完成一次 Agent 主路径 — 计划、tools 参数、多轮 tool result、finish 正常；工具结果与真实 DOM 一致。　`2026-10-08 【部分：双侧均未含 finish】Provider A（Ollama qwen3:4b，runbook B2h）已实跑「PLAN → 批准 → snapshot → click [#3] → fill [#3]」，计数器与页面事实一致；Provider B（BYOK deepseek-flash）为 B2 主链路证据来源。❌ 双侧均未走到 finish，故本条不闭合；mock 不能替代（AUTO-08）。📋 **可执行步骤与记录模板已备好**：runbook **B7a · NET-01 双 Provider 完整闭环（含 finish）**（2026-10-08 编制）——含四条判据、推荐只读目标、Step A/B、记录模板、常见失败处理与「单侧不达即不闭合」的判定口径`
 - [ ] **NET-02 · P1**：Ollama 未运行 / host 错误 / 模型不存在 — 可读错误，修正配置后可重试；没有静默切换到别的 Provider。
 - [ ] **NET-03 · P1**：BYOK 缺 Key、错误 Key、错误 Base URL / 模型 — 对应错误可读，不打印凭据；保存正确配置后恢复。
 - [ ] **NET-04 · P1**：模拟 401 / 403 / 429 / 5xx、断网、连接重置与慢响应 — 不无限 loading、不重复发危险工具；未成功的任务不标成功。　`2026-10-08 【自动化（部分）：e2e/agent-network.e2e.ts → NET-04 四条】已覆盖：401（鉴权文案，且可再试）/ 429（限流文案）/ 500（通用失败文案 + 不泄露响应体，PRIV-06）/ 连接重置（网络失败文案）；均不无限 loading、不标成功。❌ 未覆盖：403、断网、慢响应、「不重复发危险工具」`
