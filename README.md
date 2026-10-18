@@ -10,9 +10,9 @@
 | --- | --- | --- |
 | <img src="docs/assets/store/01-selection-toolbar.png" width="280" alt="划词翻译"/> | <img src="docs/assets/store/02-immersive-fullpage.png" width="280" alt="沉浸式整页双语翻译"/> | <img src="docs/assets/store/03-workbench-translate.png" width="280" alt="翻译工作台"/> |
 
-| 阅读助手（只读） | 本页 Agent · 计划批准 | 危险动作二次确认 |
-| --- | --- | --- |
-| <img src="docs/assets/store/04-reading-assistant.png" width="280" alt="阅读助手（只读摘要与问答）"/> | <img src="docs/assets/store/05-agent-plan.png" width="280" alt="本页操作 Agent 计划批准"/> | <img src="docs/assets/store/06-agent-danger-confirm.png" width="280" alt="危险动作二次确认"/> |
+| 阅读助手（只读） | 本页 Agent · 计划批准 + 危险动作二次确认 |
+| --- | --- |
+| <img src="docs/assets/store/04-reading-assistant.png" width="280" alt="阅读助手（只读摘要与问答）"/> | <img src="docs/assets/store/05-agent-plan.png" width="280" alt="本页操作 Agent：计划批准与危险动作二次确认"/> |
 
 ## 能力
 
@@ -60,7 +60,7 @@ Chrome 打开 `chrome://extensions` → 开启开发者模式 → 加载 `.outpu
 - **Agent 运行态不持久化**：步骤计划 / 轨迹 / 中止标志仅存在于内存；关闭或重启浏览器后不恢复、**不重放**页面操作，须重新发起并重新批准。
 - Shadow DOM / 跨域 iframe / 严格 CSP 下的部分元素可能无法操作（会给出可读失败提示）。
 - 已发生的页面动作**无法撤销**。
-- 低危已知缺陷：产物缺少 `content-scripts/content.css`（两个 Shadow UI 自带内联样式，正确性不受影响，仅每页一次失败请求 + 控制台警告）。完整清单见 [docs/release-notes-v1.0.0.md](docs/release-notes-v1.0.0.md)。
+- 低危已知缺陷：产物缺少 `content-scripts/content.css`（两个 Shadow UI 自带内联样式，正确性不受影响，仅每页一次失败请求 + 控制台警告）。完整清单见 [docs/release-notes-v1.1.0.md](docs/release-notes-v1.1.0.md)。
 
 ## 权限与隐私
 
@@ -148,7 +148,8 @@ Privacy policy: [PRIVACY.md](PRIVACY.md) · Support: <https://github.com/zhengzh
 | [docs/features.md](docs/features.md) | 当前权威（V3）Feature 契约表 |
 | [docs/decisions-v2.md](docs/decisions-v2.md) · [docs/architecture-v2.md](docs/architecture-v2.md) · [docs/features-v2.md](docs/features-v2.md) | V2 归档（已封板） |
 | [docs/decisions-v1.md](docs/decisions-v1.md) · [docs/architecture-v1.md](docs/architecture-v1.md) · [docs/features-v1.md](docs/features-v1.md) | V1 / V1.5 归档（已封板） |
-| [docs/release-notes-v1.0.0.md](docs/release-notes-v1.0.0.md) | v1.0.0 发布说明 / 已知限制 / 回滚预案 |
+| [docs/release-notes-v1.1.0.md](docs/release-notes-v1.1.0.md) | v1.1.0 发布说明 / 已知限制 / 回滚预案（当前） |
+| [docs/release-notes-v1.0.0.md](docs/release-notes-v1.0.0.md) | v1.0.0 历史发布说明 |
 | [docs/store-listing.md](docs/store-listing.md) | 上架权限用途 / 单一用途 / 数据使用说明 |
 | [docs/store-screenshots.md](docs/store-screenshots.md) | 上架截图清单与采集说明 |
 | [docs/reviewer-reproduction.md](docs/reviewer-reproduction.md) | 审核员复现步骤 |

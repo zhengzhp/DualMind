@@ -132,8 +132,9 @@ async function openChatWorkspace(
 ): Promise<void> {
   await page.goto(`chrome-extension://${extensionId}/workspace.html`);
   await page.getByRole('tab', { name: '阅读助手', exact: true }).click();
-  // `.first()`：副标题 <p> 与其父容器文本相同，避免严格模式命中多个
-  await expect(page.getByText('全页工作台 · 摘要与问答').first()).toBeVisible();
+  // 副标题由「全页工作台」+ 分隔符 +「摘要与问答」三段组成；
+  // 只断言唯一的副标题片段，避免依赖分隔符的 DOM 结构。
+  await expect(page.getByText('摘要与问答').first()).toBeVisible();
 }
 
 test.describe('V2 网页摘要 / 问答', () => {
@@ -147,7 +148,7 @@ test.describe('V2 网页摘要 / 问答', () => {
 
     // 三态里的「空态」：引导文案 + 上下文范围控件，且不再出现旧占位
     await expect(
-      page.getByText(/点「总结本页」快速抓取要点/).first(),
+      page.getByText('先总结这一页，或挑一个问题开始。').first(),
     ).toBeVisible();
     await expect(
       page.getByRole('radiogroup', { name: '上下文范围' }),
@@ -296,7 +297,7 @@ test.describe('V2 网页摘要 / 问答', () => {
     await page.goto(`chrome-extension://${extensionId}/sidepanel.html`);
 
     // ① 自动切到阅读助手 Tab（副标题随之变化）并自动发起提问
-    await expect(page.getByText('AI 助手 · 摘要与问答').first()).toBeVisible();
+    await expect(page.getByText('摘要与问答').first()).toBeVisible();
     await expect(page.getByTestId('chat-turn-user')).toContainText(
       '请总结当前网页',
     );

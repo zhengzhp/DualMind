@@ -6,7 +6,7 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import { hostnameFromUrl } from '@/shared/siteAccess';
-import { SegmentedControl } from '@/shared/ui';
+import { SegmentedControl, controlHeight } from '@/shared/ui';
 import type {
   ChatContextScope,
   ChatPendingAction,
@@ -55,6 +55,8 @@ export function ChatPanel({
   const scrollRef = useRef<HTMLDivElement>(null);
   const composerRef = useRef<HTMLTextAreaElement>(null);
   const isPage = surface === 'workspace';
+  /** 动作按钮高度：侧栏 32px / 全页工作台 40px（P1.13） */
+  const actionHeight = controlHeight(surface);
 
   // 新内容到达（含流式增量）时贴底
   useEffect(() => {
@@ -92,11 +94,11 @@ export function ChatPanel({
   const turns = chat.session.turns;
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-2.5">
+    <div className="flex min-h-0 flex-1 flex-col gap-3">
       {/* 上下文：一行 chip，信息项压到最低高度 */}
       <div className="shrink-0 rounded-card border border-line bg-surface px-3 py-2">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="shrink-0 text-label font-medium text-ink-2">上下文</span>
+          <span className="shrink-0 text-label font-semibold text-ink-2">上下文</span>
           <SegmentedControl
             value={scope}
             options={SCOPE_OPTIONS}
@@ -126,8 +128,8 @@ export function ChatPanel({
             disabled={chat.contextLoading || chat.streaming}
             className={
               chat.contextStale
-                ? 'shrink-0 rounded-chip bg-warn-soft px-2 py-1 text-label font-medium text-warn ring-1 ring-warn/20 disabled:opacity-50'
-                : 'shrink-0 rounded-chip px-2 py-1 text-label font-medium text-ink-2 transition hover:bg-surface-2 hover:text-ink disabled:opacity-50'
+                ? 'shrink-0 rounded-chip bg-warn-soft px-2 py-1 text-label font-semibold text-warn ring-1 ring-warn/20 disabled:opacity-50'
+                : 'shrink-0 rounded-chip px-2 py-1 text-label font-semibold text-ink-2 transition hover:bg-surface-2 hover:text-ink disabled:opacity-50'
             }
           >
             重新读取
@@ -166,14 +168,14 @@ export function ChatPanel({
           type="button"
           disabled={chat.streaming}
           onClick={() => void chat.summarize()}
-          className="inline-flex h-8 items-center rounded-control bg-accent px-3 text-label font-semibold text-on-accent transition hover:bg-accent-hover disabled:opacity-50"
+          className={`inline-flex ${actionHeight} items-center rounded-control bg-accent px-3 text-label font-semibold text-on-accent transition hover:bg-accent-hover disabled:opacity-50`}
         >
           总结本页
         </button>
         <button
           type="button"
           onClick={chat.startNew}
-          className="inline-flex h-8 items-center rounded-control border border-line bg-surface px-3 text-label font-medium text-ink-2 transition hover:bg-surface-2 hover:text-ink"
+          className={`inline-flex ${actionHeight} items-center rounded-control border border-line bg-surface px-3 text-label font-semibold text-ink-2 transition hover:bg-surface-2 hover:text-ink`}
         >
           新对话
         </button>
@@ -183,8 +185,8 @@ export function ChatPanel({
           onClick={() => setShowHistory((current) => !current)}
           className={
             showHistory
-              ? 'inline-flex h-8 items-center rounded-control border border-accent/30 bg-accent-soft px-3 text-label font-medium text-accent'
-              : 'inline-flex h-8 items-center rounded-control border border-line bg-surface px-3 text-label font-medium text-ink-2 transition hover:bg-surface-2 hover:text-ink'
+              ? `inline-flex ${actionHeight} items-center rounded-control border border-accent/30 bg-accent-soft px-3 text-label font-semibold text-accent`
+              : `inline-flex ${actionHeight} items-center rounded-control border border-line bg-surface px-3 text-label font-semibold text-ink-2 transition hover:bg-surface-2 hover:text-ink`
           }
         >
           历史{chat.sessions.length > 0 ? '（' + chat.sessions.length + '）' : ''}
@@ -226,14 +228,14 @@ export function ChatPanel({
             <button
               type="button"
               onClick={() => chat.confirmMismatch({ remember: true })}
-              className="rounded-control border border-warn/30 bg-surface px-2.5 py-1 text-label font-medium text-warn transition hover:bg-warn-soft"
+              className="rounded-control border border-warn/30 bg-surface px-2.5 py-1 text-label font-semibold text-warn transition hover:bg-warn-soft"
             >
               本会话不再提示
             </button>
             <button
               type="button"
               onClick={handleCancelMismatch}
-              className="rounded-control border border-line bg-surface px-2.5 py-1 text-label font-medium text-ink-2 transition hover:bg-surface-2"
+              className="rounded-control border border-line bg-surface px-2.5 py-1 text-label font-semibold text-ink-2 transition hover:bg-surface-2"
             >
               取消
             </button>
@@ -324,7 +326,7 @@ export function ChatPanel({
           <button
             type="button"
             onClick={chat.stop}
-            className="inline-flex h-9 shrink-0 items-center rounded-control border border-line bg-surface px-3 text-label font-semibold text-ink-2 transition hover:bg-surface-2 hover:text-ink"
+            className={`inline-flex ${actionHeight} shrink-0 items-center rounded-control border border-line bg-surface px-3 text-label font-semibold text-ink-2 transition hover:bg-surface-2 hover:text-ink`}
           >
             停止
           </button>
@@ -333,7 +335,7 @@ export function ChatPanel({
             type="button"
             onClick={() => void handleSend()}
             disabled={!draft.trim()}
-            className="inline-flex h-9 shrink-0 items-center rounded-control bg-accent px-3 text-label font-semibold text-on-accent transition hover:bg-accent-hover disabled:opacity-50"
+            className={`inline-flex ${actionHeight} shrink-0 items-center rounded-control bg-accent px-3 text-label font-semibold text-on-accent transition hover:bg-accent-hover disabled:opacity-50`}
           >
             发送
           </button>
@@ -352,11 +354,33 @@ function PageBreakDivider({ turn }: { turn: ChatTurn }) {
       title={turn.pageUrl}
     >
       <div className="h-px w-full bg-line" />
-      <p className="max-w-full truncate px-2 text-center text-meta font-medium text-ink-2">
+      <p className="max-w-full truncate px-2 text-center text-meta font-semibold text-ink-2">
         {turn.content}
       </p>
       <div className="h-px w-full bg-line" />
     </div>
+  );
+}
+
+/**
+ * 助手正文的轻量展示：至少把 **粗体** 还原成强调，去掉行首 # 标题标记。
+ * 存储与导出仍是原始 Markdown，不改模型输出。
+ */
+function AssistantText({ content }: { content: string }) {
+  const parts = content.split(/(\*\*[^*\n]+\*\*)/g);
+  return (
+    <>
+      {parts.map((part, index) => {
+        if (part.length > 4 && part.startsWith('**') && part.endsWith('**')) {
+          return (
+            <strong key={index} className="font-semibold">
+              {part.slice(2, -2)}
+            </strong>
+          );
+        }
+        return <span key={index}>{part.replace(/^#{1,6}\s+/gm, '')}</span>;
+      })}
+    </>
   );
 }
 
@@ -384,8 +408,10 @@ function TurnBubble({ turn }: { turn: ChatTurn }) {
             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-accent" />
             正在生成…
           </span>
-        ) : (
+        ) : isUser ? (
           turn.content || '（空回复）'
+        ) : (
+          <AssistantText content={turn.content || '（空回复）'} />
         )}
         {turn.error && (
           <span className="mt-1 block text-label text-danger">

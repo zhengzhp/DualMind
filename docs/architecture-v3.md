@@ -91,8 +91,8 @@ flowchart LR
 
 - [x] V2 摘要 / 聊天 —— **已封板**（见 [decisions-v2.md](./decisions-v2.md)）
 - [x] V3.0 本页 Agent（零新增权限 + 计划批准 + 危险确认）—— **主链路已接**（实机验收与发布闸门仍待做）
-- [ ] V3.1 可选 debugger / 有限多 Tab / 步骤导出 —— 未立项
-- [ ] V3.2 配方 / 可选 MCP —— 未立项
+- [ ] V3.1 可选 debugger / 有限多 Tab / 步骤导出 / 页面图片下载 —— 未立项（候选见 [decisions.md](./decisions.md)「后续候选排期」）
+- [ ] V3.2 配方（含用户自定义 Agent 操作）/ 可选 MCP —— 未立项（候选见 decisions.md 同节）
 
 ### 发布闸门（V3 完成后统一执行）
 

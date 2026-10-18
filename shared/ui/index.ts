@@ -3,6 +3,8 @@
  * 这里只放纯展示组件，不依赖任何 storage / messaging，保持可测试。
  */
 export { fieldClass, fieldClassEmphasis, fieldClassQuiet } from './field';
+export { Wordmark } from './Wordmark';
+export { controlHeight, type ControlSurface } from './control';
 export {
   CheckIcon,
   ChevronDownIcon,

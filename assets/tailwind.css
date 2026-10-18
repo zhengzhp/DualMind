@@ -59,6 +59,12 @@
   --dm-on-accent: 255 255 255;
   --dm-on-danger: 255 255 255;
   --dm-on-warn: 255 255 255;
+  /* 品牌标记色：只用于字标 / 标记等品牌位；深色下提亮，保证深底可读 */
+  --dm-brand-mark: 27 127 209;
+  /* 字标墨色：浅色用品牌墨蓝，深色反白（不再维护两份字标资源） */
+  --dm-wordmark-ink: 15 47 77;
+  /* 卡片阴影：深色下阴影几乎不可见，改用 1px 描边表达层级（见 plan §4.5） */
+  --dm-shadow-card: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
 /* 手动主题：由扩展页面/内容脚本写入 data-theme */
@@ -71,7 +77,8 @@
   --dm-line-strong: 58 64 74;
   --dm-ink: 242 243 245;
   --dm-ink-2: 166 173 184;
-  --dm-ink-3: 107 114 128;
+  /* ink-3 只承载装饰 / 图标；深底上提到 ≈5.2:1，避免「看起来像禁用」的低对比灰 */
+  --dm-ink-3: 138 147 162;
   --dm-accent: 111 174 236;
   --dm-accent-hover: 140 194 242;
   --dm-accent-soft: 27 42 58;
@@ -84,6 +91,10 @@
   --dm-on-accent: 11 18 32;
   --dm-on-danger: 26 13 13;
   --dm-on-warn: 26 18 6;
+  --dm-brand-mark: 111 174 236;
+  --dm-wordmark-ink: 242 243 245;
+  /* 深色下阴影不可见：用 1px 发丝描边 + 表面色差表达层级（P1.18） */
+  --dm-shadow-card: 0 0 0 1px rgb(var(--dm-line));
 }
 
 /* 首次绘制兜底：尚未写入 data-theme 时跟随系统 */
@@ -97,7 +108,8 @@
     --dm-line-strong: 58 64 74;
     --dm-ink: 242 243 245;
     --dm-ink-2: 166 173 184;
-    --dm-ink-3: 107 114 128;
+    /* 与 [data-theme='dark'] 保持一致（见上） */
+    --dm-ink-3: 138 147 162;
     --dm-accent: 111 174 236;
     --dm-accent-hover: 140 194 242;
     --dm-accent-soft: 27 42 58;
@@ -107,6 +119,9 @@
     --dm-warn-soft: 45 33 18;
     --dm-danger: 242 119 122;
     --dm-danger-soft: 48 25 27;
+    --dm-brand-mark: 111 174 236;
+    --dm-wordmark-ink: 242 243 245;
+    --dm-shadow-card: 0 0 0 1px rgb(var(--dm-line));
   }
 }
 
@@ -147,11 +162,19 @@ body {
     scroll-behavior: auto !important;
   }
 }
-/* 字标双版本：深色用反白版，避免深色底上不可读 */
-.dm-wordmark-dark { display: none; }
-:root[data-theme='dark'] .dm-wordmark-light { display: none; }
-:root[data-theme='dark'] .dm-wordmark-dark { display: inline-block; }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) .dm-wordmark-light { display: none; }
-  :root:not([data-theme='light']) .dm-wordmark-dark { display: inline-block; }
+/*
+ * 中英混排（P0.3）：IBM Plex Sans 与 SC 子集的基线略有偏移，
+ * 11–12px 下中点分隔符容易偏上，这里统一按视觉中线对齐。
+ */
+.dm-separator {
+  display: inline-block;
+  vertical-align: middle;
+  margin-top: -0.15em;
+  line-height: 1;
+  color: rgb(var(--dm-ink-3));
+}
+
+/* 单行元信息：中英混排时收紧行高，避免 11px 小字行盒把基线拉散 */
+.dm-meta-line {
+  line-height: 1.45;
 }

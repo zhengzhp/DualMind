@@ -93,7 +93,7 @@ const sidePanelPorts = new Set<{
 const contentTabTracker = new ContentTabTracker();
 
 /**
- * 解析网页助手应操作的内容标签页。
+ * 解析阅读助手应操作的内容标签页。
  * 活动页可读 → 用之；否则最近可读缓存 → 同窗口 lastAccessed 兜底。
  */
 async function resolveContentTab(): Promise<Browser.tabs.Tab | null> {

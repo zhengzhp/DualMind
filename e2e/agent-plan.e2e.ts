@@ -66,7 +66,13 @@ test.describe('Agent · 计划闸门与执行', () => {
 
     // 进入计划闸门：计划卡 + 批准按钮 + awaiting_plan
     await expect(agentPage.getByText('请确认执行计划')).toBeVisible();
-    await expect(agentPage.getByText('1. 观察页面可交互元素')).toBeVisible();
+    // 计划卡是编号列表：序号在独立圆形徽标里，正文单独成节点（UI 改版后不再拼成「1. …」）
+    const firstStep = agentPage
+      .locator('ol li')
+      .filter({ hasText: '观察页面可交互元素' })
+      .first();
+    await expect(firstStep).toBeVisible();
+    await expect(firstStep.getByText('1', { exact: true })).toBeVisible();
     await expect(agentPage.getByText('状态：awaiting_plan')).toBeVisible();
     await expect(ui.approve).toBeVisible();
 

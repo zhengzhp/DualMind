@@ -456,6 +456,14 @@ export function SearchableSelect({
               ))
             )}
           </ul>
+
+          {/* 键盘提示：下拉支持方向键 / Enter / Esc，但没有任何可见线索（P1.15） */}
+          <p
+            className="dm-meta-line border-t border-line px-2.5 py-1.5 text-meta text-ink-3"
+            aria-hidden="true"
+          >
+            ↑↓ 导航 · Enter {editable ? '确认' : '选择'} · Esc 收起
+          </p>
         </div>
       )}
     </div>

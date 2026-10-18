@@ -955,3 +955,19 @@
 #### REL-13 · 原用例内嵌执行记录（2026-10-08）
 
 `2026-10-08 【完成】已归档到**仓库外**（不污染仓库）：`~/DualMind-releases/dualmind-1.0.0-chrome.zip`（227,927 B）+ `dualmind-1.0.0-chrome.zip.sha256`（`2a670372…`）+ `dualmind-1.0.0-chrome.README.txt`（版本 / 构建日期 / 源码标识 / 用途）；已用 `shasum -a 256 -c` 校验 **OK**`
+
+<a id="evidence-v1-1-0-ui-refresh"></a>
+
+## 2026-10-19 · v1.1.0 UI 改版收尾（工作区）
+
+- 候选版本：`package.json` / manifest **1.1.0**；工作区**未提交**（commit / hash 待绑定）。
+- 环境：Playwright Chromium（1243）、Node 22、macOS；本机 Ollama `huihui_ai/qwen3-abliterated:8b-v2`。
+- 命令 / 结果：
+  - `pnpm compile` → 0 error
+  - `pnpm test` → 39 files / **400 tests passed**
+  - `pnpm build` → `manifest.version = 1.1.0`，permissions 未变
+  - `DM_OLLAMA_MODEL=huihui_ai/qwen3-abliterated:8b-v2 pnpm test:e2e` → **81 passed / 7 skipped / 0 failed（6.7m）**
+  - `DM_CAPTURE=1 ... npx playwright test e2e/store-screenshots.e2e.ts` → **5 passed（1.4m）**，均 1280×800
+- 7 skipped：5 条截图专用（另行跑完）+ 2 条 headed-only（已用 `E2E_HEADED=1` 复跑：`agent-ui` + `selection-panel-toggle` 通过，后者 2/2）。
+- 测试侧修正：UI 改版遗留的旧文案 / 元素定位（计划编号、危险卡、页头副标题分隔符、绑定页 chip）改用 role / testid；新增 `data-testid="agent-bound-page"`；划词浮层侧栏按钮已改图标按钮，断言改用 `aria-label`，并在 headed 前归零持久化 profile 的侧栏状态；截图脚本修正 demo `body` 限宽、左对齐与流式等待。
+- 未完成：最终 zip / sha256、真实 Side Panel 人工观感、提交 commit。

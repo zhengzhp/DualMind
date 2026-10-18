@@ -188,8 +188,10 @@ test.describe('Agent · 入口与 UI（B8）', () => {
     await expect(ui.stop).toHaveCount(0);
     await expect(ui.goal).toBeEnabled();
 
-    // ③ 绑定页 = 当前内容页（用 pageLabel 的 title 属性精确定位，避免歧义）
-    await expect(panel.locator('p[title*="T1 静态表单"]')).toBeVisible();
+    // ③ 绑定页 = 当前内容页（用专用 testid 定位，避免依赖控件标签）
+    await expect(panel.getByTestId('agent-bound-page')).toContainText(
+      'T1 静态表单',
+    );
 
     // ④ 零写入 + 模型零调用
     expect((await readCounters(contentPage)).actions).toHaveLength(0);

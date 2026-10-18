@@ -21,8 +21,8 @@ import {
  * 用户下意识忽略。
  *
  * 视觉（v0.3）：去掉品牌色带与 pulse 胶囊，只保留一处强调 —— 14px 半粗模型名。
- * 左侧 11px「模型」标签、右侧 11px Provider 说明与刷新图标；Provider 切换仍在
- * 下拉面板顶部（低频操作，与模型强相关）。
+ * 左侧 11px「模型」标签降权（ink-2 + 常规字重）；右侧 Provider 用 chip + 状态点表达
+ * 「当前是否可用」，刷新压成图标；Provider 切换仍在面板顶部（低频操作）。
  *
  * 纯受控：所有状态与持久化仍由 `WorkbenchApp` 持有（单一数据源），本组件只负责渲染与回调。
  */
@@ -90,7 +90,7 @@ export function ModelSelector({
    */
   const providerHeader = (
     <div className="flex flex-col gap-1.5">
-      <span className="text-meta font-medium text-ink-2">Provider</span>
+      <span className="text-meta font-semibold text-ink-2">Provider</span>
       <SegmentedControl
         value={providerType}
         options={PROVIDER_OPTIONS}
@@ -105,10 +105,23 @@ export function ModelSelector({
   const providerLabel =
     providerType === 'ollama' ? '本地 · Ollama' : 'OpenAI 兼容';
 
+  /**
+   * Provider 状态点：把「当前配置能不能用」压成一个点，避免用户先读文字再判断。
+   * - danger：拉取 / 保存模型报错
+   * - warn：尚未配置（无 Key / 未选模型）
+   * - success：配置完整
+   */
+  const providerStatus = modelsError
+    ? { dot: 'bg-danger', text: '异常' }
+    : modelHint || !currentModel
+      ? { dot: 'bg-warn', text: '待配置' }
+      : { dot: 'bg-success', text: '已配置' };
+
   return (
     // 纵向容器：默认只有一行；仅在出错 / 未配置时下面多出提示行
     <div className="flex flex-col gap-1">
       <div className="flex items-center gap-2">
+        {/* 标签降权：模型名才是这一行的信息主角；用 ink-2 而非 ink-3，保证 11px 文本仍过 AA */}
         <span className="shrink-0 text-meta text-ink-2">模型</span>
 
         {/* 模型：占满剩余宽度；窄屏截断，宽屏舒展 */}
@@ -153,7 +166,15 @@ export function ModelSelector({
           )}
         </div>
 
-        <span className="hidden shrink-0 text-meta text-ink-2 sm:inline">
+        {/* Provider chip：带状态点，窄屏（<380px）隐藏文字只留状态点会失去含义，故整体隐藏 */}
+        <span
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-chip border border-line bg-surface-2 px-2 py-[3px] text-meta text-ink-2 max-[380px]:hidden"
+          title={`Provider：${providerLabel} · ${providerStatus.text}`}
+        >
+          <span
+            aria-hidden="true"
+            className={`h-1.5 w-1.5 shrink-0 rounded-full ${providerStatus.dot}`}
+          />
           {providerLabel}
         </span>
 
@@ -198,7 +219,7 @@ export function ModelSelector({
           <button
             type="button"
             onClick={onOpenSettings}
-            className="text-label font-medium text-accent underline-offset-2 hover:underline"
+            className="text-label font-semibold text-accent underline-offset-2 hover:underline"
           >
             去设置
           </button>

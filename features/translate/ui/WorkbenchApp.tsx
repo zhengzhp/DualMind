@@ -21,19 +21,16 @@ import {
   type ChatPendingAction,
   type ProviderType,
 } from '@/shared/storage/types';
-import { SearchableSelect, SettingsIcon, WorkspaceIcon } from '@/shared/ui';
+import {
+  SearchableSelect,
+  SettingsIcon,
+  Wordmark,
+  WorkspaceIcon,
+  controlHeight,
+} from '@/shared/ui';
 import { ModelSelector } from './ModelSelector';
 
 type ModuleTab = 'translate' | 'chat' | 'agent';
-
-/**
- * 字标（文字 logo）资源地址：`public/wordmark.svg` 是 `assets/wordmark.svg` 的 UI 副本，
- * 路径与设计稿逐字节相同，仅裁掉上下空白 —— 因此图片底边≈字标基线，
- * 在 `items-baseline` 行里能直接与副标题对齐，不需要负 margin 补偿。
- */
-const WORDMARK_URL = browser.runtime.getURL('/wordmark.svg');
-/** 深色版字标：同几何、仅换色，避免深色底上不可读 */
-const WORDMARK_DARK_URL = browser.runtime.getURL('/wordmark-dark.svg');
 
 /** 复制成功提示的展示时长（毫秒） */
 const COPY_HINT_MS = 1500;
@@ -91,7 +88,7 @@ export function WorkbenchApp({ surface }: { surface: WorkbenchSurface }) {
   /**
    * 右键菜单「总结本页」：信箱由**常驻的**工作台统一消费，再下发给 ChatPanel。
    *
-   * 为什么仍由 WorkbenchApp 消费：要先 `setTab('chat')` 切到网页助手，用户才看得到
+   * 为什么仍由 WorkbenchApp 消费：要先 `setTab('chat')` 切到阅读助手，用户才看得到
    * 自动发起的总结；ChatPanel 虽已常驻挂载（避免切 Tab 丢会话），但默认可能藏在
    * 翻译 Tab 后面。
    * 为什么只有 Side Panel 消费：右键菜单打开的就是侧栏；否则全页工作台会把动作抢走。
@@ -110,7 +107,7 @@ export function WorkbenchApp({ surface }: { surface: WorkbenchSurface }) {
       if (handledPendingRef.current === action.createdAt) return;
       handledPendingRef.current = action.createdAt;
       setPendingExpiredHint('');
-      // 先切到网页助手，保证用户看见自动发起的总结（ChatPanel 本身常驻）
+      // 先切到阅读助手，保证用户看见自动发起的总结（ChatPanel 本身常驻）
       setTab('chat');
       setPendingChatAction(action);
     };
@@ -401,10 +398,19 @@ export function WorkbenchApp({ surface }: { surface: WorkbenchSurface }) {
   }
 
   const controlsDisabled = loading;
+  /** 动作按钮高度：侧栏 32px / 全页工作台 40px（P1.13） */
+  const actionHeight = controlHeight(surface);
 
   return (
     // 侧栏与全页均锁视口高度，保证阅读助手输入区钉底、翻译区内部滚动
     <div className="flex h-screen flex-col overflow-hidden bg-canvas text-ink">
+      {/* 键盘 / 屏幕阅读器：跳过头部与模型横栏，直达内容区（P0.6） */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-control focus:border focus:border-line focus:bg-surface focus:px-3 focus:py-2 focus:text-label focus:font-semibold focus:text-ink focus:shadow-popover"
+      >
+        跳到主内容
+      </a>
       <header className="shrink-0 border-b border-line bg-surface/90 backdrop-blur">
         {/* 全页工作台：内层容器统一 max-w-5xl + px-6，与下方 main 左右严格对齐 */}
         <div
@@ -415,25 +421,15 @@ export function WorkbenchApp({ surface }: { surface: WorkbenchSurface }) {
           }
         >
           <div className="flex min-w-0 items-baseline gap-2.5">
-            {/* 品牌名用字标呈现；18px 与 56px 头部高度对齐 */}
+            {/* 品牌名用字标呈现；18px 与 56px 头部高度对齐（墨色/品牌色走 token） */}
             <h1 className="shrink-0 text-title font-semibold tracking-tight text-ink">
-              <img
-                src={WORDMARK_URL}
-                alt="DualMind"
-                draggable={false}
-                className="dm-wordmark-light h-[18px] w-auto"
-              />
-              <img
-                src={WORDMARK_DARK_URL}
-                alt=""
-                aria-hidden="true"
-                draggable={false}
-                className="dm-wordmark-dark h-[18px] w-auto"
-              />
+              <Wordmark className="h-[18px] w-auto" />
             </h1>
-            <p className="truncate text-meta text-ink-2">
+            <p className="dm-meta-line truncate text-meta text-ink-2">
               {isPage ? '全页工作台' : 'AI 助手'}{' '}
-              <span className="text-ink-3">·</span>{' '}
+              <span className="dm-separator" aria-hidden="true">
+                ·
+              </span>{' '}
               {TAB_SUBTITLE[tab]}
             </p>
           </div>
@@ -443,7 +439,7 @@ export function WorkbenchApp({ surface }: { surface: WorkbenchSurface }) {
                 type="button"
                 data-testid="open-workspace"
                 onClick={() => void handleOpenWorkspace()}
-                className="inline-flex h-8 items-center gap-1.5 rounded-control px-2.5 text-xs font-medium text-ink-2 transition hover:bg-surface-2 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
+                className="inline-flex h-8 items-center gap-1.5 rounded-control px-2.5 text-xs font-semibold text-ink-2 transition hover:bg-surface-2 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
               >
                 <WorkspaceIcon className="h-3.5 w-3.5" />
                 工作台
@@ -452,7 +448,7 @@ export function WorkbenchApp({ surface }: { surface: WorkbenchSurface }) {
             <button
               type="button"
               onClick={() => void handleOpenSettings()}
-              className="inline-flex h-8 items-center gap-1.5 rounded-control px-2.5 text-xs font-medium text-ink-2 transition hover:bg-surface-2 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
+              className="inline-flex h-8 items-center gap-1.5 rounded-control px-2.5 text-xs font-semibold text-ink-2 transition hover:bg-surface-2 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
             >
               <SettingsIcon className="h-3.5 w-3.5" />
               设置
@@ -505,7 +501,7 @@ export function WorkbenchApp({ surface }: { surface: WorkbenchSurface }) {
                 role="tab"
                 aria-selected={tab === id}
                 onClick={() => setTab(id)}
-                className={`-mb-px border-b-2 px-0.5 pb-2.5 pt-2 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30 ${
+                className={`-mb-px border-b-2 px-0.5 pb-2.5 pt-2 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30 ${
                   tab === id
                     ? 'border-accent text-ink'
                     : 'border-transparent text-ink-2 hover:text-ink'
@@ -528,7 +524,7 @@ export function WorkbenchApp({ surface }: { surface: WorkbenchSurface }) {
                 role="tab"
                 aria-selected={tab === id}
                 onClick={() => setTab(id)}
-                className={`flex-1 rounded-[7px] px-3 py-1.5 text-xs font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30 ${
+                className={`flex-1 rounded-[7px] px-3 py-1.5 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30 ${
                   tab === id
                     ? 'bg-surface text-ink shadow-card'
                     : 'text-ink-2 hover:text-ink'
@@ -542,10 +538,13 @@ export function WorkbenchApp({ surface }: { surface: WorkbenchSurface }) {
       </nav>
 
       <main
+        id="main-content"
+        tabIndex={-1}
         className={
-          isPage
+          (isPage
             ? 'mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col gap-4 px-6 py-5'
-            : 'flex min-h-0 flex-1 flex-col gap-3 overflow-hidden p-4'
+            : 'flex min-h-0 flex-1 flex-col gap-3 overflow-hidden p-4') +
+          ' focus-visible:outline-none'
         }
       >
         {pendingExpiredHint && surface === 'sidepanel' && (
@@ -571,7 +570,7 @@ export function WorkbenchApp({ surface }: { surface: WorkbenchSurface }) {
             {/* 语言 / 原文 / 译文合并为一张卡：内部用 1px 发丝线分隔 */}
             <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-card border border-line bg-surface shadow-card transition focus-within:ring-2 focus-within:ring-accent/15">
               <div className="flex shrink-0 items-center gap-2 border-b border-line px-3 py-2">
-                <span className="w-8 shrink-0 text-label font-medium text-ink-2">
+                <span className="w-8 shrink-0 text-label font-semibold text-ink-2">
                   语言
                 </span>
                 <SearchableSelect
@@ -603,11 +602,11 @@ export function WorkbenchApp({ surface }: { surface: WorkbenchSurface }) {
                   <div className="flex items-center justify-between gap-2">
                     <label
                       htmlFor="translate-source"
-                      className="text-label font-medium text-ink-2"
+                      className="text-label font-semibold text-ink-2"
                     >
                       原文
                     </label>
-                    <span className="text-meta tabular-nums text-ink-3">
+                    <span className="text-meta tabular-nums text-ink-2">
                       {sourceText.length > 0 ? `${sourceText.length} 字符` : ''}
                     </span>
                   </div>
@@ -628,7 +627,7 @@ export function WorkbenchApp({ surface }: { surface: WorkbenchSurface }) {
                       <button
                         type="button"
                         onClick={() => void handlePaste()}
-                        className="inline-flex h-7 items-center rounded-chip border border-line bg-surface-2 px-2 text-label font-medium text-ink-2 transition hover:text-ink"
+                        className="inline-flex h-7 items-center rounded-chip border border-line bg-surface-2 px-2 text-label font-semibold text-ink-2 transition hover:text-ink"
                       >
                         粘贴文本
                       </button>
@@ -657,7 +656,7 @@ export function WorkbenchApp({ surface }: { surface: WorkbenchSurface }) {
                   <div className="flex items-center justify-between gap-2">
                     <label
                       htmlFor="translate-result"
-                      className="text-label font-medium text-ink-2"
+                      className="text-label font-semibold text-ink-2"
                     >
                       译文
                     </label>
@@ -665,7 +664,7 @@ export function WorkbenchApp({ surface }: { surface: WorkbenchSurface }) {
                       type="button"
                       disabled={!translatedText}
                       onClick={() => void handleCopy()}
-                      className="rounded-chip px-2 py-1 text-label font-medium text-ink-2 transition hover:bg-surface-2 hover:text-ink disabled:cursor-not-allowed disabled:opacity-40"
+                      className="rounded-chip px-2 py-1 text-label font-semibold text-ink-2 transition hover:bg-surface-2 hover:text-ink disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       {copied ? '已复制' : '复制译文'}
                     </button>
@@ -707,7 +706,7 @@ export function WorkbenchApp({ surface }: { surface: WorkbenchSurface }) {
                     <button
                       type="button"
                       onClick={handleStop}
-                      className="inline-flex h-9 items-center justify-center rounded-control border border-line bg-surface px-4 text-body-strong text-ink-2 transition hover:bg-surface-2 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
+                      className={`inline-flex ${actionHeight} items-center justify-center rounded-control border border-line bg-surface px-4 text-body-strong text-ink-2 transition hover:bg-surface-2 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30`}
                     >
                       停止
                     </button>
@@ -715,7 +714,7 @@ export function WorkbenchApp({ surface }: { surface: WorkbenchSurface }) {
                     <button
                       type="button"
                       onClick={() => void handleTranslate()}
-                      className="inline-flex h-9 items-center justify-center rounded-control bg-accent px-4 text-body-strong text-on-accent transition hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30 disabled:opacity-50"
+                      className={`inline-flex ${actionHeight} items-center justify-center rounded-control bg-accent px-4 text-body-strong text-on-accent transition hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30 disabled:opacity-50`}
                     >
                       翻译
                     </button>

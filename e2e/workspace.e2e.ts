@@ -22,8 +22,10 @@ test.describe('全页工作台', () => {
     await seedSettings(serviceWorker, OLLAMA_SETTINGS);
     await page.goto(`chrome-extension://${extensionId}/workspace.html`);
 
-    // 品牌是字标 img（alt=DualMind），全页身份由副标题体现
-    await expect(page.getByText('全页工作台 · 翻译')).toBeVisible();
+    // 品牌是内联字标（aria-label=DualMind）；全页身份用「翻译」Tab 的选中态断言
+    await expect(
+      page.getByRole('tab', { name: '翻译', exact: true }),
+    ).toHaveAttribute('aria-selected', 'true');
 
     // 模型横栏常驻可见：直接展开自绘下拉
     await page.getByTestId('model-select').click();
@@ -62,17 +64,21 @@ test.describe('全页工作台', () => {
   }) => {
     await seedSettings(serviceWorker, OLLAMA_SETTINGS);
     await page.goto(`chrome-extension://${extensionId}/workspace.html`);
-    await expect(page.getByText('全页工作台 · 翻译')).toBeVisible();
+    await expect(
+      page.getByRole('tab', { name: '翻译', exact: true }),
+    ).toHaveAttribute('aria-selected', 'true');
 
     // V2：阅读助手 Tab 由占位替换为可用的 ChatPanel（副标题随之变化）
     await page.getByRole('tab', { name: '阅读助手', exact: true }).click();
-    await expect(page.getByText('全页工作台 · 摘要与问答')).toBeVisible();
+    await expect(page.getByText('摘要与问答')).toBeVisible();
     await expect(page.getByRole('button', { name: '总结本页' })).toBeVisible();
     await expect(page.getByText('聊天（即将推出）')).toHaveCount(0);
 
     // V3：Agent Tab 已接入真实 AgentPanel（不再是占位）
     await page.getByRole('tab', { name: 'Agent', exact: true }).click();
-    await expect(page.getByText('全页工作台 · 本页操作')).toBeVisible();
+    await expect(
+      page.getByRole('tab', { name: 'Agent', exact: true }),
+    ).toHaveAttribute('aria-selected', 'true');
     await expect(page.getByText('本页操作 Agent', { exact: true })).toBeVisible();
     await expect(page.getByText('Agent（即将推出）')).toHaveCount(0);
 

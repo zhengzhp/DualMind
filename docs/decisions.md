@@ -31,7 +31,7 @@
 
 **不做（V3.0）**：`chrome.debugger` / CDP、跨标签页操作、定时任务、CAPTCHA、下载管理、网络抓包、MCP 桥、PDF / 视频、RAG、云同步、搜索增强、邮件、支付/转账类动作放行。
 
-**分期**：V3.1 = 可选 debugger + 有限多 Tab + 步骤日志导出；V3.2 = 工作流配方 / 可选 MCP（须再立项）。扩大 V3.0 范围须先更新本文件。
+**分期**：V3.1 = 可选 debugger + 有限多 Tab + 步骤日志导出 + 页面图片下载（候选）；V3.2 = 工作流配方（含用户自定义 Agent 操作）/ 可选 MCP（须再立项）。扩大 V3.0 范围须先更新本文件。
 
 | 决策 | 结论 |
 |------|------|
@@ -52,6 +52,15 @@
 | 已知限制（须在 UI 诚实说明） | Shadow DOM / 跨域 iframe / 严格 CSP 下部分操作可能失败；V3.0 不承诺覆盖难站 |
 
 **对标取舍（公开项目，不照搬）**：学 Goby 的「页内 BYOK + tool loop」、WebOperator 的 plan-act-verify、Oloo/Stagehand 的 observe 优先；不学 Monica All-in-One、不学云浏览器 / CAPTCHA / 开发者向 MCP 全家桶。
+
+## 后续候选排期（未立项；开工前须 /plan-feature + 更新本文件 / architecture-v3）
+
+| 候选 | 目标版本 | 范围 | 前置 / 风险 |
+|------|----------|------|-------------|
+| **页面图片下载** | V3.1 候选 | 新增只读工具 `collect_images`（列 `<img>` 的 src / alt / srcset，可见性与数量上限待定）；Background 借 `<all_urls>` fetch 后交侧栏用 Blob 下载，**不新增 `downloads` 权限** | 跨域图片 / 体积 / 超时 / 重复 URL / data URL；批量下载属写操作，须显式确认、不自动执行；需评估数量上限与失败清单 |
+| **用户自定义 Agent 操作**（工作流配方） | V3.2 候选 | 让用户保存 / 复用参数化的操作序列；仍走「计划批准 + 危险动作再确认」 | 需定义 storage schema、编辑 / 管理 UI、参数校验与安全分级；不得注入任意 JS，不得绕过危险确认；属产品边界扩张，须先立项 |
+
+> 两项均**不在 V3.0 范围**，也不作为本次 UI 改动的遗留项；排期以本表为准，开工前更新 [architecture-v3.md](./architecture-v3.md) 里程碑与 [features.md](./features.md) 契约。
 
 ## V3.0 正式版发布范围裁剪（2026-10-08 拍板）
 

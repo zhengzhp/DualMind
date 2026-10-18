@@ -49,7 +49,7 @@ export function SegmentedControl<T extends string>({
             onClick={() => {
               if (!active) onChange(option.value);
             }}
-            className={`min-w-0 flex-1 truncate rounded-[7px] px-2.5 py-1.5 text-center text-label font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30 ${
+            className={`min-w-0 flex-1 truncate rounded-[7px] px-2.5 py-1.5 text-center text-label font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30 ${
               active
                 ? 'bg-surface text-ink shadow-card'
                 : 'text-ink-2 hover:text-ink'

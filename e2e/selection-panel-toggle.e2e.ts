@@ -39,7 +39,7 @@ function sidePanelCount(worker: Worker): Promise<number> {
 }
 
 test.describe('划词浮层 · 侧边栏开关', () => {
-  test('点「侧边栏」→ 打开；再点「收起侧栏」→ 关闭', async ({
+  test('点「打开侧边栏」→ 打开；再点「收起侧栏」→ 关闭', async ({
     page,
     serviceWorker,
   }) => {
@@ -55,13 +55,19 @@ test.describe('划词浮层 · 侧边栏开关', () => {
     const panelBtn = page.locator(PANEL_BTN);
     await expect(panelBtn).toBeVisible();
 
-    // 初始态：面板未开 → 文案「侧边栏」、未按下
-    await expect(panelBtn).toHaveText('侧边栏');
+    // 持久化 profile 可能保留上次的侧栏状态：先归零到「未打开」
+    if ((await panelBtn.getAttribute('aria-pressed')) === 'true') {
+      await panelBtn.click();
+      await expect.poll(() => sidePanelCount(serviceWorker)).toBe(0);
+    }
+
+    // 初始态：面板未开 → 图标按钮的无障碍名为「打开侧边栏」、未按下
+    await expect(panelBtn).toHaveAttribute('aria-label', '打开侧边栏');
     await expect(panelBtn).toHaveAttribute('aria-pressed', 'false');
 
-    // 第一次点击：打开 → 文案切「收起侧栏」并按下
+    // 第一次点击：打开 → 无障碍名切「收起侧栏」并按下
     await panelBtn.click();
-    await expect(panelBtn).toHaveText('收起侧栏');
+    await expect(panelBtn).toHaveAttribute('aria-label', '收起侧栏');
     await expect(panelBtn).toHaveAttribute('aria-pressed', 'true');
     // 面板确实打开（真实 SIDE_PANEL 上下文 +1）
     await expect.poll(() => sidePanelCount(serviceWorker)).toBe(1);
@@ -74,7 +80,7 @@ test.describe('划词浮层 · 侧边栏开关', () => {
 
     // 第二次点击：关闭 → 回到初始态
     await panelBtn.click();
-    await expect(panelBtn).toHaveText('侧边栏');
+    await expect(panelBtn).toHaveAttribute('aria-label', '打开侧边栏');
     await expect(panelBtn).toHaveAttribute('aria-pressed', 'false');
     await expect.poll(() => sidePanelCount(serviceWorker)).toBe(0);
   });

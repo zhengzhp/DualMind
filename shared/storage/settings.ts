@@ -246,7 +246,7 @@ export async function consumeChatPending(): Promise<ConsumeChatPendingResult> {
   return evaluateChatPending(action);
 }
 
-/** SPA 路由变化信号（网页助手用来提示上下文可能过期） */
+/** SPA 路由变化信号（阅读助手用来提示上下文可能过期） */
 export const chatPageNavItem = storage.defineItem<ChatPageNavSignal | null>(
   'local:chatPageNav',
   { fallback: null },

@@ -434,7 +434,7 @@ export async function openAgentSurface(
 export function agentUi(page: Page) {
   return {
     header: page.getByText('本页操作 Agent', { exact: true }),
-    goal: page.getByPlaceholder(/把联系人表单填上/),
+    goal: page.getByTestId('agent-goal'),
     start: page.getByRole('button', { name: '开始', exact: true }),
     approve: page.getByRole('button', { name: '批准并执行' }),
     rejectPlan: page.getByRole('button', { name: '取消', exact: true }),

@@ -59,7 +59,7 @@
 
 | 文件 | 说明 |
 |---|---|
-| `assets/logo.svg` | 浅色底方块版（128，渐变底板 + 墨蓝标记） |
+| `assets/logo.svg` | 浅色底方块版（128，渐变底板 + 墨蓝标记；悬浮入口沿用其圆形底板与折缝契约） |
 | `assets/logo-mark-blue.svg` | 品牌蓝底板 + 反白标记（128） |
 | `assets/logo-lockup.svg` | 横版组合标 |
 | `assets/logo-lockup-vertical.svg` | 竖版组合标 |
@@ -72,3 +72,4 @@
 ## 8. 变更记录
 
 - 2026-10-18：由旧「双 D」升级为「双页」；图标四档替换；页内悬浮入口内联标记与 `assets/logo.svg` 同步更新（`dom.test.ts` 通过）。
+- 2026-10-18（UI 审查后）：`logo-lockup*.svg` 的标记改用 §2 定义的 240×280 主标坐标（原为 128 空间副本），与 `docs/assets/ui-refresh/logo-mark.svg` 同源；页头字标改为内联组件，墨色 / 品牌色走 token，删除 `dm-wordmark-light/dark` 双资源切换。

@@ -15,6 +15,7 @@ import {
 import {
   SearchableSelect,
   SegmentedControl,
+  Wordmark,
   fieldClass,
   getModelIconUrl,
   toModelOptions,
@@ -27,13 +28,6 @@ import {
   type UiTheme,
 } from '@/shared/storage/uiTheme';
 import { diffSettings, parseHosts } from './diff';
-
-/**
- * 与工作台相同的字标：`public/wordmark.svg` 底边≈基线，
- * 在 `items-baseline` 行里可直接与「设置」对齐。
- */
-const WORDMARK_URL = browser.runtime.getURL('/wordmark.svg');
-const WORDMARK_DARK_URL = browser.runtime.getURL('/wordmark-dark.svg');
 
 /** 划词工具栏触发方式：只有两个互斥选项，用分段控件比下拉更直观 */
 const TOOLBAR_OPTIONS: SegmentedControlOption<ToolbarTrigger>[] = [
@@ -269,23 +263,18 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-canvas px-4 py-8 text-ink">
+      {/* 键盘 / 屏幕阅读器：跳过头部直接到设置分区（与工作台一致） */}
+      <a
+        href="#settings-main"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-control focus:border focus:border-line focus:bg-surface focus:px-3 focus:py-2 focus:text-label focus:font-semibold focus:text-ink focus:shadow-popover"
+      >
+        跳到主内容
+      </a>
       <div className="mx-auto max-w-5xl">
         <header className="mb-6 flex items-end justify-between gap-3">
           <div className="min-w-0">
             <h1 className="flex items-baseline gap-2.5 text-2xl font-semibold tracking-tight text-ink">
-              <img
-                src={WORDMARK_URL}
-                alt="DualMind"
-                draggable={false}
-                className="dm-wordmark-light h-[22px] w-auto"
-              />
-              <img
-                src={WORDMARK_DARK_URL}
-                alt=""
-                aria-hidden="true"
-                draggable={false}
-                className="dm-wordmark-dark h-[22px] w-auto"
-              />
+              <Wordmark className="h-[22px] w-auto" />
               <span className="text-ink-2">设置</span>
             </h1>
             <p className="mt-1 text-body text-ink-2">
@@ -293,15 +282,19 @@ export default function App() {
               服务器。
             </p>
           </div>
-          <span className="hidden shrink-0 rounded-chip border border-line bg-surface px-2 py-1 text-meta text-ink-3 sm:inline">
+          <span className="hidden shrink-0 rounded-chip border border-line bg-surface px-2 py-1 text-meta text-ink-2 sm:inline">
             v{browser.runtime.getManifest().version}
           </span>
         </header>
 
-        <div className="flex gap-6">
+        <main
+          id="settings-main"
+          tabIndex={-1}
+          className="flex gap-6 focus-visible:outline-none"
+        >
           <aside className="hidden w-44 shrink-0 md:block">
             <nav aria-label="设置分区" className="sticky top-8 space-y-1">
-              <p className="px-3 pb-2 text-meta font-medium text-ink-3">
+              <p className="px-3 pb-2 text-meta font-semibold text-ink-2">
                 设置分区
               </p>
               {SETTINGS_SECTIONS.map((section) => {
@@ -313,7 +306,7 @@ export default function App() {
                     onClick={() => setActiveSection(section.id)}
                     aria-current={active ? 'location' : undefined}
                     className={
-                      'block rounded-control px-3 py-2 text-label font-medium transition ' +
+                      'block rounded-control px-3 py-2 text-label font-semibold transition ' +
                       (active
                         ? 'bg-accent-soft text-accent shadow-card'
                         : 'text-ink-2 hover:bg-surface-2 hover:text-ink')
@@ -593,7 +586,7 @@ export default function App() {
             </Field>
 
             <p className="text-meta leading-relaxed text-ink-2">
-              需使用<b className="font-medium text-ink-2">支持 tool calling</b>{' '}
+              需使用<b className="font-semibold text-ink-2">支持 tool calling</b>{' '}
               的模型（Ollama / OpenAI 兼容）。Agent 会先在侧栏展示计划，经你批准后才操作本页；
               提交 / 删除等危险动作执行前会再次确认，支付 / 转账类动作一律拒绝自动执行。不支持
               Shadow DOM 与跨域 iframe。
@@ -656,7 +649,7 @@ export default function App() {
           )}
         </div>
           </div>
-        </div>
+        </main>
       </div>
     </div>
   );
@@ -700,7 +693,7 @@ function Field({
 }) {
   return (
     <label className="block space-y-1.5">
-      <span className="block text-label font-medium text-ink">{label}</span>
+      <span className="block text-label font-semibold text-ink">{label}</span>
       {hint && (
         <span className="block text-meta leading-relaxed text-ink-2">
           {hint}

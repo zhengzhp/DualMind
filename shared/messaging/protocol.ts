@@ -141,7 +141,7 @@ export type ProtocolMap = {
   };
   /**
    * 内容脚本：页面发生 SPA / hash 导航。Background 只写入 `local:chatPageNav`，
-   * 网页助手 UI 提示「上下文可能过期」，**不**自动重读。
+   * 阅读助手 UI 提示「上下文可能过期」，**不**自动重读。
    */
   'chat:page-nav': {
     data: { url: string; title: string };

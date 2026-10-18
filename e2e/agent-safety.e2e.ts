@@ -54,7 +54,7 @@ test.describe('Agent · 安全闸门层', () => {
       agentPage.getByText('目标疑似支付 / 下单 / 转账，V3.0 不允许确认放行'),
     ).toBeVisible({ timeout: 60_000 });
     // 核心断言：支付**没有**「仍要执行」路径
-    await expect(agentPage.getByText('危险动作待确认')).toHaveCount(0);
+    await expect(ui.dangerCard).toHaveCount(0);
     await expect(ui.confirmDanger).toHaveCount(0);
 
     // 页面零写入
@@ -128,12 +128,12 @@ test.describe('Agent · 安全闸门层', () => {
 
     // 危险动作进入二次确认，并给出理由
     // 说明：理由文案同时出现在时间线里，故断言限定在危险确认卡内（避免 strict mode 冲突）
-    await expect(agentPage.getByText('危险动作待确认')).toBeVisible({ timeout: 60_000 });
+    await expect(ui.dangerCard).toBeVisible({ timeout: 60_000 });
     await expect(ui.dangerCard.getByText('文案疑似删除 / 清空')).toBeVisible();
 
     // 跳过 → 确认卡消失、页面零写入
     await ui.skipDanger.click();
-    await expect(agentPage.getByText('危险动作待确认')).toHaveCount(0);
+    await expect(ui.dangerCard).toHaveCount(0);
     const counters = await readCounters(contentPage!);
     expect(counters.counts['删除草稿'] ?? 0).toBe(0);
 
@@ -166,7 +166,7 @@ test.describe('Agent · 安全闸门层', () => {
     await ui.start.click();
     await ui.approve.click();
 
-    await expect(agentPage.getByText('危险动作待确认')).toBeVisible({ timeout: 60_000 });
+    await expect(ui.dangerCard).toBeVisible({ timeout: 60_000 });
 
     // 确认 → 页面动作真的发生（计数器 +1）
     await ui.confirmDanger.click();

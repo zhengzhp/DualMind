@@ -2,28 +2,19 @@
  * 阅读助手会话导出为 Markdown，并触发浏览器本机下载。
  * 纯函数 + DOM 下载；不经 Background、不扩权限。
  */
+import {
+  formatExportStamp,
+  sanitizeFilenamePart,
+} from '@/shared/export';
 import type { ChatSession, ChatTurn } from '@/shared/storage/types';
 
-/** 文件名片段：去掉路径非法字符，截断，空则回退 untitled */
-export function sanitizeFilenamePart(raw: string, maxLen = 40): string {
-  const cleaned = raw
-    .replace(/[\\/:*?"<>|]+/g, '-')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .slice(0, maxLen)
-    .replace(/[. ]+$/g, '');
-  return cleaned || 'untitled';
-}
-
-/** `yyyyMMdd-HHmm`（本地时区） */
-export function formatExportStamp(timestamp: number): string {
-  const date = new Date(timestamp);
-  const pad = (value: number) => String(value).padStart(2, '0');
-  return (
-    `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}` +
-    `-${pad(date.getHours())}${pad(date.getMinutes())}`
-  );
-}
+// 文件名 / 时间戳 / 下载是跨功能通用能力，实现在 shared/export；
+// 这里保持旧导出名，避免 useChat 与既有测试改动。
+export {
+  downloadTextFile,
+  formatExportStamp,
+  sanitizeFilenamePart,
+} from '@/shared/export';
 
 function formatDisplayTime(timestamp: number): string {
   const date = new Date(timestamp);
@@ -115,18 +106,4 @@ export function buildSessionExportFilename(
 
 export function buildAllSessionsExportFilename(now = Date.now()): string {
   return `dualmind-chat-all-${formatExportStamp(now)}.md`;
-}
-
-/** 在扩展页（Side Panel / 工作台）触发本机下载 */
-export function downloadTextFile(filename: string, text: string): void {
-  const blob = new Blob([text], { type: 'text/markdown;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement('a');
-  anchor.href = url;
-  anchor.download = filename;
-  anchor.rel = 'noopener';
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-  URL.revokeObjectURL(url);
 }

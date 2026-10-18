@@ -34,7 +34,7 @@ export function mountChatContext(): void {
     return undefined;
   });
 
-  // SPA / hash 导航 → 通知 BG 写信号；网页助手只提示「可能过期」，不自动重读
+  // SPA / hash 导航 → 通知 BG 写信号；阅读助手只提示「可能过期」，不自动重读
   let lastNotified = '';
   const notifyNav = () => {
     const url = location.href;

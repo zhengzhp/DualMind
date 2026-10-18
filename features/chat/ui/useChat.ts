@@ -115,7 +115,7 @@ export interface ChatController {
 export interface UseChatOptions {
   /**
    * 由外层（常驻的 `WorkbenchApp`）消费信箱后下发的待执行动作。
-   * 之所以不在这里直接读：要由 WorkbenchApp 先切到网页助手 Tab，用户才看得见自动总结。
+   * 之所以不在这里直接读：要由 WorkbenchApp 先切到阅读助手 Tab，用户才看得见自动总结。
    */
   pendingAction?: ChatPendingAction | null;
   /** 动作已处理，外层可清空，避免重复下发 */

@@ -104,11 +104,11 @@ test.describe('Agent · 生命周期与取消', () => {
     await ui.start.click();
     await ui.approve.click();
 
-    await expect(agentPage.getByText('危险动作待确认')).toBeVisible({ timeout: 60_000 });
+    await expect(ui.dangerCard).toBeVisible({ timeout: 60_000 });
     await ui.stop.click();
 
     await expect(agentPage.getByText(CANCELLED)).toBeVisible();
-    await expect(agentPage.getByText('危险动作待确认')).toHaveCount(0);
+    await expect(ui.dangerCard).toHaveCount(0);
 
     const counters = await readCounters(contentPage!);
     expect(counters.counts['删除草稿'] ?? 0).toBe(0);
@@ -136,8 +136,12 @@ test.describe('Agent · 生命周期与取消', () => {
     await ui.goal.fill('任务二');
     await ui.start.click();
 
-    await expect(agentPage.getByText('1. 新计划第一步')).toBeVisible({ timeout: 60_000 });
-    await expect(agentPage.getByText('2. 新计划第二步')).toBeVisible();
+    // 计划卡是编号列表：序号在独立徽标里，正文单独成节点（UI 改版后不再拼成「1. …」）
+    const newPlan = agentPage.locator('ol li');
+    await expect(newPlan.filter({ hasText: '新计划第一步' })).toBeVisible({
+      timeout: 60_000,
+    });
+    await expect(newPlan.filter({ hasText: '新计划第二步' })).toBeVisible();
     // 上一次的取消横幅不应残留
     await expect(agentPage.getByText(CANCELLED)).toHaveCount(0);
   });
@@ -197,10 +201,12 @@ test.describe('Agent · 生命周期与取消', () => {
     );
 
     // 任务一停在待批准（此时还没有任何写入）
+    const planStep = (text: string) =>
+      agentPage.locator('ol li').filter({ hasText: text });
     await ui.goal.fill('任务一');
     await ui.start.click();
     await expect(agentPage.getByText('状态：awaiting_plan')).toBeVisible();
-    await expect(agentPage.getByText('1. 任务一：观察')).toBeVisible();
+    await expect(planStep('任务一：观察')).toBeVisible();
 
     // 第二个入口对同一内容页发起 → 被明确拒绝
     const second = await openAgentSurface(context, extensionId, 'workspace');
@@ -211,8 +217,8 @@ test.describe('Agent · 生命周期与取消', () => {
 
     // 第一任务的 UI / 计划 / 确认 **未被改变**
     await expect(agentPage.getByText('状态：awaiting_plan')).toBeVisible();
-    await expect(agentPage.getByText('1. 任务一：观察')).toBeVisible();
-    await expect(agentPage.getByText('2. 任务一：填写')).toBeVisible();
+    await expect(planStep('任务一：观察')).toBeVisible();
+    await expect(planStep('任务一：填写')).toBeVisible();
     await expect(ui.approve).toBeVisible();
     expect((await readCounters(contentPage!)).actions).toHaveLength(0);
 

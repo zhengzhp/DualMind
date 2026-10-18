@@ -234,7 +234,7 @@ export interface ChatPendingAction {
 export const CHAT_PENDING_TTL_MS = 120_000;
 
 /**
- * SPA / 站内路由变化信号（内容脚本 → Background 写入，网页助手 UI 消费）。
+ * SPA / 站内路由变化信号（内容脚本 → Background 写入，阅读助手 UI 消费）。
  * 只用于提示「上下文可能过期」，不自动重读。
  */
 export interface ChatPageNavSignal {

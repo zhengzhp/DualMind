@@ -101,7 +101,7 @@ export function ImmersiveControl() {
     <div className="rounded-card border border-line bg-surface p-3 shadow-card">
       <div className="flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
-          <span className="text-body font-medium text-ink">沉浸翻译</span>
+          <span className="text-body font-semibold text-ink">沉浸翻译</span>
           <span className="truncate text-meta text-ink-2">
             {status.running
               ? `翻译中 ${status.done}/${status.total}`
@@ -127,7 +127,7 @@ export function ImmersiveControl() {
       </div>
 
       <div className="mt-2 flex items-center gap-2">
-        <span className="w-10 shrink-0 text-label font-medium text-ink-2">
+        <span className="w-10 shrink-0 text-label font-semibold text-ink-2">
           展示
         </span>
         <SegmentedControl

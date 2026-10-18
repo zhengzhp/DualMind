@@ -62,14 +62,14 @@ export function SessionList({
               <button
                 type="button"
                 onClick={onDownloadAll}
-                className="rounded-chip px-2 py-1 text-label font-medium text-ink-2 transition hover:bg-surface-2 hover:text-ink"
+                className="rounded-chip px-2 py-1 text-label font-semibold text-ink-2 transition hover:bg-surface-2 hover:text-ink"
               >
                 下载全部
               </button>
               <button
                 type="button"
                 onClick={onClear}
-                className="rounded-chip px-2 py-1 text-label font-medium text-ink-2 transition hover:bg-surface-2 hover:text-ink"
+                className="rounded-chip px-2 py-1 text-label font-semibold text-ink-2 transition hover:bg-surface-2 hover:text-ink"
               >
                 清空全部
               </button>
@@ -80,7 +80,7 @@ export function SessionList({
               type="button"
               aria-label="关闭历史"
               onClick={onClose}
-              className="rounded-chip px-2 py-1 text-label font-medium text-ink-2 transition hover:bg-surface-2 hover:text-ink"
+              className="rounded-chip px-2 py-1 text-label font-semibold text-ink-2 transition hover:bg-surface-2 hover:text-ink"
             >
               关闭
             </button>
@@ -111,7 +111,7 @@ export function SessionList({
                     : 'hover:bg-surface-2'
                 }`}
               >
-                <span className="block truncate text-label font-medium text-ink">
+                <span className="block truncate text-label font-semibold text-ink">
                   {item.title}
                 </span>
                 <span className="mt-0.5 block truncate text-meta text-ink-2">
@@ -123,7 +123,7 @@ export function SessionList({
                 type="button"
                 aria-label={`下载会话 ${item.title}`}
                 onClick={() => onDownload(item.id)}
-                className="shrink-0 rounded-chip px-1.5 py-1 text-label font-medium text-ink-2 transition hover:bg-surface-2 hover:text-ink"
+                className="shrink-0 rounded-chip px-1.5 py-1 text-label font-semibold text-ink-2 transition hover:bg-surface-2 hover:text-ink"
               >
                 下载
               </button>
@@ -131,7 +131,7 @@ export function SessionList({
                 type="button"
                 aria-label={`删除会话 ${item.title}`}
                 onClick={() => onRemove(item.id)}
-                className="shrink-0 rounded-chip px-1.5 py-1 text-label font-medium text-ink-2 transition hover:bg-danger-soft hover:text-danger"
+                className="shrink-0 rounded-chip px-1.5 py-1 text-label font-semibold text-ink-2 transition hover:bg-danger-soft hover:text-danger"
               >
                 删除
               </button>

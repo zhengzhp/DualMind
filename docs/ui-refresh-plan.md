@@ -202,7 +202,7 @@ Chrome 会把 1280×800 截图**降采样到 640×400** 展示。当前截图里
 |---|---|
 | 间距 | 4 / 8 / 12 / 16 / 20 / 24 / 32（4pt 基准；侧栏卡片内 12，工作台 16） |
 | 圆角 | 18 面板 · 14 卡片 · 10 控件 · 6 chip（**不再全站 12**） |
-| 阴影 | 卡片 0 1px 2px rgba(0,0,0,.04)；浮层 0 12px 32px rgba(15,23,32,.14)，无彩色投影 |
+| 阴影 | 卡片 0 1px 2px rgba(0,0,0,.04)（深色自动换 1px 描边）；浮层 0 12px 32px rgba(15,23,32,.14)，无彩色投影 |
 | 描边 | 1px line；浮层可用 0 0 0 1px rgba(15,23,32,.06) 替代第二层阴影 |
 | 动效 | hover 120ms、状态 180ms、面板 240ms，cubic-bezier(.22,1,.36,1)；prefers-reduced-motion 下全部降为 0 |
 | 焦点 | outline: 2px solid #1466AD; outline-offset: 2px（或 box-shadow: 0 0 0 3px #EAF3FB） |
@@ -226,7 +226,7 @@ Chrome 会把 1280×800 截图**降采样到 640×400** 展示。当前截图里
 | line-strong | #D2D2D7 | #3A404A | 控件描边 |
 | ink | #1D1D1F | #F2F3F5 | 主文字 |
 | ink-2 | #6E6E73 | #A6ADB8 | 次要文字（深底对比 ≥ 7:1） |
-| ink-3 | #8E8E93 | #6B7280 | 仅装饰/禁用 |
+| ink-3 | #8E8E93 | #8A93A2 | 仅装饰/图标；深色版按 WCAG 提到 ≈5.2:1（原 #6B7280 仅 3.49:1） |
 | accent | #1466AD | #6FAEEC | 深色下换更亮的蓝，保证 4.5:1 以上 |
 | accent-soft | #EAF3FB | #1B2A3A | 选中/悬停底 |
 | success / warn / danger | #0B7A53 / #B25000 / #C4342D | #3DD68C / #F0B25B / #F2777A | 深色版需单独测对比度 |
@@ -654,6 +654,17 @@ MasterGo MCP 可用后，Logo 不再是"只能出 brief"：可以直接在 Maste
 - **P1 · 阅读助手 + Agent（已完成）**：上下文压成一行 chip、三枚操作分主次、助手消息去卡片、用户消息 surface-2、空态 3 条建议提问；Agent 计划改白卡 + 编号步骤、危险确认浅底深字（跳过在左 / 仍要执行在右）、时间线 12px 图标 + 中性正文、输入区卡片 focus 外圈。
 - **P2 · 内容脚本（已完成）**：划词浮层改纯白卡 + 1 主 3 图标 + 顶部 2px 进度条（宽 300）；沉浸译去掉 3px 左色边与浅蓝底，改上间距 + `.94em` + 次要文字色；悬浮入口只换 token（几何 / 贴边 / 注意力逻辑未动）。
 - **P-DARK（已完成）**：新增 `local:uiTheme`（system / light / dark）与设置页三选一；扩展页面首屏前 `bootstrapTheme`；划词浮层与悬浮入口通过 `bindContentTheme` 跟随扩展主题（只写自己的 shadow 容器）；沉浸译正文通过 `html[data-dm-theme]` 跟随扩展主题，未写入时按系统深色兜底。
+- **视觉层级收尾（2026-10-18 · 依据 [ui-refresh-review.md](./ui-refresh-review.md)）**：
+  - 模型横栏：模型名 14px/600 保持唯一强调，「模型」标签降权到 ink-3；Provider 改 chip + 状态点（异常 / 待配置 / 已配置），刷新仍只有图标；
+  - 字重统一：中文子集只有 400/600，全站 `font-medium` → `font-semibold`，消除中英混排一行两种字重；
+  - 深色对比度：`ink-3` 提到 #8A93A2（surface 上 5.45:1、surface-2 上 4.96:1）；非交互信息（版本号、字符数、分区标题）改用 ink-2；
+  - 深色阴影：`shadow-card` 改走 `--dm-shadow-card`，深色下换成 1px 描边；
+  - 无障碍：工作台 / 设置页新增 skip-to-main；下拉面板补「↑↓ / Enter / Esc」键盘提示；
+  - 排版：新增 `.dm-separator`（中英混排中点对齐）与 `.dm-meta-line`，替换散落的裸 `·`；
+  - 控件高度：侧栏 32px / 全页工作台 40px 统一到 `controlHeight(surface)`；
+  - 品牌：字标改为内联 SVG（墨色 / 品牌色走 token），删除 `dm-wordmark-light/dark` 双资源切换；`logo.svg` / `logo-mark-blue.svg` 底板改为 96+16 规范几何；组合标标记统一到 240×280 主标；
+  - 图标：Agent 时间线由内联 SVG 改为 Lucide（与其它图标同一套描边）；
+  - 商店截图：采集脚本把「计划批准 + 危险确认」合成为一张 1280×800 双联（总数 6 → 5）；05 已用本轮构建重拍并删除 06，01–04 仍待用改版后正式包统一重拍。
 - **P-FONT（已完成）**：IBM Plex Sans 拉丁可变 woff2（39 KB，100–700）+ IBM Plex Sans SC 400/600 子集（94 / 96 KB，869 个 UI 字形），合计约 229 KB；三个入口预载 400 字重，@font-face 按 unicode-range 让正文缺字回退系统字体；字符清单与重建脚本在 `scripts/fonts/`，OFL 在 `LICENSES/IBM-Plex-OFL.txt`；内容脚本改为在 `document.head` 注入字体（Chromium 不加载 shadow root 内的 @font-face），manifest 只开放 `fonts/*.woff2`。
 - **P-LIB（已完成）**：新增 `lucide-react`（共享图标统一走 Lucide）与 `@radix-ui/react-tooltip`（模型刷新按钮）；`@radix-ui/react-select` / `dialog` / `popover` 已安装，现有 `SearchableSelect` / `SegmentedControl` 保留、后续逐屏替换。构建总产物体积：P-FONT 后 873.24 KB，P-LIB 后 932.63 KB（+59.39 KB 未压缩，含 Tooltip 与图标；gzip 更小）。
 - **P4（已完成）**：设置页桌面左导航（sticky + IntersectionObserver 高亮当前分区），移动端隐藏；分区锚点与 `scroll-mt`；底部保存条保持 sticky。

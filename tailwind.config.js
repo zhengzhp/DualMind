@@ -43,7 +43,8 @@ export default {
         'on-accent': token('on-accent'),
         'on-danger': token('on-danger'),
         'on-warn': token('on-warn'),
-        'brand-mark': '#1B7FD1',
+        // 品牌标记色：浅色 #1B7FD1 / 深色 #6FAEEC，由 CSS 变量按主题切换
+        'brand-mark': token('brand-mark'),
       },
       borderRadius: {
         panel: '18px',
@@ -52,7 +53,8 @@ export default {
         chip: '6px',
       },
       boxShadow: {
-        card: '0 1px 2px rgba(0, 0, 0, 0.04)',
+        // 值走 CSS 变量：深色下自动换成 1px 描边（阴影在深底上不可见）
+        card: 'var(--dm-shadow-card)',
         popover: '0 12px 32px rgba(15, 23, 32, 0.14)',
       },
       fontFamily: {
@@ -66,6 +68,8 @@ export default {
           'sans-serif',
         ],
       },
+      // 内置中文字体只有 400 / 600 两档：UI 一律用 font-normal / font-semibold，
+      // 不用 font-medium（500）——否则中文会回退到 400，与拉丁字重不一致。
       fontSize: {
         display: ['20px', '28px'],
         title: ['16px', '24px'],

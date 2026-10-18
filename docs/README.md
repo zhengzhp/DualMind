@@ -40,7 +40,8 @@
 | [v3-acceptance-runbook.md](v3-acceptance-runbook.md) | 人工验收步骤与记录表模板 | 跑人工批次时 | **权威**：操作步骤 |
 | [v3-acceptance-runbook-log.md](v3-acceptance-runbook-log.md) | 批次执行过程与原始证据 | 复核批次结果时 | 证据流水（append-only） |
 | [v3-minimal-release-plan.md](v3-minimal-release-plan.md) | 本次发布最小任务清单与估时 | 规划发版剩余项 | 计划 |
-| [release-notes-v1.0.0.md](release-notes-v1.0.0.md) | 发布说明与已知限制 | 提审 / 归档 | 发布材料 |
+| [release-notes-v1.1.0.md](release-notes-v1.1.0.md) | 当前发布说明与已知限制 | 提审 / 归档 | 发布材料 |
+| [release-notes-v1.0.0.md](release-notes-v1.0.0.md) | v1.0.0 历史发布说明 | 历史对照 | 归档 |
 | [store-listing.md](store-listing.md) | 商店文案与权限用途说明 | 提审前复核 | 发布材料 |
 | [store-screenshots.md](store-screenshots.md) | 上架截图采集说明与清单 | 采集 / 复核截图 | 发布材料 |
 | [review-risk-report.md](review-risk-report.md) · [reviewer-reproduction.md](reviewer-reproduction.md) | 审核风险评估与复现步骤 | 提审准备 | 发布材料 |

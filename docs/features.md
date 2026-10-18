@@ -18,7 +18,7 @@
 
 | Feature | 目录 | 入口消息 / Port | 写入 storage | UI 入口 | 状态 |
 |---------|------|-----------------|--------------|---------|------|
-| agent | `features/agent/` | `agent:prefs:*` / `agent:open-panel`；Port `dualmind-agent`（start / 计划批准 / 危险确认 / abort）；内容脚本 `content:agent-execute` | `local:agentPrefs`；`local:agentPending`（FAB 信箱）；任务轨迹内存 | Side Panel / 工作台 Agent Tab；`page-fab`「请 Agent 操作本页」 | V3.0 主链路已接（计划批准 + tool 环 + 危险确认） |
+| agent | `features/agent/` | `agent:prefs:*` / `agent:open-panel`；Port `dualmind-agent`（start / 计划批准 / 危险确认 / abort）；内容脚本 `content:agent-execute` | `local:agentPrefs`；`local:agentPending`（FAB 信箱）；任务轨迹内存 | Side Panel / 工作台 Agent Tab（执行记录导出 Markdown、结果表导出 CSV，本机下载）；`page-fab`「请 Agent 操作本页」 | V3.0 主链路已接（计划批准 + tool 环 + 危险确认） |
 
 > 工具执行在内容脚本（DOM）；LLM tool-calling 只在 Background。Provider 永不碰 DOM。
 
