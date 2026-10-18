@@ -973,4 +973,5 @@
 - 7 skipped：5 条截图专用（另行跑完）+ 2 条 headed-only（已用 `E2E_HEADED=1` 复跑：`agent-ui` + `selection-panel-toggle` 通过，后者 2/2）。
 - 测试侧修正：UI 改版遗留的旧文案 / 元素定位（计划编号、危险卡、页头副标题分隔符、绑定页 chip）改用 role / testid；新增 `data-testid="agent-bound-page"`；划词浮层侧栏按钮已改图标按钮，断言改用 `aria-label`，并在 headed 前归零持久化 profile 的侧栏状态；截图脚本修正 demo `body` 限宽、左对齐与流式等待。
 - 归档：`~/DualMind-releases/dualmind-1.1.0-chrome.zip` + `.sha256` + `.README.txt`，`shasum -c` OK。
-- 未完成：真实 Side Panel 人工观感、商店提交与审核。
+- 商店提交：**2026-10-19 02:14 CST** 已提交送审（item `iaihgihadphkkhohhaebgchfjalonmag`，状态 **待审核**，自动发布已勾选）；5 张截图 + 440×280 小图 + 1400×560 marquee 已更新，描述 / 类别 / 隐私字段未改。
+- 未完成：真实 Side Panel 人工观感；商店审核结果。
