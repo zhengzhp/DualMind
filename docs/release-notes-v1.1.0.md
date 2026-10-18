@@ -11,7 +11,9 @@
 | 目标浏览器 | **Chrome（Chromium）≥ 114**（`minimum_chrome_version: "114"`，`sidePanel` 需 114+）；Edge 延后 |
 | manifest | MV3；`permissions = storage / sidePanel / contextMenus`；**无** `debugger` / `scripting` / `tabs` / `activeTab` / `downloads` |
 | 描述 | `AI 浏览器助手（BYOK）：划词与整页翻译、网页摘要与问答，以及逐次批准的本页操作 Agent` |
-| 正式包 | `.output/dualmind-1.1.0-chrome.zip`（待打包后补 hash / 体积） |
+| 源码标识 | `0d67c9897b944dcef4dda8077ddf8ecfca6998ab`（`0d67c98`，2026-10-19） |
+| 正式包 | `.output/dualmind-1.1.0-chrome.zip`；**496,970 B**；sha256 `6ed0792da0927da6561e744f3c727e4f21d3ae9a61c993b72f479714a1e41dd3` |
+| 归档 | `~/DualMind-releases/dualmind-1.1.0-chrome.zip` + `.sha256` + `.README.txt`（已在仓库外校验 OK） |
 | 发布负责人 | zp |
 | 回滚负责人 | zp |
 
@@ -65,7 +67,7 @@
 
 沿用 [v1.0.0](./release-notes-v1.0.0.md) §5：无自有后端，只能通过商店「暂停分发 / 下架」+ 发新版本处置；触发条件与步骤不变。
 
-## 6. 验证记录（2026-10-19 · v1.1.0 工作区）
+## 6. 验证记录（2026-10-19 · v1.1.0 · `0d67c98`）
 
 | 项 | 结果 |
 |----|------|
@@ -73,9 +75,9 @@
 | `pnpm test` | ✅ 39 文件 / **400 用例** |
 | `pnpm build` | ✅ `manifest.version = 1.1.0`；permissions 仍为 `storage / sidePanel / contextMenus` |
 | 全量 E2E | ✅ **81 passed / 7 skipped / 0 failed（6.7m）**（`DM_OLLAMA_MODEL=huihui_ai/qwen3-abliterated:8b-v2 pnpm test:e2e`） |
-| 商店截图 | ✅ **5 / 5**，均 1280×800（`DM_CAPTURE=1`；01/02 铺满视口，03/04 等流式结束） |
+| 商店截图 | ✅ **5 / 5**，均 1280×800；**已用最终 zip（`/tmp/dm-1.1.0`）复核重拍**（01/02 铺满视口，03/04 等流式结束） |
 
 - 7 skipped = 5 条截图专用（已单独跑完，5/5 通过）+ 2 条仅 headed（已用 `E2E_HEADED=1` 复跑：`agent-ui` + `selection-panel-toggle` 通过，后者 2/2）。
 - 测试侧修正（不影响产品行为）：UI 改版后遗留的旧文案 / 元素定位（计划编号、危险卡、页头副标题分隔符、绑定页 chip）改为 role / testid；新增 `data-testid="agent-bound-page"`；划词浮层侧栏按钮已改图标按钮，断言改用 `aria-label`，并在 headed 前归零持久化 profile 的侧栏状态；截图脚本修正 demo `body` 限宽 / 左对齐与流式等待。
-- 包：`.output/chrome-mv3`（1.1.0）；**zip / sha256 待提交 commit 后生成**。
+- 包：`.output/dualmind-1.1.0-chrome.zip`（**496,970 B**，sha256 `6ed0792d…`）；已归档到 `~/DualMind-releases/` 并用 `shasum -c` 校验 OK。
 - 详细证据见 [v3-release-test-plan-log.md](./v3-release-test-plan-log.md) 的 2026-10-19 记录。
