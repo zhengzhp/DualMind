@@ -1,7 +1,8 @@
 # DualMind 隐私政策 · Privacy Policy
 
 **生效日期 / Effective date：2026-10-08**
-**适用版本 / Applies to：DualMind 浏览器扩展（Chrome / Edge，Manifest V3）v1.0.0 起**
+**最后更新 / Last updated：2026-10-19（补充本机导出说明；数据处理实践未变）**
+**适用版本 / Applies to：DualMind 浏览器扩展（Chrome / Edge，Manifest V3）v1.0.0 起（当前 v1.1.0）**
 **开发者 / Developer：DualMind（个人开发者）**
 
 > 本文件同时以中英文提供；如两种文本存在歧义，以中文为准。
@@ -44,6 +45,8 @@ DualMind **没有开发者自建的后端服务器**，**不做任何遥测或�
 
 **不持久化**：本页 Agent 任务的运行状态（步骤计划、执行轨迹、中止标志）**只存在内存中**，关闭或重启浏览器后不会恢复，也**不会重放**任何页面操作。
 
+**导出**：聊天 / Agent 执行记录的 Markdown 与结果表 CSV 由你**主动触发**，只写入你本机的下载目录；不经过服务器，也不会上传。
+
 ### 4. 你如何删除数据
 
 - 聊天与会话历史**支持单条删除，也支持一键全部清空**（在侧栏 / 工作台的历史面板中操作）。
@@ -61,7 +64,7 @@ DualMind **没有开发者自建的后端服务器**，**不做任何遥测或�
 | `host_permissions: <all_urls>` | 由 Background 跨域 `fetch` 你**自己填写**的 OpenAI 兼容端点 |
 | `host_permissions: 127.0.0.1 / localhost :11434` | 访问你本机运行的 Ollama 服务 |
 
-我们**不使用** `debugger` / CDP，**不使用** `scripting` / `tabs` / `activeTab` 等未列入的权限。
+我们**不使用** `debugger` / CDP，**不使用** `scripting` / `tabs` / `activeTab` / `downloads` 等未列入的权限；导出使用本机 Blob 下载，不需要 `downloads` 权限。
 
 ### 6. 本页操作 Agent 的边界（安全设计）
 
@@ -128,6 +131,8 @@ The following is stored locally in the extension's browser storage (`chrome.stor
 
 **Not persisted**: an on-page agent task's runtime state (plan, execution trace, abort flag) lives **in memory only**; it is not restored after closing or restarting the browser, and page actions are **never replayed**.
 
+**Exports**: chat / agent run Markdown and result-table CSV are generated only when you explicitly trigger them and are written to your local Downloads folder; they are never uploaded.
+
 ### 4. How to delete your data
 
 - Chat and session history can be **deleted individually or cleared all at once** (from the history panel in the side panel / workbench).
@@ -145,7 +150,7 @@ The following is stored locally in the extension's browser storage (`chrome.stor
 | `host_permissions: <all_urls>` | Let the background `fetch` the OpenAI-compatible endpoint **you** enter |
 | `host_permissions: 127.0.0.1 / localhost :11434` | Talk to your locally running Ollama server |
 
-We do **not** use `debugger`/CDP, and we do **not** request `scripting`, `tabs`, `activeTab`, or any other permission not listed above.
+We do **not** use `debugger`/CDP, and we do **not** request `scripting`, `tabs`, `activeTab`, `downloads`, or any other permission not listed above. Exports use a local Blob download and require no `downloads` permission.
 
 ### 6. On-page agent boundaries (safety by design)
 
