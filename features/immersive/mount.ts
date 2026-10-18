@@ -8,6 +8,7 @@
 import { browser } from 'wxt/browser';
 import { type ContentScriptContext } from 'wxt/utils/content-script-context';
 import { getImmersivePrefs } from '@/shared/storage/settings';
+import { bindContentTheme } from '@/shared/ui/contentTheme';
 import type {
   AppSettings,
   ImmersiveDisplayMode,
@@ -38,6 +39,8 @@ export async function mountImmersive(
   // 读取偏好失败不阻塞功能：退回默认模式
   const prefs = await getImmersivePrefs().catch(() => null);
   const initialMode = prefs?.displayMode ?? 'bilingual';
+  // 译文块的浅/深色跟随扩展主题（写 html 的 data-dm-theme，不碰页面 data-theme）
+  const unbindTheme = bindContentTheme(document.documentElement);
 
   // 先声明句柄再建 controller：controller 的状态回调需要把「状态已变」推给入口壳
   let handle: PageFabActionHandle | null = null;
@@ -86,6 +89,7 @@ export async function mountImmersive(
 
   // 页面上下文失效（导航 / 扩展更新）时退出翻译并清理观察者
   ctx.onInvalidated(() => {
+    unbindTheme();
     handle?.dispose();
     controller.stop();
     controller.dispose();

@@ -52,7 +52,7 @@ test.describe('全页工作台', () => {
     });
     await expect(copyButton).toBeEnabled();
     // 全页错误提示容器不应出现
-    await expect(page.locator('.text-red-700')).toHaveCount(0);
+    await expect(page.getByTestId('translate-error')).toHaveCount(0);
   });
 
   test('Chat 与 Agent 均已接入，切回翻译仍可用', async ({
@@ -64,14 +64,14 @@ test.describe('全页工作台', () => {
     await page.goto(`chrome-extension://${extensionId}/workspace.html`);
     await expect(page.getByText('全页工作台 · 翻译')).toBeVisible();
 
-    // V2：网页助手 Tab 由占位替换为可用的 ChatPanel（副标题随之变化）
-    await page.getByRole('button', { name: '网页助手', exact: true }).click();
+    // V2：阅读助手 Tab 由占位替换为可用的 ChatPanel（副标题随之变化）
+    await page.getByRole('tab', { name: '阅读助手', exact: true }).click();
     await expect(page.getByText('全页工作台 · 摘要与问答')).toBeVisible();
     await expect(page.getByRole('button', { name: '总结本页' })).toBeVisible();
     await expect(page.getByText('聊天（即将推出）')).toHaveCount(0);
 
     // V3：Agent Tab 已接入真实 AgentPanel（不再是占位）
-    await page.getByRole('button', { name: 'Agent', exact: true }).click();
+    await page.getByRole('tab', { name: 'Agent', exact: true }).click();
     await expect(page.getByText('全页工作台 · 本页操作')).toBeVisible();
     await expect(page.getByText('本页操作 Agent', { exact: true })).toBeVisible();
     await expect(page.getByText('Agent（即将推出）')).toHaveCount(0);
@@ -80,7 +80,7 @@ test.describe('全页工作台', () => {
     await expect(page.getByTestId('model-select')).toBeVisible();
 
     // 切回翻译页仍可用（模型列表已加载）
-    await page.getByRole('button', { name: '翻译', exact: true }).click();
+    await page.getByRole('tab', { name: '翻译', exact: true }).click();
     await expect(page.getByTestId('model-select')).toBeVisible();
   });
 });

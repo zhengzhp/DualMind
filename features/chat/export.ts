@@ -1,5 +1,5 @@
 /**
- * 网页助手会话导出为 Markdown，并触发浏览器本机下载。
+ * 阅读助手会话导出为 Markdown，并触发浏览器本机下载。
  * 纯函数 + DOM 下载；不经 Background、不扩权限。
  */
 import type { ChatSession, ChatTurn } from '@/shared/storage/types';
@@ -81,11 +81,11 @@ export function formatSessionMarkdown(session: ChatSession): string {
 export function formatAllSessionsMarkdown(sessions: ChatSession[]): string {
   const ordered = [...sessions].sort((a, b) => b.updatedAt - a.updatedAt);
   if (ordered.length === 0) {
-    return '# DualMind 网页助手 · 全部会话\n\n（无会话）\n';
+    return '# DualMind 阅读助手 · 全部会话\n\n（无会话）\n';
   }
 
   const parts = [
-    '# DualMind 网页助手 · 全部会话',
+    '# DualMind 阅读助手 · 全部会话',
     '',
     `共 ${ordered.length} 个会话 · 导出时间 ${formatDisplayTime(Date.now())}`,
     '',

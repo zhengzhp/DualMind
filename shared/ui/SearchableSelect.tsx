@@ -8,7 +8,7 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
   type ReactNode,
 } from 'react';
-import { fieldClass, fieldClassEmphasis } from './field';
+import { fieldClass, fieldClassEmphasis, fieldClassQuiet } from './field';
 import { CheckIcon, ChevronDownIcon } from './icons';
 
 /** 候选选项：`value` 是落库的值，`label` 是展示文案（如 zh-CN → 简体中文） */
@@ -40,8 +40,10 @@ export interface SearchableSelectProps {
   editable?: boolean;
   disabled?: boolean;
   loading?: boolean;
-  /** 强调态外观（加粗边框 + 品牌色浅底），用于「当前正在生效」的关键设置 */
+  /** 强调态外观（accent 描边 + 浅底），用于「当前正在生效」的关键设置 */
   emphasis?: boolean;
+  /** 轻量态：不画框、不铺底，用于模型横栏这类「信息为主」的位置 */
+  flat?: boolean;
   /**
    * 当前值的图标（图片地址）。不依赖 `options` 是否包含该值，
    * 因此「手动输入 / 合并了列表外的当前值」时也能稳定显示图标。
@@ -118,6 +120,7 @@ export function SearchableSelect({
   disabled = false,
   loading = false,
   emphasis = false,
+  flat = false,
   valueIcon,
   placeholder = '请选择',
   emptyText = '暂无可选项',
@@ -162,7 +165,7 @@ export function SearchableSelect({
   const listId = useId();
   const isDisabled = disabled || loading;
   /** 触发器外观：默认态 / 强调态（强调态用于「当前生效」类关键设置） */
-  const fieldAppearance = emphasis ? fieldClassEmphasis : fieldClass;
+  const fieldAppearance = emphasis ? fieldClassEmphasis : flat ? fieldClassQuiet : fieldClass;
   /** 选择模式才需要独立的搜索框（编辑模式的输入框本身就是搜索） */
   const showSearch =
     searchable ?? (!editable && normalized.length > searchThreshold);
@@ -341,7 +344,7 @@ export function SearchableSelect({
             }}
             className={`${fieldAppearance} pr-9 ${selectedIcon ? 'pl-9' : ''}`}
           />
-          <ChevronDownIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-500" />
+          <ChevronDownIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-3" />
         </div>
       ) : (
         <button
@@ -365,14 +368,14 @@ export function SearchableSelect({
         >
           <span className="flex min-w-0 items-center gap-2">
             {selectedIcon && <OptionIcon src={selectedIcon} />}
-            <span className={`truncate ${value ? '' : 'text-brand-700/40'}`}>
+            <span className={`truncate ${value ? '' : 'text-ink-2'}`}>
               {loading
                 ? '拉取中…'
                 : (selected?.label ?? value) || placeholder}
             </span>
           </span>
           <ChevronDownIcon
-            className={`h-4 w-4 shrink-0 text-brand-500 transition-transform ${
+            className={`h-4 w-4 shrink-0 text-ink-3 transition-transform ${
               open ? 'rotate-180' : ''
             }`}
           />
@@ -382,13 +385,13 @@ export function SearchableSelect({
       {open && (
         <div
           onKeyDown={handlePanelKeyDown}
-          className={`absolute z-20 mt-1 overflow-hidden rounded-xl border border-brand-100 bg-white shadow-lg shadow-brand-900/10 ${panelClassName}`}
+          className={`absolute z-20 mt-1 overflow-hidden rounded-card border border-line bg-surface shadow-popover ${panelClassName}`}
         >
           {panelHeader && (
             // 头部插槽：拦下非 Esc 按键，避免内层控件的 Enter / 方向键
             // 冒泡到列表导航（否则按 Enter 会误选模型）；Esc 仍放行以关闭面板
             <div
-              className="border-b border-brand-50 p-2"
+              className="border-b border-line p-2"
               onKeyDown={(event) => {
                 if (event.key !== 'Escape') event.stopPropagation();
               }}
@@ -398,13 +401,13 @@ export function SearchableSelect({
           )}
 
           {showSearch && (
-            <div className="border-b border-brand-50 p-1.5">
+            <div className="border-b border-line p-1.5">
               <input
                 ref={searchRef}
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="搜索…"
-                className="w-full rounded-lg bg-brand-50/70 px-2.5 py-1.5 text-xs text-brand-900 outline-none placeholder:text-brand-700/40"
+                className="w-full rounded-chip bg-surface-2 px-2.5 py-1.5 text-label text-ink outline-none placeholder:text-ink-2 focus-visible:ring-2 focus-visible:ring-accent/20"
               />
             </div>
           )}
@@ -418,7 +421,7 @@ export function SearchableSelect({
             className="max-h-56 overflow-y-auto p-1 outline-none"
           >
             {filtered.length === 0 ? (
-              <li className="px-2.5 py-2 text-xs text-brand-700/60">
+              <li className="px-2.5 py-2 text-label text-ink-2">
                 {emptyText}
               </li>
             ) : (
@@ -433,13 +436,13 @@ export function SearchableSelect({
                   // 阻止 mousedown 抢走焦点：否则编辑模式的输入框会先失焦触发一次多余确认
                   onMouseDown={(event) => event.preventDefault()}
                   onClick={() => selectOption(option.value)}
-                  className={`flex cursor-pointer items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-sm ${
+                  className={`flex cursor-pointer items-center justify-between gap-2 rounded-chip px-2.5 py-1.5 text-body ${
                     index === activeIndex
-                      ? 'bg-brand-50 text-brand-700'
+                      ? 'bg-accent-soft text-ink'
                       : // 已选中项常驻浅底 + 半粗，面板展开后一眼能定位当前生效值
                         option.value === value
-                        ? 'bg-brand-50/60 font-semibold text-brand-700'
-                        : 'text-brand-900'
+                        ? 'bg-accent-soft font-semibold text-accent'
+                        : 'text-ink'
                   }`}
                 >
                   <span className="flex min-w-0 items-center gap-2">
@@ -447,7 +450,7 @@ export function SearchableSelect({
                     <span className="truncate">{option.label}</span>
                   </span>
                   {option.value === value && (
-                    <CheckIcon className="h-3.5 w-3.5 shrink-0 text-brand-600" />
+                    <CheckIcon className="h-3.5 w-3.5 shrink-0 text-accent" />
                   )}
                 </li>
               ))

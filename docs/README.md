@@ -13,6 +13,14 @@
 | [architecture-v3.md](architecture-v3.md) | 当前架构（V3） | 改分层 / 数据流 / 目录前 | **权威**：架构 |
 | [features.md](features.md) | 当前 Feature 契约表（消息 / storage / UI） | 加 / 改 feature 与消息协议前 | **权威**：契约 |
 | [cursor-cheatsheet.md](cursor-cheatsheet.md) | Cursor 快捷键与 `/` 命令 | 查命令与快捷键 | 参考 |
+| [brand-guidelines.md](brand-guidelines.md) | 品牌标识规范 v1（双页标、尺寸、颜色、禁用） | 改图标 / 封面 / 品牌相关 UI 前 | **权威**：品牌视觉 |
+
+## 提案 / 进行中（未定稿，讨论与进度记录用）
+
+| 文档 | 入口 | 使用时机 | 权威性 |
+|------|------|----------|--------|
+| [ui-refresh-plan.md](ui-refresh-plan.md) | UI 优化方案 v0.3：A+B、内置字体子集、深色模式、图标/组件库、商店素材；含 Logo 重设计与 MasterGo MCP 接入 | 讨论 / 排期 / 核对 UI 改版进度 | **进行中**：P0–P2、深色、P-FONT、P-LIB、P4 已落地；P3 截图待重拍（见 §12） |
+| [assets/ui-refresh/](assets/ui-refresh/) | 方案草图（mockups.html）、Logo 审计板（logo-audit.html）与渲染图 | 对照方案与调参时 | 设计草图 |
 
 ## 归档（历史背景，仅按需检索，非当前规则来源）
 

@@ -25,6 +25,13 @@ export default defineConfig({
       'http://localhost:11434/*',
       '<all_urls>',
     ],
+    // 内容脚本的 shadow root 需要加载字体；只开放字体文件，不开放其它资源
+    web_accessible_resources: [
+      {
+        resources: ['fonts/*.woff2'],
+        matches: ['<all_urls>'],
+      },
+    ],
     action: {
       default_title: '打开 DualMind',
       default_icon: {

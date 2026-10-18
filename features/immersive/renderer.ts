@@ -26,35 +26,50 @@ function ensureStyle(): void {
   style.id = STYLE_ID;
   style.setAttribute('data-dualmind', 'immersive-style');
   style.textContent = `
+    /* 译文靠排版而非色块区分：上间距 + 略小字号 + 次要文字色，不加左色边 */
     .${BLOCK_CLASS} {
       display: block;
-      margin: 4px 0 10px;
-      padding: 6px 10px;
-      border-left: 3px solid #9dbfe0;
-      border-radius: 6px;
-      background: rgba(27, 127, 209, 0.06);
-      color: #0f2f4d;
-      font-size: 0.95em;
-      line-height: 1.6;
+      margin: 10px 0 14px;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: #6e6e73;
+      font-size: 0.94em;
+      line-height: 1.65;
       white-space: pre-wrap;
     }
     .${ROOT_CLASS} [${SOURCE_ATTR}] { display: none !important; }
     .${BLOCK_CLASS}[${UNTRANSLATED_ATTR}] {
-      border-left-color: #d9a13b;
-      border-left-style: dashed;
-      background: rgba(217, 161, 59, 0.08);
-      color: #6b4e12;
+      color: #b25000;
     }
     .${BADGE_CLASS} {
       display: inline-block;
       margin-right: 6px;
       padding: 0 6px;
       border-radius: 4px;
-      background: #d9a13b;
-      color: #fff;
+      background: #fff8ec;
+      color: #b25000;
+      box-shadow: inset 0 0 0 1px rgba(178, 80, 0, 0.25);
       font-size: 0.72em;
       line-height: 1.6;
       vertical-align: 1px;
+    }
+    /* 扩展手动主题优先；未写入 data-dm-theme 时跟随系统 */
+    @media (prefers-color-scheme: dark) {
+      html:not([data-dm-theme='light']) .${BLOCK_CLASS} { color: #a6adb8; }
+      html:not([data-dm-theme='light']) .${BLOCK_CLASS}[${UNTRANSLATED_ATTR}] { color: #f0b25b; }
+      html:not([data-dm-theme='light']) .${BADGE_CLASS} {
+        background: #2b2114;
+        color: #f0b25b;
+        box-shadow: inset 0 0 0 1px rgba(240, 178, 91, 0.3);
+      }
+    }
+    html[data-dm-theme='dark'] .${BLOCK_CLASS} { color: #a6adb8; }
+    html[data-dm-theme='dark'] .${BLOCK_CLASS}[${UNTRANSLATED_ATTR}] { color: #f0b25b; }
+    html[data-dm-theme='dark'] .${BADGE_CLASS} {
+      background: #2b2114;
+      color: #f0b25b;
+      box-shadow: inset 0 0 0 1px rgba(240, 178, 91, 0.3);
     }
   `;
   document.head?.appendChild(style);

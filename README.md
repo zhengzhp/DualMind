@@ -161,3 +161,7 @@ Privacy policy: [PRIVACY.md](PRIVACY.md) · Support: <https://github.com/zhengzh
 > V3 封板 / 上架相关材料（`docs/v3-*`、`docs/review-risk-report.md`）见 [docs/README.md](docs/README.md)「发布材料」一节。
 
 </details>
+
+## 致谢
+
+- [IBM Plex](https://github.com/IBM/plex)（SIL OFL 1.1）：界面字体。子集文件在 [public/fonts](public/fonts/)，许可证在 [LICENSES/IBM-Plex-OFL.txt](LICENSES/IBM-Plex-OFL.txt)，重建方式见 [scripts/fonts/README.md](scripts/fonts/README.md)。

@@ -4,6 +4,7 @@ import { browser } from 'wxt/browser';
 import { formatErrorForUi } from '@/shared/errors';
 import { sendMessage } from '@/shared/messaging/client';
 import { streamTranslate } from '@/shared/messaging/stream';
+import { bindContentTheme } from '@/shared/ui/contentTheme';
 import { resolveSelectionTargetLanguage } from '@/features/translate/detectLang';
 import type { AppSettings } from '@/shared/storage/types';
 import {
@@ -75,6 +76,8 @@ export async function mountSelectionToolbar(
   ui.mount();
   const root = ui.mounted!;
   const view = createToolbarView(root);
+  // 跟随扩展主题；只写 shadow 容器，不改宿主页面
+  const unbindTheme = bindContentTheme(view.el);
 
   const render = () => view.render(state);
 
@@ -371,6 +374,7 @@ export async function mountSelectionToolbar(
 
   // 页面上下文失效（导航 / 扩展更新）时清理跟随与请求
   ctx.onInvalidated(() => {
+    unbindTheme();
     document.documentElement.removeAttribute('data-dm-toolbar-ready');
     tracker?.stop();
     tracker = null;

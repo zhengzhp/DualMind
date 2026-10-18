@@ -98,11 +98,11 @@ export function ImmersiveControl() {
   const message = error || status.error || '';
 
   return (
-    <div className="rounded-xl border border-brand-100/80 bg-white/70 p-3">
+    <div className="rounded-card border border-line bg-surface p-3 shadow-card">
       <div className="flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
-          <span className="text-xs font-semibold text-brand-900">沉浸翻译</span>
-          <span className="truncate text-[11px] text-brand-700/70">
+          <span className="text-body font-medium text-ink">沉浸翻译</span>
+          <span className="truncate text-meta text-ink-2">
             {status.running
               ? `翻译中 ${status.done}/${status.total}`
               : status.active
@@ -116,10 +116,10 @@ export function ImmersiveControl() {
           type="button"
           disabled={busy}
           onClick={() => void runCommand(status.active ? 'stop' : 'start')}
-          className={`shrink-0 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition disabled:opacity-50 ${
+          className={`inline-flex h-8 shrink-0 items-center rounded-control px-2.5 text-label font-semibold transition disabled:opacity-50 ${
             status.active
-              ? 'border border-brand-100 bg-white text-brand-700 hover:bg-brand-50'
-              : 'bg-brand-500 text-white hover:bg-brand-600'
+              ? 'border border-line bg-surface text-ink-2 hover:bg-surface-2 hover:text-ink'
+              : 'bg-accent text-on-accent hover:bg-accent-hover'
           }`}
         >
           {status.active ? '显示原文' : '开始翻译'}
@@ -127,7 +127,7 @@ export function ImmersiveControl() {
       </div>
 
       <div className="mt-2 flex items-center gap-2">
-        <span className="w-10 shrink-0 text-xs font-medium text-brand-700">
+        <span className="w-10 shrink-0 text-label font-medium text-ink-2">
           展示
         </span>
         <SegmentedControl
@@ -141,17 +141,17 @@ export function ImmersiveControl() {
       </div>
 
       {!status.available && (
-        <p className="mt-2 text-[11px] leading-relaxed text-brand-700/70">
+        <p className="mt-2 text-meta leading-relaxed text-ink-2">
           未检测到当前网页的内容脚本；请刷新网页，或切换到普通网页后重试。
         </p>
       )}
       {status.active && status.untranslated > 0 && (
-        <p className="mt-2 text-[11px] leading-relaxed text-amber-700">
+        <p className="mt-2 text-label leading-relaxed text-warn">
           有 {status.untranslated} 段未能翻译（模型回显或单段失败），已在网页中以「未翻译」角标标出。
         </p>
       )}
       {message && (
-        <p className="mt-2 text-[11px] leading-relaxed text-red-600">
+        <p className="mt-2 text-label leading-relaxed text-danger">
           {message}
         </p>
       )}

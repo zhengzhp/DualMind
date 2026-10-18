@@ -16,6 +16,15 @@ export interface ToolbarView {
   render(state: ToolbarViewState): void;
 }
 
+const COPY_ICON =
+  '<svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><rect x="7" y="3" width="9" height="12" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M13 3v-.5A1.5 1.5 0 0 0 11.5 1h-6A1.5 1.5 0 0 0 4 2.5v8A1.5 1.5 0 0 0 5.5 12H7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';
+
+const PANEL_ICON =
+  '<svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><rect x="3" y="4" width="14" height="12" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M12 4v12" stroke="currentColor" stroke-width="1.5"/></svg>';
+
+const CLOSE_ICON =
+  '<svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
+
 /**
  * 创建浮层视图。
  *
@@ -27,15 +36,15 @@ export function createToolbarView(root: HTMLElement): ToolbarView {
   root.innerHTML = `
     <div class="dm-wrap">
       <div class="dm-card">
+        <div class="dm-progress" hidden></div>
         <div class="dm-actions">
           <button class="dm-btn primary" data-action="translate">翻译</button>
-          <button class="dm-btn" data-action="copy">复制</button>
-          <button class="dm-btn" data-action="panel" aria-pressed="false">侧边栏</button>
-          <button class="dm-btn" data-action="close">关闭</button>
+          <button class="dm-icon-btn" data-action="copy" aria-label="复制译文" title="复制译文">${COPY_ICON}</button>
+          <button class="dm-icon-btn" data-action="panel" aria-label="打开侧边栏" title="打开侧边栏" aria-pressed="false">${PANEL_ICON}</button>
+          <button class="dm-icon-btn" data-action="close" aria-label="关闭" title="关闭">${CLOSE_ICON}</button>
         </div>
         <div class="dm-body">
           <div class="dm-status" hidden>
-            <span class="dm-loader" hidden></span>
             <span class="dm-status-text"></span>
           </div>
           <div class="dm-text" hidden></div>
@@ -49,8 +58,8 @@ export function createToolbarView(root: HTMLElement): ToolbarView {
   )!;
   const copy = root.querySelector<HTMLButtonElement>('[data-action="copy"]')!;
   const panel = root.querySelector<HTMLButtonElement>('[data-action="panel"]')!;
+  const progress = root.querySelector<HTMLElement>('.dm-progress')!;
   const statusEl = root.querySelector<HTMLElement>('.dm-status')!;
-  const loader = root.querySelector<HTMLElement>('.dm-loader')!;
   const statusText = root.querySelector<HTMLElement>('.dm-status-text')!;
   const textEl = root.querySelector<HTMLElement>('.dm-text')!;
 
@@ -66,15 +75,24 @@ export function createToolbarView(root: HTMLElement): ToolbarView {
       // 主按钮在「翻译 / 停止」之间切换
       primary.textContent = state.loading ? '停止' : '翻译';
       primary.dataset.action = state.loading ? 'stop' : 'translate';
-      copy.disabled = !state.translatedText;
-      // 复制成功反馈：文案 + 高亮，由 mount 侧定时复位
-      copy.textContent = state.copied ? '已复制' : '复制';
-      copy.classList.toggle('active', state.copied);
 
-      // 侧边栏开关：打开时显示「收起」并高亮
-      panel.textContent = state.panelOpen ? '收起侧栏' : '侧边栏';
-      panel.setAttribute('aria-pressed', state.panelOpen ? 'true' : 'false');
+      copy.disabled = !state.translatedText;
+      // 复制成功反馈：图标按钮用 active 底色 + 标题反馈，由 mount 侧定时复位
+      copy.classList.toggle('active', state.copied);
+      copy.title = state.copied ? '已复制' : '复制译文';
+      copy.setAttribute('aria-label', state.copied ? '已复制' : '复制译文');
+
+      // 侧边栏开关：打开时显示高亮，标题切换为「收起侧栏」
       panel.classList.toggle('active', state.panelOpen);
+      panel.setAttribute('aria-pressed', state.panelOpen ? 'true' : 'false');
+      panel.title = state.panelOpen ? '收起侧栏' : '打开侧边栏';
+      panel.setAttribute(
+        'aria-label',
+        state.panelOpen ? '收起侧栏' : '打开侧边栏',
+      );
+
+      // 加载中用顶部进度条表达；状态行只负责文案
+      progress.hidden = !state.loading;
 
       // 状态行：loading 或 error 时展示，其余情况整行隐藏
       const isError = Boolean(state.error) && !state.loading;
@@ -84,7 +102,6 @@ export function createToolbarView(root: HTMLElement): ToolbarView {
           : '翻译中…'
         : state.error;
       statusEl.hidden = !statusContent;
-      loader.hidden = !state.loading;
       statusText.textContent = statusContent;
       statusText.className = isError
         ? 'dm-status-text dm-error'

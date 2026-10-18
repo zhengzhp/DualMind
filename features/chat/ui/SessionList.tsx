@@ -48,12 +48,12 @@ export function SessionList({
 }: SessionListProps) {
   return (
     <div
-      className={`rounded-xl border border-brand-100 bg-white/95 p-2 shadow-md ${
+      className={`rounded-card border border-line bg-surface p-2 shadow-card ${
         fill ? 'flex h-full min-h-0 flex-col' : ''
       } ${className}`}
     >
       <div className="flex shrink-0 items-center justify-between gap-2 px-1 pb-2">
-        <span className="text-xs font-semibold text-brand-900">
+        <span className="text-label font-semibold text-ink">
           历史会话（{sessions.length}）
         </span>
         <div className="flex shrink-0 items-center gap-0.5">
@@ -62,14 +62,14 @@ export function SessionList({
               <button
                 type="button"
                 onClick={onDownloadAll}
-                className="rounded-md px-2 py-0.5 text-[11px] font-medium text-brand-600 hover:bg-brand-50"
+                className="rounded-chip px-2 py-1 text-label font-medium text-ink-2 transition hover:bg-surface-2 hover:text-ink"
               >
                 下载全部
               </button>
               <button
                 type="button"
                 onClick={onClear}
-                className="rounded-md px-2 py-0.5 text-[11px] font-medium text-brand-600 hover:bg-brand-50"
+                className="rounded-chip px-2 py-1 text-label font-medium text-ink-2 transition hover:bg-surface-2 hover:text-ink"
               >
                 清空全部
               </button>
@@ -80,7 +80,7 @@ export function SessionList({
               type="button"
               aria-label="关闭历史"
               onClick={onClose}
-              className="rounded-md px-2 py-0.5 text-[11px] font-medium text-brand-600 hover:bg-brand-50"
+              className="rounded-chip px-2 py-1 text-label font-medium text-ink-2 transition hover:bg-surface-2 hover:text-ink"
             >
               关闭
             </button>
@@ -89,7 +89,7 @@ export function SessionList({
       </div>
 
       {sessions.length === 0 ? (
-        <p className="px-1 py-3 text-center text-[11px] text-brand-700/60">
+        <p className="px-1 py-3 text-center text-meta text-ink-2">
           还没有历史会话；提问后会自动保存在本机。
         </p>
       ) : (
@@ -107,14 +107,14 @@ export function SessionList({
                 onClick={() => onOpen(item.id)}
                 className={`min-w-0 flex-1 rounded-lg px-2 py-1.5 text-left transition ${
                   item.id === currentId
-                    ? 'bg-brand-50'
-                    : 'hover:bg-brand-50/70'
+                    ? 'bg-accent-soft'
+                    : 'hover:bg-surface-2'
                 }`}
               >
-                <span className="block truncate text-xs font-medium text-brand-900">
+                <span className="block truncate text-label font-medium text-ink">
                   {item.title}
                 </span>
-                <span className="mt-0.5 block truncate text-[11px] text-brand-700/60">
+                <span className="mt-0.5 block truncate text-meta text-ink-2">
                   {item.pageTitle || '未记录页面'} · {item.turnCount} 条 ·{' '}
                   {formatTime(item.updatedAt)}
                 </span>
@@ -123,7 +123,7 @@ export function SessionList({
                 type="button"
                 aria-label={`下载会话 ${item.title}`}
                 onClick={() => onDownload(item.id)}
-                className="shrink-0 rounded-md px-1.5 py-1 text-[11px] font-medium text-brand-600 hover:bg-brand-50"
+                className="shrink-0 rounded-chip px-1.5 py-1 text-label font-medium text-ink-2 transition hover:bg-surface-2 hover:text-ink"
               >
                 下载
               </button>
@@ -131,7 +131,7 @@ export function SessionList({
                 type="button"
                 aria-label={`删除会话 ${item.title}`}
                 onClick={() => onRemove(item.id)}
-                className="shrink-0 rounded-md px-1.5 py-1 text-[11px] font-medium text-brand-600 hover:bg-red-50 hover:text-red-600"
+                className="shrink-0 rounded-chip px-1.5 py-1 text-label font-medium text-ink-2 transition hover:bg-danger-soft hover:text-danger"
               >
                 删除
               </button>

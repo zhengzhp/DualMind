@@ -25,6 +25,13 @@ function formatBoundPageLabel(url: string, title: string): string {
 
 export type ChatSurface = 'sidepanel' | 'workspace';
 
+/** 空态建议提问：点一下填入输入框，避免用户面对空白不知从何问起 */
+const SUGGESTIONS = [
+  '这一页讲了什么？',
+  '用三点总结关键结论',
+  '有哪些值得注意的细节？',
+] as const;
+
 /** 上下文范围选项（与 `ChatContextScope` 对齐） */
 const SCOPE_OPTIONS: { value: ChatContextScope; label: string; title: string }[] =
   [
@@ -46,6 +53,7 @@ export function ChatPanel({
   const [draft, setDraft] = useState('');
   const [showHistory, setShowHistory] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const composerRef = useRef<HTMLTextAreaElement>(null);
   const isPage = surface === 'workspace';
 
   // 新内容到达（含流式增量）时贴底
@@ -85,45 +93,42 @@ export function ChatPanel({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2.5">
-      {/* 上下文范围 + 状态 */}
-      <div className="rounded-xl border border-brand-100/80 bg-white/70 p-3">
-        <div className="flex items-center gap-2">
-          <label className="w-14 shrink-0 text-xs font-medium text-brand-700">
-            上下文
-          </label>
+      {/* 上下文：一行 chip，信息项压到最低高度 */}
+      <div className="shrink-0 rounded-card border border-line bg-surface px-3 py-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="shrink-0 text-label font-medium text-ink-2">上下文</span>
           <SegmentedControl
             value={scope}
             options={SCOPE_OPTIONS}
             disabled={!chat.prefs || chat.streaming}
             onChange={(next) => void chat.setScope(next)}
             ariaLabel="上下文范围"
-            className="min-w-0 flex-1"
+            className="w-[10.5rem] shrink-0"
           />
-        </div>
-
-        <div className="mt-2 flex items-center justify-between gap-2">
-          <p className="min-w-0 flex-1 truncate text-[11px] text-brand-700/70">
+          <p className="min-w-0 flex-1 truncate text-meta text-ink-2">
             {chat.contextLoading ? (
               '正在读取页面内容…'
             ) : chat.contextError ? (
-              <span className="text-amber-600">{chat.contextError}</span>
+              <span className="text-warn">{chat.contextError}</span>
             ) : chat.context ? (
-              `${chat.context.scope === 'selection' ? '选区' : '整页'} · ${
-                chat.context.segments.length
-              } 段${chat.context.truncated ? ' · 已精简' : ''}`
+              (chat.context.scope === 'selection' ? '选区' : '整页') +
+              ' · ' +
+              chat.context.segments.length +
+              ' 段' +
+              (chat.context.truncated ? ' · 已精简' : '')
             ) : (
-              '尚未读取页面内容（首次提问时自动读取）'
+              '尚未读取页面内容'
             )}
           </p>
           <button
             type="button"
             onClick={() => void chat.refreshContext()}
             disabled={chat.contextLoading || chat.streaming}
-            className={`shrink-0 rounded-md px-2 py-0.5 text-[11px] font-medium hover:bg-brand-50 disabled:opacity-50 ${
+            className={
               chat.contextStale
-                ? 'bg-amber-100 text-amber-800 ring-1 ring-amber-300'
-                : 'text-brand-600'
-            }`}
+                ? 'shrink-0 rounded-chip bg-warn-soft px-2 py-1 text-label font-medium text-warn ring-1 ring-warn/20 disabled:opacity-50'
+                : 'shrink-0 rounded-chip px-2 py-1 text-label font-medium text-ink-2 transition hover:bg-surface-2 hover:text-ink disabled:opacity-50'
+            }
           >
             重新读取
           </button>
@@ -132,7 +137,7 @@ export function ChatPanel({
         {chat.contextStale && (
           <p
             data-testid="chat-context-stale"
-            className="mt-1.5 text-[11px] leading-relaxed text-amber-700"
+            className="mt-1.5 text-label leading-relaxed text-warn"
           >
             页面已变化，上下文可能过期。请点「重新读取」后再提问。
           </p>
@@ -140,36 +145,35 @@ export function ChatPanel({
 
         {chat.boundPage?.url && (
           <p
-            className="mt-1 truncate text-[11px] text-brand-700/50"
+            className="mt-1 truncate text-meta text-ink-2"
             title={chat.boundPage.url}
             data-testid="chat-bound-page"
           >
-            绑定页：
-            {formatBoundPageLabel(chat.boundPage.url, chat.boundPage.title)}
+            绑定页：{formatBoundPageLabel(chat.boundPage.url, chat.boundPage.title)}
           </p>
         )}
 
         {chat.session.pageTitle && (
-          <p className="mt-1 truncate text-[11px] text-brand-700/50">
+          <p className="mt-1 truncate text-meta text-ink-2">
             会话来源：{chat.session.pageTitle}
           </p>
         )}
       </div>
 
-      {/* 操作行 */}
+      {/* 操作行：总结为主，新对话 / 历史为 ghost */}
       <div className="flex flex-wrap items-center gap-1.5">
         <button
           type="button"
           disabled={chat.streaming}
           onClick={() => void chat.summarize()}
-          className="rounded-lg bg-brand-500 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-brand-600 disabled:opacity-50"
+          className="inline-flex h-8 items-center rounded-control bg-accent px-3 text-label font-semibold text-on-accent transition hover:bg-accent-hover disabled:opacity-50"
         >
           总结本页
         </button>
         <button
           type="button"
           onClick={chat.startNew}
-          className="rounded-lg border border-brand-100 bg-white px-2.5 py-1.5 text-xs font-medium text-brand-700 hover:bg-brand-50"
+          className="inline-flex h-8 items-center rounded-control border border-line bg-surface px-3 text-label font-medium text-ink-2 transition hover:bg-surface-2 hover:text-ink"
         >
           新对话
         </button>
@@ -177,57 +181,59 @@ export function ChatPanel({
           type="button"
           aria-expanded={showHistory}
           onClick={() => setShowHistory((current) => !current)}
-          className={`rounded-lg border px-2.5 py-1.5 text-xs font-medium hover:bg-brand-50 ${
+          className={
             showHistory
-              ? 'border-brand-300 bg-brand-50 text-brand-800'
-              : 'border-brand-100 bg-white text-brand-700'
-          }`}
+              ? 'inline-flex h-8 items-center rounded-control border border-accent/30 bg-accent-soft px-3 text-label font-medium text-accent'
+              : 'inline-flex h-8 items-center rounded-control border border-line bg-surface px-3 text-label font-medium text-ink-2 transition hover:bg-surface-2 hover:text-ink'
+          }
         >
-          历史{chat.sessions.length > 0 ? `（${chat.sessions.length}）` : ''}
+          历史{chat.sessions.length > 0 ? '（' + chat.sessions.length + '）' : ''}
         </button>
       </div>
 
       {chat.error && (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+        <div
+          data-testid="chat-error"
+          className="rounded-control border border-danger/20 bg-danger-soft px-3 py-2 text-label leading-relaxed text-danger"
+        >
           {chat.error}
         </div>
       )}
 
-      {/* 会话来源页与当前页不一致：先确认再用当前页继续（见 docs/decisions-v2.md） */}
       {chat.mismatchConfirm && (
         <div
           data-testid="chat-mismatch-confirm"
-          className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800"
+          className="rounded-control border border-warn/20 bg-warn-soft px-3 py-2 text-label leading-relaxed text-warn"
         >
           <p className="font-semibold">该会话来自其他页面</p>
-          <p className="mt-1 break-words leading-relaxed">
+          <p className="mt-1 break-words">
             会话来源：{chat.mismatchConfirm.sessionUrl}
           </p>
-          <p className="break-words leading-relaxed">
+          <p className="break-words">
             当前页面：{chat.mismatchConfirm.currentUrl}
           </p>
-          <p className="mt-1 leading-relaxed">
+          <p className="mt-1">
             继续后将基于「当前页面」作答，并把该页记为会话来源。
           </p>
           <div className="mt-1.5 flex flex-wrap gap-1.5">
             <button
               type="button"
               onClick={() => chat.confirmMismatch()}
-              className="rounded-lg bg-amber-500 px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-amber-600"
+              className="rounded-control bg-warn px-2.5 py-1 text-label font-semibold text-on-warn transition hover:opacity-90"
             >
               仍要继续
             </button>
             <button
               type="button"
               onClick={() => chat.confirmMismatch({ remember: true })}
-              className="rounded-lg border border-amber-300 bg-white px-2.5 py-1 text-[11px] font-medium text-amber-800 hover:bg-amber-100"
+              className="rounded-control border border-warn/30 bg-surface px-2.5 py-1 text-label font-medium text-warn transition hover:bg-warn-soft"
             >
               本会话不再提示
             </button>
             <button
               type="button"
               onClick={handleCancelMismatch}
-              className="rounded-lg border border-amber-200 bg-white px-2.5 py-1 text-[11px] font-medium text-amber-800 hover:bg-amber-50"
+              className="rounded-control border border-line bg-surface px-2.5 py-1 text-label font-medium text-ink-2 transition hover:bg-surface-2"
             >
               取消
             </button>
@@ -237,9 +243,7 @@ export function ChatPanel({
 
       {/* 消息区 + 历史覆盖层：历史不占文档流，避免挤矮总结行与输入框 */}
       <div
-        className={`relative min-h-0 flex-1 ${
-          isPage ? '' : 'min-h-[10rem]'
-        }`}
+        className={'relative min-h-0 flex-1 ' + (isPage ? '' : 'min-h-[10rem]')}
       >
         {showHistory && (
           <div
@@ -264,16 +268,29 @@ export function ChatPanel({
         )}
         <div
           ref={scrollRef}
-          className={`h-full space-y-3 overflow-y-auto rounded-xl border border-brand-100/80 bg-white/70 p-3 ${
-            isPage ? 'text-sm' : 'text-xs'
-          }`}
+          className="h-full space-y-3 overflow-y-auto rounded-card border border-line bg-surface p-3"
         >
           {turns.length === 0 ? (
-            <p className="py-6 text-center leading-relaxed text-brand-700/60">
-              点「总结本页」快速抓取要点，
-              <br />
-              或在下方直接提问（基于当前网页内容作答）。
-            </p>
+            <div className="flex flex-col items-center gap-3 py-6 text-center">
+              <p className="text-body leading-relaxed text-ink-2">
+                先总结这一页，或挑一个问题开始。
+              </p>
+              <div className="flex w-full max-w-sm flex-col gap-1.5">
+                {SUGGESTIONS.map((question) => (
+                  <button
+                    key={question}
+                    type="button"
+                    onClick={() => {
+                      setDraft(question);
+                      composerRef.current?.focus();
+                    }}
+                    className="rounded-chip border border-line bg-surface-2 px-3 py-2 text-left text-label text-ink-2 transition hover:border-line-strong hover:text-ink"
+                  >
+                    {question}
+                  </button>
+                ))}
+              </div>
+            </div>
           ) : (
             turns.map((turn) =>
               isPageBreakTurn(turn) ? (
@@ -287,8 +304,9 @@ export function ChatPanel({
       </div>
 
       {/* 输入区（钉在面板底部） */}
-      <div className="flex shrink-0 items-end gap-2">
+      <div className="flex shrink-0 items-end gap-2 rounded-card border border-line bg-surface p-2 transition focus-within:ring-2 focus-within:ring-accent/15">
         <textarea
+          ref={composerRef}
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
           onKeyDown={(event) => {
@@ -300,13 +318,13 @@ export function ChatPanel({
           }}
           rows={isPage ? 3 : 2}
           placeholder="就当前网页提问，Enter 发送 / Shift+Enter 换行…"
-          className="min-h-[3.25rem] w-full flex-1 resize-y rounded-xl border border-brand-100 bg-white/90 p-2.5 text-xs leading-relaxed outline-none focus:border-brand-500"
+          className="min-h-[3rem] w-full flex-1 resize-none border-0 bg-transparent p-1 text-body leading-[22px] text-ink outline-none placeholder:text-ink-2 focus-visible:outline-none"
         />
         {chat.streaming ? (
           <button
             type="button"
             onClick={chat.stop}
-            className="shrink-0 rounded-xl border border-brand-100 bg-white px-3 py-2 text-xs font-semibold text-brand-700 hover:bg-brand-50"
+            className="inline-flex h-9 shrink-0 items-center rounded-control border border-line bg-surface px-3 text-label font-semibold text-ink-2 transition hover:bg-surface-2 hover:text-ink"
           >
             停止
           </button>
@@ -315,7 +333,7 @@ export function ChatPanel({
             type="button"
             onClick={() => void handleSend()}
             disabled={!draft.trim()}
-            className="shrink-0 rounded-xl bg-brand-500 px-3 py-2 text-xs font-semibold text-white hover:bg-brand-600 disabled:opacity-50"
+            className="inline-flex h-9 shrink-0 items-center rounded-control bg-accent px-3 text-label font-semibold text-on-accent transition hover:bg-accent-hover disabled:opacity-50"
           >
             发送
           </button>
@@ -333,40 +351,44 @@ function PageBreakDivider({ turn }: { turn: ChatTurn }) {
       className="flex flex-col items-center gap-0.5 py-1"
       title={turn.pageUrl}
     >
-      <div className="h-px w-full bg-brand-100" />
-      <p className="max-w-full truncate px-2 text-center text-[10px] font-medium text-brand-700/60">
+      <div className="h-px w-full bg-line" />
+      <p className="max-w-full truncate px-2 text-center text-meta font-medium text-ink-2">
         {turn.content}
       </p>
-      <div className="h-px w-full bg-brand-100" />
+      <div className="h-px w-full bg-line" />
     </div>
   );
 }
 
-/** 单条消息：用户靠右、助手靠左；失败如实标注 */
+/** 单条消息：用户靠右用 surface-2 块，助手靠左不用卡片；失败如实标注 */
 function TurnBubble({ turn }: { turn: ChatTurn }) {
   const isUser = turn.role === 'user';
   const pending = !isUser && !turn.content && !turn.error;
 
   return (
     <div
-      // 稳定的测试标识：E2E 里需要单独断言「助手回复」（用户提问也是中文，不能按语言选）
+      // 稳定的测试标识：E2E 里需要单独断言「助手回复」
       data-testid={isUser ? 'chat-turn-user' : 'chat-turn-assistant'}
-      className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}
+      className={'flex ' + (isUser ? 'justify-end' : 'justify-start')}
     >
       <div
-        className={`max-w-[85%] whitespace-pre-wrap break-words rounded-xl px-3 py-2 leading-relaxed ${
-          isUser
-            ? 'bg-brand-500 text-white'
-            : 'border border-brand-100 bg-white text-brand-900'
-        }`}
+        className={
+          'max-w-[88%] whitespace-pre-wrap break-words text-body leading-[22px] ' +
+          (isUser
+            ? 'rounded-card rounded-br-sm bg-surface-2 px-3 py-2 text-ink'
+            : 'px-0.5 py-0.5 text-ink')
+        }
       >
         {pending ? (
-          <span className="text-brand-700/60">正在生成…</span>
+          <span className="inline-flex items-center gap-1.5 text-ink-2">
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-accent" />
+            正在生成…
+          </span>
         ) : (
           turn.content || '（空回复）'
         )}
         {turn.error && (
-          <span className="mt-1 block text-[11px] text-red-600">
+          <span className="mt-1 block text-label text-danger">
             该轮失败：{turn.error}
           </span>
         )}

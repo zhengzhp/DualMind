@@ -129,14 +129,14 @@ async function selectLead(page: Page): Promise<void> {
 async function openWorkbench(
   context: BrowserContext,
   extensionId: string,
-  tab?: '翻译' | '网页助手' | 'Agent',
+  tab?: '翻译' | '阅读助手' | 'Agent',
 ): Promise<Page> {
   const page = await context.newPage();
   await page.setViewportSize(SHOT);
   await page.goto(`chrome-extension://${extensionId}/workspace.html`);
   await expect(page.getByText('全页工作台 · 翻译')).toBeVisible();
   if (tab && tab !== '翻译') {
-    await page.getByRole('button', { name: tab, exact: true }).click();
+    await page.getByRole('tab', { name: tab, exact: true }).click();
   }
   return page;
 }
@@ -214,7 +214,7 @@ test.describe('上架截图采集（REL-10 / T30）', () => {
     // 先开内容页提供可读上下文，再开工作台；工作台会回退到最近可读内容页
     await openDemoArticle(page);
 
-    const wb = await openWorkbench(context, extensionId, '网页助手');
+    const wb = await openWorkbench(context, extensionId, '阅读助手');
     await wb.bringToFront();
     await expect(wb.getByTestId('chat-bound-page')).toContainText('example.com', {
       timeout: 15_000,

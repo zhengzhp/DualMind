@@ -21,7 +21,7 @@ import {
   type ChatPendingAction,
   type ProviderType,
 } from '@/shared/storage/types';
-import { SearchableSelect } from '@/shared/ui';
+import { SearchableSelect, SettingsIcon, WorkspaceIcon } from '@/shared/ui';
 import { ModelSelector } from './ModelSelector';
 
 type ModuleTab = 'translate' | 'chat' | 'agent';
@@ -32,18 +32,20 @@ type ModuleTab = 'translate' | 'chat' | 'agent';
  * 在 `items-baseline` 行里能直接与副标题对齐，不需要负 margin 补偿。
  */
 const WORDMARK_URL = browser.runtime.getURL('/wordmark.svg');
+/** 深色版字标：同几何、仅换色，避免深色底上不可读 */
+const WORDMARK_DARK_URL = browser.runtime.getURL('/wordmark-dark.svg');
 
 /** 复制成功提示的展示时长（毫秒） */
 const COPY_HINT_MS = 1500;
 
-/** 顶部模块 Tab（翻译 / 网页助手 / Agent） */
+/** 顶部模块 Tab（翻译 / 阅读助手 / Agent） */
 const MODULE_TABS: readonly (readonly [ModuleTab, string])[] = [
   ['translate', '翻译'],
-  ['chat', '网页助手'],
+  ['chat', '阅读助手'],
   ['agent', 'Agent'],
 ];
 
-/** 副标题按当前 Tab 变化，避免在「网页助手」页仍显示「翻译」 */
+/** 副标题按当前 Tab 变化，避免在「阅读助手」页仍显示「翻译」 */
 const TAB_SUBTITLE: Record<ModuleTab, string> = {
   translate: '翻译',
   chat: '摘要与问答',
@@ -315,6 +317,21 @@ export function WorkbenchApp({ surface }: { surface: WorkbenchSurface }) {
     }
   }
 
+  /** 空态「粘贴文本」入口：读剪贴板失败时退回手填，不静默 */
+  async function handlePaste() {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (!text.trim()) {
+        setError('剪贴板为空，请先复制一段文本');
+        return;
+      }
+      setSourceText(text);
+      setError('');
+    } catch {
+      setError('无法读取剪贴板，请直接粘贴到原文框');
+    }
+  }
+
   async function handleTargetChange(next: string) {
     setTargetLanguage(next);
     await sendMessage('settings:save', { targetLanguage: next }).catch(() => {});
@@ -384,94 +401,71 @@ export function WorkbenchApp({ surface }: { surface: WorkbenchSurface }) {
   }
 
   const controlsDisabled = loading;
-  // 侧边栏专用操作行：翻译 + 复制（全页工作台的复制按钮已内联到译文卡片）
-  const sidepanelActionRow = (
-    <div className="flex gap-2">
-      {loading ? (
-        <button
-          type="button"
-          onClick={handleStop}
-          className="flex-1 rounded-xl border border-brand-100 bg-white px-3 py-2 text-sm font-semibold text-brand-700 hover:bg-brand-50"
-        >
-          停止
-        </button>
-      ) : (
-        <button
-          type="button"
-          onClick={() => void handleTranslate()}
-          className="flex-1 rounded-xl bg-brand-500 px-3 py-2 text-sm font-semibold text-white hover:bg-brand-600"
-        >
-          翻译
-        </button>
-      )}
-      <button
-        type="button"
-        disabled={!translatedText}
-        onClick={() => void handleCopy()}
-        className="min-w-[5.5rem] whitespace-nowrap rounded-xl border border-brand-100 bg-white px-3 py-2 text-center text-sm font-medium text-brand-700 hover:bg-brand-50 disabled:opacity-50"
-      >
-        {copied ? '已复制' : '复制译文'}
-      </button>
-    </div>
-  );
 
   return (
-    // 侧栏与全页均锁视口高度，保证网页助手输入区钉底、翻译区内部滚动
-    <div className="flex h-screen flex-col overflow-hidden bg-[radial-gradient(120%_80%_at_0%_0%,#d9eeff_0%,#f4f7fb_45%,#eef2f7_100%)]">
-      <header className="border-b border-brand-100/80 bg-white/70 backdrop-blur">
+    // 侧栏与全页均锁视口高度，保证阅读助手输入区钉底、翻译区内部滚动
+    <div className="flex h-screen flex-col overflow-hidden bg-canvas text-ink">
+      <header className="shrink-0 border-b border-line bg-surface/90 backdrop-blur">
         {/* 全页工作台：内层容器统一 max-w-5xl + px-6，与下方 main 左右严格对齐 */}
         <div
           className={
             isPage
-              ? 'mx-auto w-full max-w-5xl px-6 py-3'
-              : 'px-4 py-3'
+              ? 'mx-auto flex h-14 w-full max-w-5xl items-center justify-between gap-3 px-6'
+              : 'flex h-14 items-center justify-between gap-2 px-4'
           }
         >
-          <div className="flex items-center justify-between gap-2">
-            {/* 全页：标题与副标题同行，压缩头部高度、让 Tab 上移 */}
-            <div className={isPage ? 'flex items-baseline gap-2.5' : ''}>
-              {/* 品牌名用字标呈现；`text-lg` 保留行盒高度，并作为图片加载失败时 alt 文字的兜底样式 */}
-              <h1 className="text-lg font-semibold tracking-tight text-brand-900">
-                <img
-                  src={WORDMARK_URL}
-                  alt="DualMind"
-                  draggable={false}
-                  className="h-[17px] w-auto"
-                />
-              </h1>
-              <p className="text-xs text-brand-700/70">
-                {isPage ? `全页工作台 · ${TAB_SUBTITLE[tab]}` : `AI 助手 · ${TAB_SUBTITLE[tab]}`}
-              </p>
-            </div>
-            <div className="flex items-center gap-1">
-              {surface === 'sidepanel' && (
-                <button
-                  type="button"
-                  data-testid="open-workspace"
-                  onClick={() => void handleOpenWorkspace()}
-                  className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-brand-600 hover:bg-brand-50"
-                >
-                  工作台
-                </button>
-              )}
+          <div className="flex min-w-0 items-baseline gap-2.5">
+            {/* 品牌名用字标呈现；18px 与 56px 头部高度对齐 */}
+            <h1 className="shrink-0 text-title font-semibold tracking-tight text-ink">
+              <img
+                src={WORDMARK_URL}
+                alt="DualMind"
+                draggable={false}
+                className="dm-wordmark-light h-[18px] w-auto"
+              />
+              <img
+                src={WORDMARK_DARK_URL}
+                alt=""
+                aria-hidden="true"
+                draggable={false}
+                className="dm-wordmark-dark h-[18px] w-auto"
+              />
+            </h1>
+            <p className="truncate text-meta text-ink-2">
+              {isPage ? '全页工作台' : 'AI 助手'}{' '}
+              <span className="text-ink-3">·</span>{' '}
+              {TAB_SUBTITLE[tab]}
+            </p>
+          </div>
+          <div className="flex shrink-0 items-center gap-1">
+            {surface === 'sidepanel' && (
               <button
                 type="button"
-                onClick={() => void handleOpenSettings()}
-                className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-brand-600 hover:bg-brand-50"
+                data-testid="open-workspace"
+                onClick={() => void handleOpenWorkspace()}
+                className="inline-flex h-8 items-center gap-1.5 rounded-control px-2.5 text-xs font-medium text-ink-2 transition hover:bg-surface-2 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
               >
-                设置
+                <WorkspaceIcon className="h-3.5 w-3.5" />
+                工作台
               </button>
-            </div>
+            )}
+            <button
+              type="button"
+              onClick={() => void handleOpenSettings()}
+              className="inline-flex h-8 items-center gap-1.5 rounded-control px-2.5 text-xs font-medium text-ink-2 transition hover:bg-surface-2 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
+            >
+              <SettingsIcon className="h-3.5 w-3.5" />
+              设置
+            </button>
           </div>
         </div>
       </header>
 
-      {/* 模型横栏：刻意独立成一条醒目色带，位于 header 之下、模块 Tab 之上，
-          品牌色背景 + 「当前模型」徽标强化存在感，避免用户把它当成普通说明略过。
+      {/* 模型横栏：白底 + 底线，只保留一处强调（模型名）。
           relative + z-10：保证栏内模型下拉展开时盖住下方 main */}
-      <div className="relative z-10 border-b border-brand-100/80 bg-brand-50/70">
+      <div className="relative z-10 shrink-0 border-b border-line bg-surface">
         <div
-          className={isPage ? 'mx-auto w-full max-w-5xl px-6 py-3' : 'px-4 py-3'}
+          className={isPage ? 'mx-auto w-full max-w-5xl px-6 py-2' : 'px-4 py-2'}
         >
           <ModelSelector
             settings={settings}
@@ -490,38 +484,61 @@ export function WorkbenchApp({ surface }: { surface: WorkbenchSurface }) {
         </div>
       </div>
 
-      {/* 全页：三个模块 Tab 放大并居中（胶囊分段样式）；侧栏保持紧凑左对齐 */}
+      {/* 全页用下划线 Tab；侧栏用紧凑 segmented（surface-2 底 + 活动项白底） */}
       <nav
         className={
           isPage
-            ? 'mx-auto flex w-full max-w-5xl justify-center px-6 pt-3'
-            : 'flex gap-1 px-4 pt-3'
+            ? 'mx-auto w-full max-w-5xl shrink-0 px-6'
+            : 'shrink-0 px-4 pt-3'
         }
       >
-        <div
-          className={
-            isPage
-              ? 'inline-flex gap-1 rounded-xl border border-brand-100 bg-brand-50/80 p-1'
-              : 'flex gap-1'
-          }
-        >
-          {MODULE_TABS.map(([id, label]) => (
-            <button
-              key={id}
-              type="button"
-              onClick={() => setTab(id)}
-              className={`rounded-lg font-semibold transition ${
-                isPage ? 'px-6 py-2 text-sm' : 'px-3 py-1.5 text-xs'
-              } ${
-                tab === id
-                  ? 'bg-brand-500 text-white shadow-sm'
-                  : 'text-brand-700/80 hover:bg-white/80'
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+        {isPage ? (
+          <div
+            className="flex gap-6 border-b border-line"
+            role="tablist"
+            aria-label="模块"
+          >
+            {MODULE_TABS.map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                role="tab"
+                aria-selected={tab === id}
+                onClick={() => setTab(id)}
+                className={`-mb-px border-b-2 px-0.5 pb-2.5 pt-2 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30 ${
+                  tab === id
+                    ? 'border-accent text-ink'
+                    : 'border-transparent text-ink-2 hover:text-ink'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div
+            className="flex gap-1 rounded-control bg-surface-2 p-1"
+            role="tablist"
+            aria-label="模块"
+          >
+            {MODULE_TABS.map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                role="tab"
+                aria-selected={tab === id}
+                onClick={() => setTab(id)}
+                className={`flex-1 rounded-[7px] px-3 py-1.5 text-xs font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30 ${
+                  tab === id
+                    ? 'bg-surface text-ink shadow-card'
+                    : 'text-ink-2 hover:text-ink'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
       </nav>
 
       <main
@@ -534,7 +551,7 @@ export function WorkbenchApp({ surface }: { surface: WorkbenchSurface }) {
         {pendingExpiredHint && surface === 'sidepanel' && (
           <div
             role="status"
-            className="shrink-0 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800"
+            className="shrink-0 rounded-control border border-warn/20 bg-warn-soft px-3 py-2 text-xs leading-relaxed text-warn"
           >
             {pendingExpiredHint}
           </div>
@@ -545,18 +562,18 @@ export function WorkbenchApp({ surface }: { surface: WorkbenchSurface }) {
             className={
               isPage
                 ? 'flex min-h-0 flex-1 flex-col gap-4'
-                : 'flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto'
+                : 'flex min-h-0 flex-1 flex-col gap-3 overflow-hidden'
             }
           >
             {/* 沉浸式全文翻译：只在侧栏提供入口（全页工作台自身不是网页标签页，无法承载该指令） */}
             {surface === 'sidepanel' && <ImmersiveControl />}
 
-            {/* Provider / 模型 / 刷新已上移到 header 下方的模型横栏，此处只保留目标语言 */}
-            <div className="rounded-xl border border-brand-100/80 bg-white/70 p-3">
-              <div className="flex items-center gap-2">
-                <label className="w-14 shrink-0 text-xs font-medium text-brand-700">
+            {/* 语言 / 原文 / 译文合并为一张卡：内部用 1px 发丝线分隔 */}
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-card border border-line bg-surface shadow-card transition focus-within:ring-2 focus-within:ring-accent/15">
+              <div className="flex shrink-0 items-center gap-2 border-b border-line px-3 py-2">
+                <span className="w-8 shrink-0 text-label font-medium text-ink-2">
                   语言
-                </label>
+                </span>
                 <SearchableSelect
                   value={targetLanguage}
                   options={TARGET_LANGUAGES}
@@ -568,91 +585,144 @@ export function WorkbenchApp({ surface }: { surface: WorkbenchSurface }) {
                   className="min-w-0 flex-1"
                 />
               </div>
-            </div>
 
-            <div
-              className={
-                isPage
-                  ? 'grid min-h-0 flex-1 auto-rows-fr grid-cols-1 gap-4 lg:grid-cols-2'
-                  : 'flex flex-col gap-3'
-              }
-            >
-              <label className="flex min-h-0 flex-col text-xs font-medium text-brand-700">
-                原文
-                <textarea
-                  value={sourceText}
-                  onChange={(e) => setSourceText(e.target.value)}
-                  rows={isPage ? 18 : 6}
-                  placeholder="在网页划词，或在此粘贴文本…"
-                  className={`mt-1 w-full flex-1 rounded-xl border border-brand-100 bg-white/90 p-3 text-sm leading-relaxed outline-none focus:border-brand-500 ${
-                    isPage ? 'min-h-0 resize-none' : 'min-h-[8rem] resize-y'
-                  }`}
-                />
-              </label>
-
-              {!isPage && sidepanelActionRow}
-
-              {error && !isPage && (
-                <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-                  {error}
+              <div
+                className={
+                  isPage
+                    ? 'grid min-h-0 flex-1 grid-rows-2 divide-y divide-line lg:grid-cols-2 lg:grid-rows-1 lg:divide-x lg:divide-y-0'
+                    : 'flex min-h-0 flex-1 flex-col divide-y divide-line overflow-y-auto'
+                }
+              >
+                <div
+                  className={
+                    isPage
+                      ? 'flex min-h-0 flex-1 flex-col px-3 pb-3 pt-3'
+                      : 'flex shrink-0 flex-col px-3 pb-3 pt-3'
+                  }
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <label
+                      htmlFor="translate-source"
+                      className="text-label font-medium text-ink-2"
+                    >
+                      原文
+                    </label>
+                    <span className="text-meta tabular-nums text-ink-3">
+                      {sourceText.length > 0 ? `${sourceText.length} 字符` : ''}
+                    </span>
+                  </div>
+                  <textarea
+                    id="translate-source"
+                    value={sourceText}
+                    onChange={(e) => setSourceText(e.target.value)}
+                    placeholder="在网页划词，或在此粘贴文本…"
+                    className={
+                      'mt-1 w-full resize-none border-0 bg-transparent p-0 text-body leading-[22px] text-ink outline-none placeholder:text-ink-2 focus-visible:outline-none ' +
+                      (isPage
+                        ? 'min-h-[6rem] flex-1'
+                        : 'h-[7rem] flex-none')
+                    }
+                  />
+                  {!sourceText && !loading && (
+                    <div className="mt-1.5 flex flex-wrap items-center gap-2 text-meta text-ink-2">
+                      <button
+                        type="button"
+                        onClick={() => void handlePaste()}
+                        className="inline-flex h-7 items-center rounded-chip border border-line bg-surface-2 px-2 text-label font-medium text-ink-2 transition hover:text-ink"
+                      >
+                        粘贴文本
+                      </button>
+                      <span>
+                        或按{' '}
+                        <kbd className="rounded border border-line bg-surface-2 px-1 font-sans text-[10px] text-ink-2">
+                          Alt
+                        </kbd>{' '}
+                        +{' '}
+                        <kbd className="rounded border border-line bg-surface-2 px-1 font-sans text-[10px] text-ink-2">
+                          K
+                        </kbd>{' '}
+                        划词
+                      </span>
+                    </div>
+                  )}
                 </div>
-              )}
 
-              <div className="flex min-h-0 flex-col text-xs font-medium text-brand-700">
-                {/* 全页：复制按钮内联到译文卡片右上角，底部只留居中的翻译按钮 */}
-                <div className="flex items-center justify-between">
-                  <span>译文</span>
-                  {isPage && (
+                <div
+                  className={
+                    isPage
+                      ? 'flex min-h-0 flex-1 flex-col px-3 pb-3 pt-3'
+                      : 'flex min-h-[7rem] flex-1 flex-col px-3 pb-3 pt-3'
+                  }
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <label
+                      htmlFor="translate-result"
+                      className="text-label font-medium text-ink-2"
+                    >
+                      译文
+                    </label>
                     <button
                       type="button"
                       disabled={!translatedText}
                       onClick={() => void handleCopy()}
-                      className="rounded-md px-2 py-0.5 text-[11px] font-medium text-brand-600 transition hover:bg-brand-50 disabled:cursor-not-allowed disabled:opacity-40"
+                      className="rounded-chip px-2 py-1 text-label font-medium text-ink-2 transition hover:bg-surface-2 hover:text-ink disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       {copied ? '已复制' : '复制译文'}
                     </button>
+                  </div>
+                  <textarea
+                    id="translate-result"
+                    value={translatedText}
+                    readOnly
+                    aria-label="译文"
+                    placeholder={loading ? '正在生成…' : '译文将显示在这里'}
+                    className={
+                      'mt-1 w-full resize-none border-0 bg-transparent p-0 text-reading text-ink outline-none placeholder:text-ink-2 focus-visible:outline-none ' +
+                      (isPage ? 'min-h-[6rem] flex-1' : 'min-h-[7rem] flex-1')
+                    }
+                  />
+                </div>
+              </div>
+
+              {error && (
+                <div
+                  role="alert"
+                  data-testid="translate-error"
+                  className="mx-3 mb-2 shrink-0 rounded-chip border border-danger/20 bg-danger-soft px-2.5 py-1.5 text-label leading-relaxed text-danger"
+                >
+                  {error}
+                </div>
+              )}
+
+              <div className="flex shrink-0 items-center justify-between gap-2 border-t border-line px-3 py-2">
+                <p className="min-w-0 truncate text-meta text-ink-2">
+                  {loading
+                    ? '正在生成…'
+                    : translatedText
+                      ? '译文可复制'
+                      : '在网页中划词，或按 Alt+K 快速翻译'}
+                </p>
+                <div className="flex shrink-0 items-center gap-2">
+                  {loading ? (
+                    <button
+                      type="button"
+                      onClick={handleStop}
+                      className="inline-flex h-9 items-center justify-center rounded-control border border-line bg-surface px-4 text-body-strong text-ink-2 transition hover:bg-surface-2 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
+                    >
+                      停止
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => void handleTranslate()}
+                      className="inline-flex h-9 items-center justify-center rounded-control bg-accent px-4 text-body-strong text-on-accent transition hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30 disabled:opacity-50"
+                    >
+                      翻译
+                    </button>
                   )}
                 </div>
-                <textarea
-                  value={translatedText}
-                  readOnly
-                  aria-label="译文"
-                  rows={isPage ? 18 : 8}
-                  placeholder={loading ? '正在生成…' : '译文将显示在这里'}
-                  className={`mt-1 w-full flex-1 rounded-xl border border-brand-100 bg-white p-3 text-sm leading-relaxed text-brand-900 outline-none ${
-                    isPage ? 'min-h-0 resize-none' : 'min-h-[8rem] resize-y'
-                  }`}
-                />
               </div>
             </div>
-
-            {isPage && (
-              <div className="flex justify-center">
-                {loading ? (
-                  <button
-                    type="button"
-                    onClick={handleStop}
-                    className="w-44 rounded-xl border border-brand-100 bg-white px-6 py-2.5 text-sm font-semibold text-brand-700 hover:bg-brand-50"
-                  >
-                    停止
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => void handleTranslate()}
-                    className="w-44 rounded-xl bg-brand-500 px-6 py-2.5 text-sm font-semibold text-white hover:bg-brand-600"
-                  >
-                    翻译
-                  </button>
-                )}
-              </div>
-            )}
-
-            {isPage && error && (
-              <div className="mx-auto w-full max-w-md rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-center text-sm text-red-700">
-                {error}
-              </div>
-            )}
           </div>
         )}
 

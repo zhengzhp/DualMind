@@ -8,6 +8,7 @@ import { mountPageFab } from '@/features/page-fab/mount';
 import { mountSelectionToolbar } from '@/features/selection-toolbar/mount';
 import { isHostDisabled, shouldShowPageFab } from '@/shared/siteAccess';
 import { sendMessage } from '@/shared/messaging/client';
+import { installContentFontFaces } from '@/shared/ui/fonts';
 
 export default defineContentScript({
   matches: ['<all_urls>'],
@@ -27,6 +28,10 @@ export default defineContentScript({
     if (isHostDisabled(settings.disabledHosts, host)) {
       return;
     }
+
+    // 字体 @font-face 只能注入 document.head 才会被 Chromium 加载
+    const uninstallFonts = installContentFontFaces();
+    ctx.onInvalidated(() => uninstallFonts());
 
     await mountSelectionToolbar(ctx, settings);
 

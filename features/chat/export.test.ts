@@ -141,7 +141,7 @@ describe('formatAllSessionsMarkdown', () => {
       turns: [turn('t2', 'user', '新问')],
     });
     const md = formatAllSessionsMarkdown([older, newer]);
-    expect(md).toContain('# DualMind 网页助手 · 全部会话');
+    expect(md).toContain('# DualMind 阅读助手 · 全部会话');
     expect(md).toContain('共 2 个会话');
     expect(md.indexOf('# 新会话')).toBeLessThan(md.indexOf('# 旧会话'));
     expect(md).toContain('---');

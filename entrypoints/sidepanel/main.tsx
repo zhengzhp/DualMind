@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import '@/assets/tailwind.css';
 import { SIDEPANEL_PORT } from '@/shared/messaging/protocol';
+import { bootstrapTheme } from '@/shared/ui/themeBootstrap';
 
 /** 向 Background 登记存活，供划词浮层 toggle / 关闭回退 */
 try {
@@ -22,8 +23,10 @@ browser.runtime.onMessage.addListener((message: unknown) => {
   }
 });
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>,
-);
+void bootstrapTheme().finally(() => {
+  ReactDOM.createRoot(document.getElementById('root')!).render(
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>,
+  );
+});

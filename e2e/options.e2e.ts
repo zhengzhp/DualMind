@@ -57,7 +57,7 @@ test.describe('Options 设置页', () => {
     await expect(page.getByText('Base URL')).toBeVisible();
 
     await page.getByRole('button', { name: '检测连接' }).click();
-    await expect(page.locator('.text-red-700')).toContainText('请先在设置中填写 API Key');
+    await expect(page.getByTestId('options-error')).toContainText('请先在设置中填写 API Key');
   });
 
   test('Base URL 不通时提示网络错误', async ({
@@ -73,7 +73,7 @@ test.describe('Options 设置页', () => {
     await page.goto(`chrome-extension://${extensionId}/options.html`);
 
     await page.getByRole('button', { name: '检测连接' }).click();
-    await expect(page.locator('.text-red-700')).toContainText('网络连接失败');
+    await expect(page.getByTestId('options-error')).toContainText('网络连接失败');
   });
 
   test('保存设置后回读一致（含禁用站点解析）', async ({

@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import * as Tooltip from '@radix-ui/react-tooltip';
 import {
   PROVIDER_OPTIONS,
   type AppSettings,
@@ -15,13 +16,13 @@ import {
 /**
  * 模型选择器（模型 + 刷新；Provider 收在下拉面板里）。
  *
- * 形态：**单行常驻醒目横栏**。位于 header 之下、模块 Tab 之上，翻译 / 网页助手 / Agent
- * 各 Tab 共享。刻意不做折叠：模型是「当前正在生效」的关键设置，藏进弹层容易被用户
- * 下意识忽略，因此用独立品牌色色带强化视觉权重。
+ * 形态：**白底单行**。位于 header 之下、模块 Tab 之上，翻译 / 阅读助手 / Agent
+ * 各 Tab 共享。刻意不做折叠：模型是「当前正在生效」的关键设置，藏进弹层容易被
+ * 用户下意识忽略。
  *
- * 横栏只留「模型 + 刷新」，把整行宽度让给模型名（窄侧栏也能显示完整）；
- * Provider 切换移入模型下拉面板顶部 —— 它是低频操作，且与模型强相关，
- * 放在一起既省横向空间，也避免了两个 Provider 标签被截断成「本地 Ol… / OpenA…」。
+ * 视觉（v0.3）：去掉品牌色带与 pulse 胶囊，只保留一处强调 —— 14px 半粗模型名。
+ * 左侧 11px「模型」标签、右侧 11px Provider 说明与刷新图标；Provider 切换仍在
+ * 下拉面板顶部（低频操作，与模型强相关）。
  *
  * 纯受控：所有状态与持久化仍由 `WorkbenchApp` 持有（单一数据源），本组件只负责渲染与回调。
  */
@@ -85,12 +86,11 @@ export function ModelSelector({
 
   /**
    * 下拉面板顶部的 Provider 切换区。
-   * 面板已限宽为 w-72（288px），两个完整标签「本地 Ollama / OpenAI 兼容」能完整显示，
-   * 不会被截断成「本地 Ol… / OpenA…」。
+   * 面板限宽 w-72（288px），两个完整标签「本地 Ollama / OpenAI 兼容」能完整显示。
    */
   const providerHeader = (
     <div className="flex flex-col gap-1.5">
-      <span className="text-[11px] font-semibold text-brand-700">Provider</span>
+      <span className="text-meta font-medium text-ink-2">Provider</span>
       <SegmentedControl
         value={providerType}
         options={PROVIDER_OPTIONS}
@@ -102,21 +102,17 @@ export function ModelSelector({
     </div>
   );
 
+  const providerLabel =
+    providerType === 'ollama' ? '本地 · Ollama' : 'OpenAI 兼容';
+
   return (
     // 纵向容器：默认只有一行；仅在出错 / 未配置时下面多出提示行
-    <div className="flex flex-col gap-1.5">
-      {/* 单行不换行：模型名占满可用宽度，刷新压成图标 */}
+    <div className="flex flex-col gap-1">
       <div className="flex items-center gap-2">
-        {/* 「当前使用」提示：品牌色实心胶囊 + 呼吸点，明确这是正在生效的模型，
-            避免用户误以为是普通的下拉设置项 */}
-        <span className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full bg-brand-500 px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm">
-          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" />
-          当前使用
-        </span>
+        <span className="shrink-0 text-meta text-ink-2">模型</span>
 
         {/* 模型：占满剩余宽度；窄屏截断，宽屏舒展 */}
         <div className="min-w-0 flex-1">
-          {/* settings 未加载完时按默认 Provider（ollama）渲染，避免控件形态闪一下 */}
           {providerType === 'ollama' ? (
             <SearchableSelect
               value={currentModel}
@@ -126,8 +122,8 @@ export function ModelSelector({
               onChange={onOllamaModelChange}
               disabled={!settings || disabled}
               loading={modelsLoading}
-              // 强调态：让「当前生效的模型」在横栏里一眼可辨
-              emphasis
+              // 轻量态：模型名是信息主角，控件本身不画框
+              flat
               placeholder="请选择模型"
               emptyText="模型列表为空，确认 Ollama 已启动并已 pull"
               testId="model-select"
@@ -146,7 +142,7 @@ export function ModelSelector({
               onChange={onOpenaiModelDraftChange}
               onCommit={onOpenaiModelCommit}
               disabled={!settings || disabled}
-              emphasis
+              flat
               placeholder="gpt-4o-mini"
               emptyText="暂无候选模型，点右侧「刷新」拉取"
               testId="openai-model-input"
@@ -157,33 +153,52 @@ export function ModelSelector({
           )}
         </div>
 
+        <span className="hidden shrink-0 text-meta text-ink-2 sm:inline">
+          {providerLabel}
+        </span>
+
         {/* 刷新压成图标，保证单行宽度；title / aria-label 保留无障碍语义 */}
-        <button
-          type="button"
-          title="刷新模型列表"
-          aria-label="刷新模型列表"
-          disabled={!settings || disabled || modelsLoading}
-          onClick={onRefresh}
-          className="inline-flex shrink-0 items-center justify-center rounded-lg border border-brand-200 bg-white p-1.5 text-brand-700 hover:bg-brand-50 disabled:opacity-50"
-        >
-          <RefreshIcon
-            className={`h-4 w-4 ${modelsLoading ? 'animate-spin' : ''}`}
-          />
-        </button>
+        <Tooltip.Provider delayDuration={300}>
+          <Tooltip.Root>
+            <Tooltip.Trigger asChild>
+              <button
+                type="button"
+                aria-label="刷新模型列表"
+                disabled={!settings || disabled || modelsLoading}
+                onClick={onRefresh}
+                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-control text-ink-2 transition hover:bg-surface-2 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30 disabled:opacity-40"
+              >
+                <RefreshIcon
+                  className={`h-4 w-4 ${modelsLoading ? 'animate-spin' : ''}`}
+                />
+              </button>
+            </Tooltip.Trigger>
+            <Tooltip.Portal>
+              <Tooltip.Content
+                side="bottom"
+                sideOffset={6}
+                className="z-50 rounded-chip bg-ink px-2 py-1 text-meta text-surface shadow-popover"
+              >
+                刷新模型列表
+                <Tooltip.Arrow className="fill-ink" />
+              </Tooltip.Content>
+            </Tooltip.Portal>
+          </Tooltip.Root>
+        </Tooltip.Provider>
       </div>
 
       {/* 提示仅在出错 / 未配置时出现，不占常驻高度 */}
       {(modelsError || modelHint) && (
-        <p className="text-[11px] leading-relaxed text-brand-700/70">
+        <p className="pl-8 text-meta leading-relaxed text-ink-2">
           {modelsError ? (
-            <span className="text-red-600">{modelsError}</span>
+            <span className="text-danger">{modelsError}</span>
           ) : (
             modelHint
           )}{' '}
           <button
             type="button"
             onClick={onOpenSettings}
-            className="font-medium text-brand-600 underline-offset-2 hover:underline"
+            className="text-label font-medium text-accent underline-offset-2 hover:underline"
           >
             去设置
           </button>

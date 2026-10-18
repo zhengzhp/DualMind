@@ -14,6 +14,7 @@ import { type ContentScriptContext } from 'wxt/utils/content-script-context';
 import { createShadowRootUi } from 'wxt/utils/content-script-ui/shadow-root';
 import { formatErrorForUi } from '@/shared/errors';
 import { getPageFabPos, savePageFabPos } from '@/shared/storage/settings';
+import { bindContentTheme } from '@/shared/ui/contentTheme';
 import { sendMessage } from '@/shared/messaging/client';
 import { createActionItem, createFabDom, createFabStyles, applyGeometry, renderActionItem, renderTriggerTone, setAttentionOpacity, setFabHidden, setMenuOpen, setMenuView, setToast, type FabDom } from './dom';
 import { resolveOpacity, resolveRevealed } from './attention';
@@ -111,6 +112,8 @@ export async function mountPageFab(
   ui.mount();
   const fab: FabDom = createFabDom();
   ui.mounted!.append(fab.wrap);
+  // 跟随扩展主题：只写入口壳，不改宿主页面
+  const unbindTheme = bindContentTheme(fab.wrap);
 
   const actions: RegisteredAction[] = [];
   let open = false;
@@ -578,6 +581,7 @@ export async function mountPageFab(
   );
 
   ctx.onInvalidated(() => {
+    unbindTheme();
     controller.abort();
     cancelHoverIntent();
     window.clearTimeout(toastTimer);

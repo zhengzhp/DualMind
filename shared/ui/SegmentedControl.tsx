@@ -17,7 +17,9 @@ export interface SegmentedControlProps<T extends string> {
 
 /**
  * 分段控件：用于只有 2~3 个互斥选项的场景。
- * 相比原生 select，选项一眼可见、少一次点击，也避免系统下拉菜单破坏视觉一致性。
+ *
+ * 视觉：surface-2 底槽 + 白色活动块 + card 阴影；活动态不再用实心品牌蓝，
+ * 避免与主按钮争夺注意力（见 docs/ui-refresh-plan.md §5-5）。
  */
 export function SegmentedControl<T extends string>({
   value,
@@ -31,7 +33,7 @@ export function SegmentedControl<T extends string>({
     <div
       role="radiogroup"
       aria-label={ariaLabel}
-      className={`flex gap-1 rounded-xl border border-brand-100 bg-brand-50 p-1 ${className}`}
+      className={`flex gap-1 rounded-control bg-surface-2 p-1 ${className}`}
     >
       {options.map((option) => {
         const active = option.value === value;
@@ -47,10 +49,10 @@ export function SegmentedControl<T extends string>({
             onClick={() => {
               if (!active) onChange(option.value);
             }}
-            className={`min-w-0 flex-1 truncate rounded-lg px-2.5 py-1.5 text-center text-xs font-semibold transition ${
+            className={`min-w-0 flex-1 truncate rounded-[7px] px-2.5 py-1.5 text-center text-label font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30 ${
               active
-                ? 'bg-brand-500 text-white shadow-sm'
-                : 'text-brand-700/70 hover:bg-white/70'
+                ? 'bg-surface text-ink shadow-card'
+                : 'text-ink-2 hover:text-ink'
             } disabled:cursor-not-allowed disabled:opacity-50`}
           >
             {option.label}

@@ -1,0 +1,97 @@
+<!doctype html>
+<!-- DualMind · 现有 Logo 审计板（仅用于诊断，不是新设计稿） -->
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>DualMind Logo Audit</title>
+<style>
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; background:#eef0f3; font-family:-apple-system,"PingFang SC","Segoe UI",sans-serif; color:#1d1d1f; }
+  #board{ width:1400px; height:760px; background:#f7f8f9; padding:40px 48px; }
+  h1{ font-size:22px; margin:0 0 4px; letter-spacing:-.01em; }
+  .sub{ font-size:13px; color:#6e6e73; margin:0 0 26px; }
+  .cols{ display:flex; gap:24px; }
+  .col{ background:#fff; border:1px solid #e6e6eb; border-radius:14px; padding:18px 20px; }
+  .col.main{ width:820px; }
+  .col.side{ width:460px; }
+  h2{ font-size:12px; letter-spacing:.08em; color:#6e6e73; font-weight:600; margin:0 0 14px; text-transform:uppercase; }
+  .sizes{ display:flex; align-items:flex-end; gap:30px; padding:6px 4px 18px; border-bottom:1px solid #ececf0; }
+  .sz{ text-align:center; }
+  .sz .box{ display:flex; align-items:flex-end; justify-content:center; margin-bottom:8px; }
+  .sz img{ display:block; border-radius:22%; }
+  .sz span{ font-size:11px; color:#8a8f98; font-variant-numeric:tabular-nums; }
+  .variants{ display:flex; gap:18px; margin-top:20px; }
+  .v{ flex:1; border:1px solid #ececf0; border-radius:10px; overflow:hidden; }
+  .v .cap{ font-size:10.5px; color:#6e6e73; padding:7px 9px; border-top:1px solid #ececf0; background:#fafafa; }
+  .v .stage{ height:120px; display:flex; align-items:center; justify-content:center; }
+  .v .stage img{ width:72px; height:72px; }
+  .dark{ background:#0a1c2b; }
+  .toolbar{ margin-top:20px; border:1px solid #ececf0; border-radius:10px; overflow:hidden; }
+  .bar{ height:44px; background:#dfe3e8; display:flex; align-items:center; gap:12px; padding:0 14px; }
+  .bar .ph{ width:16px; height:16px; border-radius:4px; background:#b9c1ca; }
+  .bar img{ width:16px; height:16px; border-radius:22%; display:block; }
+  .zoom{ margin-top:10px; display:flex; align-items:center; gap:10px; font-size:10.5px; color:#8a8f98; }
+  .zoom .big{ image-rendering:pixelated; width:64px; height:64px; }
+  .notes{ font-size:12.5px; line-height:1.75; color:#3a3a3c; }
+  .notes li{ margin:0 0 10px; }
+  .notes b{ color:#1d1d1f; }
+  .tag{ display:inline-block; font-size:10px; padding:1px 6px; border-radius:4px; background:#fdecea; color:#b42318; margin-right:6px; }
+  .tag.ok{ background:#e8f5ee; color:#0b7a53; }
+</style>
+</head>
+<body>
+<section id="board">
+  <h1>现有 Logo 审计</h1>
+  <p class="sub">资产：assets/logo.svg（浅底版）· public/icon/*.png —— 用于判断"新标需要解决什么"，不是新设计稿</p>
+  <div class="cols">
+    <div class="col main">
+      <h2>01 · 真实尺寸（1:1 像素）</h2>
+      <div class="sizes">
+        <div class="sz"><div class="box"><img src="../../../public/icon/16.png" width="16" height="16" alt=""></div><span>16 px</span></div>
+        <div class="sz"><div class="box"><img src="../../../public/icon/32.png" width="32" height="32" alt=""></div><span>32 px</span></div>
+        <div class="sz"><div class="box"><img src="../../../public/icon/48.png" width="48" height="48" alt=""></div><span>48 px</span></div>
+        <div class="sz"><div class="box"><img src="../../../public/icon/128.png" width="72" height="72" alt=""></div><span>128 px（显示 72）</span></div>
+        <div class="sz"><div class="box"><img src="../../../public/icon/128.png" width="128" height="128" alt=""></div><span>128 px（实际）</span></div>
+      </div>
+
+      <h2 style="margin-top:20px">02 · 变体与底色</h2>
+      <div class="variants">
+        <div class="v"><div class="stage" style="background:#fff"><img src="../../../public/icon/128.png" alt=""></div><div class="cap">白底</div></div>
+        <div class="v"><div class="stage dark"><img src="../../../public/icon/128.png" alt=""></div><div class="cap">深底 #0A1C2B</div></div>
+        <div class="v"><div class="stage" style="background:#fff"><img src="../../../public/icon/128.png" style="filter:grayscale(1)" alt=""></div><div class="cap">灰度</div></div>
+        <div class="v"><div class="stage" style="background:#fff"><img src="../../../public/icon/128.png" style="filter:brightness(0)" alt=""></div><div class="cap">剪影：整块变黑（失败）</div></div>
+      </div>
+
+      <h2 style="margin-top:20px">03 · 放进一排 16px 图标里</h2>
+      <div class="toolbar">
+        <div class="bar">
+          <span class="ph"></span><span class="ph"></span>
+          <img src="../../../public/icon/16.png" alt="">
+          <span class="ph"></span><span class="ph"></span><span class="ph"></span>
+        </div>
+        <div class="zoom"><img class="big" src="../../../public/icon/16.png" alt="">16px 放大 4×（像素化查看）</div>
+      </div>
+    </div>
+
+    <div class="col side">
+      <h2>04 · 诊断</h2>
+      <ul class="notes" style="padding-left:16px; margin:0">
+        <li><span class="tag">小尺寸</span>16px 下，深蓝/浅蓝的分割退化成一块灰角，"双 D"读不出来，只剩一个模糊的 D。</li>
+        <li><span class="tag">底色</span>标记依赖渐变底板；深底上蓝色底板与页面接近，边缘要靠白环撑住。</li>
+        <li><span class="tag">单色</span>没有单色 / 反白版本，图标一旦要去掉渐变就失去识别点。</li>
+        <li><span class="tag">一致性</span>图标是硬边几何，字标是自绘轮廓，两者没有共同网格。</li>
+        <li><span class="tag ok">保留</span>蓝色的气质与"双"的概念是对的；<b>问题在造型，不在配色</b>。</li>
+      </ul>
+      <h2 style="margin-top:22px">05 · 新标必须通过</h2>
+      <ul class="notes" style="padding-left:16px; margin:0">
+        <li>16px 剪影可辨（不靠颜色）</li>
+        <li>纯黑 / 纯白 / 单蓝三态成立</li>
+        <li>与字标共用一套几何比例</li>
+        <li>深浅底都不加描边</li>
+        <li>提供 16 / 24 / 32 简化标</li>
+      </ul>
+    </div>
+  </div>
+</section>
+</body>
+</html>

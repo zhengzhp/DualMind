@@ -69,7 +69,8 @@ export const OLLAMA_MODEL = process.env.DM_OLLAMA_MODEL ?? 'qwen-coder-8k:latest
 
 /** service worker 上下文里的 chrome.storage 最小类型声明 */
 interface ChromeStorageLocal {
-  get(key: string): Promise<Record<string, unknown>>;
+  /** Chrome 原生支持 string / string[] / 对象三种形态；这里补上数组重载 */
+  get(key: string | string[]): Promise<Record<string, unknown>>;
   set(items: Record<string, unknown>): Promise<void>;
 }
 declare const chrome: { storage: { local: ChromeStorageLocal } };
@@ -424,7 +425,7 @@ export async function openAgentSurface(
 ): Promise<Page> {
   const page = await context.newPage();
   await page.goto(`chrome-extension://${extensionId}/${surface}.html`);
-  await page.getByRole('button', { name: 'Agent', exact: true }).click();
+  await page.getByRole('tab', { name: 'Agent', exact: true }).click();
   await expect(page.getByText('本页操作 Agent', { exact: true })).toBeVisible();
   return page;
 }

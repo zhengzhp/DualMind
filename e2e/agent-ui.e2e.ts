@@ -3,7 +3,7 @@
  *
  * 覆盖：UI-01（FAB → 真实侧栏 / 切 Agent Tab）、UI-03（关 FAB 后 Agent 仍可用）、
  * UI-04（隐藏 FAB ≠ 整站禁用）、UI-05（多内容页任务互不串）、
- * UI-09（未配模型的可读错误，非无限 loading）、UI-11（与网页助手并发）。
+ * UI-09（未配模型的可读错误，非无限 loading）、UI-11（与阅读助手并发）。
  *
  * 用 `wxt build` 产物 + `e2e/mock-llm.ts`（确定性，不依赖真实模型）。
  * **UI-01a 必须用有头**：无头下 `sidePanel.open()` 不产生真实 SIDE_PANEL 表面，
@@ -383,9 +383,7 @@ test.describe('Agent · 入口与 UI（B8）', () => {
     //    - 另有一处提示 `请先在设置中填写 API Key 去设置`（带尾巴的 `<p>`）。
     //    只有面板时间线里的 `<p class="mt-2 text-xs text-red-700">` 是 Agent 的真实报错。
     await expect(
-      agentPage.locator('p.text-red-700:visible', {
-        hasText: '请先在设置中填写 API Key',
-      }),
+      agentPage.getByTestId('agent-error'),
     ).toBeVisible({ timeout: 60_000 });
 
     // ② 非无限 loading：输入与「开始」都回到可用态，用户可改配置后重试
@@ -394,15 +392,15 @@ test.describe('Agent · 入口与 UI（B8）', () => {
   });
 
   /* ------------------------------------------------------------------
-   * UI-11 · 与网页助手并发：互不打断，两边都不写页面
+   * UI-11 · 与阅读助手并发：互不打断，两边都不写页面
    *
-   * 说明（范围收敛）：本条覆盖「Agent + 网页助手」并发。
+   * 说明（范围收敛）：本条覆盖「Agent + 阅读助手」并发。
    * 沉浸译与 Agent 的并发未并入本条 —— 沉浸译按段落逐次调用模型，
    * 与 Agent 共用同一个有序 mock 脚本时步数不可预知（会随分段数漂移），
    * 强行合并只会得到不稳定用例。沉浸译自身由 `e2e/immersive.e2e.ts` 覆盖，
    * 三功能同页并发保留为 runbook B8 Step 3 的人工项。
    * ------------------------------------------------------------------ */
-  test('UI-11 · Agent 与网页助手并发：都不被彼此打断，且都不写页面', async ({
+  test('UI-11 · Agent 与阅读助手并发：都不被彼此打断，且都不写页面', async ({
     context,
     serviceWorker,
     extensionId,
@@ -426,7 +424,7 @@ test.describe('Agent · 入口与 UI（B8）', () => {
 
     const chatPage = await context.newPage();
     await chatPage.goto(`chrome-extension://${extensionId}/workspace.html`);
-    await chatPage.getByRole('button', { name: '网页助手', exact: true }).click();
+    await chatPage.getByRole('tab', { name: '阅读助手', exact: true }).click();
     await chatPage.bringToFront();
     await expect(chatPage.getByTestId('chat-bound-page')).toContainText(
       '127.0.0.1',
@@ -438,7 +436,7 @@ test.describe('Agent · 入口与 UI（B8）', () => {
 
     // ① 先发起网页摘要，确认它真的在流式
     await chatPage.getByRole('button', { name: '总结本页' }).click();
-    // `.first()`：两个面板都常驻挂载，用 DOM 顺序取「网页助手」那个（翻译/助手在前，Agent 在后）
+    // `.first()`：两个面板都常驻挂载，用 DOM 顺序取「阅读助手」那个（翻译/助手在前，Agent 在后）
     const chatStop = chatPage
       .getByRole('button', { name: '停止', exact: true })
       .first();
@@ -467,7 +465,7 @@ test.describe('Agent · 入口与 UI（B8）', () => {
     });
     await expect(assistant).not.toContainText('正在生成…');
 
-    // ⑤ 两边都不写页面：Agent 是只读目标，网页助手本身只读
+    // ⑤ 两边都不写页面：Agent 是只读目标，阅读助手本身只读
     expect((await readCounters(contentPage)).actions).toHaveLength(0);
   });
 });

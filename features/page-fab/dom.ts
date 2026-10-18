@@ -54,7 +54,7 @@ export type FabMenuView = 'actions' | 'hide';
 export const BRAND_VIEWBOX = 128;
 
 /**
- * 品牌标记（浅蓝圆底 + 深蓝双 D）。
+ * 品牌标记（浅蓝圆底 + 深蓝单色双页标，折缝用底板渐变挖出）。
  *
  * **几何与配色逐字取自 `assets/logo.svg`**（浅色极性），由 `dom.test.ts` 与资产
  * 逐字比对：不引 `web_accessible_resources`，也不允许出现第二份互相矛盾的图标源。
@@ -70,10 +70,8 @@ export const BRAND_MARK_SVG =
   '<stop offset="0" stop-color="#eef8ff"/><stop offset="1" stop-color="#d9eeff"/>' +
   '</linearGradient></defs>' +
   `<circle cx="64" cy="64" r="${BRAND_VIEWBOX / 2}" fill="url(#dmTile)"/>` +
-  '<g>' +
-  '<path fill-rule="nonzero" fill="#0f2f4d" d="M50 30L50 30Q60 30 60 40L60 64L40 64L40 40Q40 30 50 30ZM54 30C72.78 30 88 45.22 88 64L71 64C71 54.61 63.39 47 54 47Z"/>' +
-  '<path fill-rule="nonzero" fill="#1b7fd1" d="M40 64L60 64L60 88Q60 98 50 98L50 98Q40 98 40 88ZM88 64C88 82.78 72.78 98 54 98L54 81C63.39 81 71 73.39 71 64Z"/>' +
-  '</g>' +
+  '<path fill="#0f2f4d" d="M33.2 20 L57.7 20 C83 20 101.7 39.7 101.7 64 C101.7 88.3 82 108 57.7 108 L33.2 108 C30.4 108 26.3 104.9 26.3 101.1 L26.3 26.9 C26.3 23.7 29.1 20 33.2 20 Z"/>' +
+  '<path fill="url(#dmTile)" d="M35.7 30 L42 30 L42 98 L35.7 98 Z"/>' +
   '</svg>';
 
 /**
@@ -147,8 +145,9 @@ const TONE_PRIORITY: Record<PageFabTone, number> = {
  * 一个反引号就会提前终止模板，整个模块语法失败、构建静默用旧样式。
  * 需要引用标识符时直接写名字，不要用 Markdown 式的反引号包起来。
  */
-export function createFabStyles(): string {
-  return `
+export function createFabStyles(fontCss = ''): string {
+  return `${fontCss}
+
     :host { all: initial; }
     .dm-pf {
       position: fixed;
@@ -169,12 +168,27 @@ export function createFabStyles(): string {
       --dm-pf-idle-opacity: 1;
       /* 状态环颜色：默认透明（无状态不打环），由 data-tone 覆写 */
       --dm-pf-tone: transparent;
+      /* 语义 token（浅色）：与扩展页面同一套值 */
+      --dm-pf-surface: #ffffff;
+      --dm-pf-surface-2: #fafafc;
+      --dm-pf-ink: #1d1d1f;
+      --dm-pf-ink-2: #6e6e73;
+      --dm-pf-ink-3: #8e8e93;
+      --dm-pf-line: #e6e6eb;
+      --dm-pf-accent: #1466ad;
+      --dm-pf-accent-soft: #eaf3fb;
+      --dm-pf-success: #0b7a53;
+      --dm-pf-warn: #b25000;
+      --dm-pf-danger: #c4342d;
+      --dm-pf-toast-bg: rgba(20, 32, 46, 0.94);
+      --dm-pf-toast-ink: #ffffff;
       /* 按钮与面板之间的空隙宽度 */
       --dm-pf-gap: 8px;
-      font-family: "IBM Plex Sans", "Noto Sans SC", system-ui, -apple-system, sans-serif;
+      font-family: "IBM Plex Sans", "IBM Plex Sans SC", "PingFang SC",
+        "Microsoft YaHei", system-ui, -apple-system, sans-serif;
       font-size: 12px;
       line-height: 1.35;
-      color: #0f2f4d;
+      color: var(--dm-pf-ink);
       z-index: 2147483645;
     }
     /* 无动作注册时不占位（例如某站点只注入了划词能力） */
@@ -202,8 +216,8 @@ export function createFabStyles(): string {
       background: none;
       /* 展开态：正圆 */
       border-radius: 50%;
-      box-shadow: 0 0 0 1px rgba(15, 47, 77, 0.18),
-        0 0 0 3px var(--dm-pf-tone), 0 4px 12px rgba(15, 47, 77, 0.22);
+      box-shadow: 0 0 0 1px rgba(15, 23, 32, 0.18),
+        0 0 0 3px var(--dm-pf-tone), 0 4px 12px rgba(15, 23, 32, 0.22);
       cursor: grab;
       touch-action: none;
       /*
@@ -278,7 +292,7 @@ export function createFabStyles(): string {
       width: 3px;
       height: 3px;
       border-radius: 50%;
-      background: rgba(15, 47, 77, 0.72);
+      background: rgba(15, 23, 32, 0.72);
     }
     .dm-pf[data-peek="true"][data-reveal="false"] .dm-pf-grip { opacity: 1; }
     /* 后置 + 更高特异性：稳定赢过变量，不依赖书写顺序的巧合 */
@@ -288,10 +302,10 @@ export function createFabStyles(): string {
       opacity: 1;
     }
     .dm-pf-trigger:hover {
-      box-shadow: 0 0 0 1px rgba(15, 47, 77, 0.24),
-        0 0 0 3px var(--dm-pf-tone), 0 8px 18px rgba(15, 47, 77, 0.3);
+      box-shadow: 0 0 0 1px rgba(15, 23, 32, 0.24),
+        0 0 0 3px var(--dm-pf-tone), 0 8px 18px rgba(15, 23, 32, 0.3);
     }
-    .dm-pf-trigger:focus-visible { outline: 2px solid #1b7fd1; outline-offset: 4px; }
+    .dm-pf-trigger:focus-visible { outline: 2px solid var(--dm-pf-accent); outline-offset: 4px; }
     /*
      * 品牌标记只在完整圆形里出现：把手状态把 svg 拉成 12x40 会糊成一团，
      * 交叉淡入淡出比缩放更稳（缩放会经过一段「畸形的中间态」）。
@@ -312,22 +326,22 @@ export function createFabStyles(): string {
      * 由发丝环与圆底隔开，深底 / 浅底 / 花底都能读出来。
      * 未点亮（idle）时保持透明，不打环。
      */
-    .dm-pf[data-indicator="true"][data-tone="busy"] { --dm-pf-tone: #1b7fd1; }
-    .dm-pf[data-indicator="true"][data-tone="active"] { --dm-pf-tone: #17a673; }
-    .dm-pf[data-indicator="true"][data-tone="warning"] { --dm-pf-tone: #d9a13b; }
-    .dm-pf[data-indicator="true"][data-tone="error"] { --dm-pf-tone: #d92d20; }
+    .dm-pf[data-indicator="true"][data-tone="busy"] { --dm-pf-tone: var(--dm-pf-accent); }
+    .dm-pf[data-indicator="true"][data-tone="active"] { --dm-pf-tone: var(--dm-pf-success); }
+    .dm-pf[data-indicator="true"][data-tone="warning"] { --dm-pf-tone: var(--dm-pf-warn); }
+    .dm-pf[data-indicator="true"][data-tone="error"] { --dm-pf-tone: var(--dm-pf-danger); }
     /* 「进行中」用动效表达，比换个颜色更少歧义（颜色已被语义状态占用） */
     .dm-pf[data-indicator="true"][data-tone="busy"] .dm-pf-trigger {
       animation: dm-pf-pulse 1.4s ease-out infinite;
     }
     @keyframes dm-pf-pulse {
       0%, 100% {
-        box-shadow: 0 0 0 1px rgba(15, 47, 77, 0.18),
-          0 0 0 3px var(--dm-pf-tone), 0 4px 12px rgba(15, 47, 77, 0.22);
+        box-shadow: 0 0 0 1px rgba(15, 23, 32, 0.18),
+          0 0 0 3px var(--dm-pf-tone), 0 4px 12px rgba(15, 23, 32, 0.22);
       }
       70% {
-        box-shadow: 0 0 0 1px rgba(15, 47, 77, 0.18),
-          0 0 0 10px rgba(27, 127, 209, 0), 0 4px 12px rgba(15, 47, 77, 0.22);
+        box-shadow: 0 0 0 1px rgba(15, 23, 32, 0.18),
+          0 0 0 10px rgba(27, 127, 209, 0), 0 4px 12px rgba(15, 23, 32, 0.22);
       }
     }
     /*
@@ -361,10 +375,10 @@ export function createFabStyles(): string {
       gap: 2px;
       min-width: 220px;
       padding: 8px;
-      border: 1px solid #e3edf8;
+      border: 1px solid var(--dm-pf-line);
       border-radius: 16px;
-      background: rgba(255, 255, 255, 0.98);
-      box-shadow: 0 12px 32px rgba(15, 47, 77, 0.22);
+      background: var(--dm-pf-surface);
+      box-shadow: 0 12px 32px rgba(15, 23, 32, 0.18);
       opacity: 0;
       visibility: hidden;
       /* 从按钮那一角「长出来」：位移给方向、缩放给高度感 */
@@ -397,14 +411,14 @@ export function createFabStyles(): string {
       gap: 7px;
       padding: 1px 2px 6px;
       margin-bottom: 4px;
-      border-bottom: 1px solid #e8f1fa;
+      border-bottom: 1px solid var(--dm-pf-line);
     }
     .dm-pf-head-mark { display: flex; flex: none; width: 18px; height: 18px; }
     .dm-pf-head-mark svg { width: 100%; height: 100%; }
     .dm-pf-head-title {
       flex: 1;
       min-width: 0;
-      color: #123a5c;
+      color: var(--dm-pf-ink);
       font-size: 12px;
       font-weight: 600;
     }
@@ -419,11 +433,11 @@ export function createFabStyles(): string {
       border: 0;
       border-radius: 7px;
       background: transparent;
-      color: #5b7a99;
+      color: var(--dm-pf-ink-2);
       cursor: pointer;
     }
-    .dm-pf-close:hover { background: #eef4fa; color: #123a5c; }
-    .dm-pf-close:focus-visible { outline: 2px solid #1b7fd1; outline-offset: 1px; }
+    .dm-pf-close:hover { background: var(--dm-pf-surface-2); color: var(--dm-pf-ink); }
+    .dm-pf-close:focus-visible { outline: 2px solid var(--dm-pf-accent); outline-offset: 1px; }
     .dm-pf-close svg { width: 14px; height: 14px; }
 
     .dm-pf-item {
@@ -437,7 +451,7 @@ export function createFabStyles(): string {
       border: 0;
       border-radius: 11px;
       background: transparent;
-      color: #123a5c;
+      color: var(--dm-pf-ink);
       font: inherit;
       font-size: 12.5px;
       font-weight: 600;
@@ -445,8 +459,8 @@ export function createFabStyles(): string {
       cursor: pointer;
       white-space: nowrap;
     }
-    .dm-pf-item:hover { background: #eaf3fc; }
-    .dm-pf-item:focus-visible { outline: 2px solid #1b7fd1; outline-offset: -2px; }
+    .dm-pf-item:hover { background: var(--dm-pf-accent-soft); }
+    .dm-pf-item:focus-visible { outline: 2px solid var(--dm-pf-accent); outline-offset: -2px; }
 
     /*
      * 展开时动作项错峰淡入（序号由 mount.ts 写进 --dm-pf-i）。
@@ -477,11 +491,11 @@ export function createFabStyles(): string {
       flex-direction: column;
       margin-top: 5px;
       padding-top: 5px;
-      border-top: 1px solid #e8f1fa;
+      border-top: 1px solid var(--dm-pf-line);
     }
     /* 隐藏 / 返回属于「次要且不可逆」的操作，刻意比动作项轻 */
-    .dm-pf-item-quiet { color: #5b7a99; font-weight: 500; }
-    .dm-pf-item-quiet:hover { background: #f2f6fb; }
+    .dm-pf-item-quiet { color: var(--dm-pf-ink-2); font-weight: 500; }
+    .dm-pf-item-quiet:hover { background: var(--dm-pf-surface-2); }
 
     /*
      * 二级视图「原地换内容」而不是侧向飞出：
@@ -494,11 +508,11 @@ export function createFabStyles(): string {
     .dm-pf[data-view="hide"] .dm-pf-menu-footer { display: none; }
     .dm-pf-menu-hide-note {
       padding: 2px 9px 4px;
-      color: #5b7a99;
+      color: var(--dm-pf-ink-2);
       font-size: 11px;
       font-weight: 500;
     }
-    .dm-pf-item-icon { display: flex; flex: none; color: #1b7fd1; }
+    .dm-pf-item-icon { display: flex; flex: none; color: var(--dm-pf-accent); }
     /* 未配置图标的动作不留空位（否则会在行内多出一个 gap） */
     .dm-pf-item-icon:empty { display: none; }
     .dm-pf-item-icon svg { width: 16px; height: 16px; }
@@ -514,15 +528,15 @@ export function createFabStyles(): string {
       text-overflow: ellipsis;
       font-weight: 600;
     }
-    .dm-pf-item-status { flex: none; color: #5b7a99; font-size: 11px; font-weight: 500; }
+    .dm-pf-item-status { flex: none; color: var(--dm-pf-ink-2); font-size: 11px; font-weight: 500; }
     /* 无状态文案时不占位（否则会多出一个 gap 的空隙） */
     .dm-pf-item-status:empty { display: none; }
-    .dm-pf-item[data-tone="busy"] .dm-pf-item-icon { color: #1b7fd1; }
-    .dm-pf-item[data-tone="active"] .dm-pf-item-icon { color: #17a673; }
-    .dm-pf-item[data-tone="warning"] .dm-pf-item-icon { color: #d9a13b; }
-    .dm-pf-item[data-tone="error"] .dm-pf-item-icon { color: #d92d20; }
-    .dm-pf-item[data-tone="error"] .dm-pf-item-label { color: #b42318; }
-    .dm-pf-item[data-tone="warning"] .dm-pf-item-status { color: #a9761f; }
+    .dm-pf-item[data-tone="busy"] .dm-pf-item-icon { color: var(--dm-pf-accent); }
+    .dm-pf-item[data-tone="active"] .dm-pf-item-icon { color: var(--dm-pf-success); }
+    .dm-pf-item[data-tone="warning"] .dm-pf-item-icon { color: var(--dm-pf-warn); }
+    .dm-pf-item[data-tone="error"] .dm-pf-item-icon { color: var(--dm-pf-danger); }
+    .dm-pf-item[data-tone="error"] .dm-pf-item-label { color: var(--dm-pf-danger); }
+    .dm-pf-item[data-tone="warning"] .dm-pf-item-status { color: var(--dm-pf-warn); }
 
     /*
      * 动作失败时的一次性提示（入口壳统一兜底，动作内部无需再管 UI）。
@@ -544,8 +558,8 @@ export function createFabStyles(): string {
       box-sizing: border-box;
       padding: 6px 9px;
       border-radius: 10px;
-      background: rgba(20, 32, 46, 0.94);
-      color: #fff;
+      background: var(--dm-pf-toast-bg);
+      color: var(--dm-pf-toast-ink);
       font-size: 11px;
       line-height: 1.4;
       /* 提示文案里会内嵌 hostname（「已在本站 a.b.c 隐藏」）：
@@ -576,6 +590,31 @@ export function createFabStyles(): string {
     .dm-pf[data-hidden="true"] .dm-pf-menu {
       visibility: hidden;
       pointer-events: none;
+    }
+
+    /* 深色：内容脚本跟随扩展主题（由 bindContentTheme 写 data-dm-theme） */
+    .dm-pf[data-dm-theme="dark"] {
+      --dm-pf-surface: #1a1d23;
+      --dm-pf-surface-2: #21252c;
+      --dm-pf-ink: #f2f3f5;
+      --dm-pf-ink-2: #a6adb8;
+      --dm-pf-ink-3: #6b7280;
+      --dm-pf-line: #2b3038;
+      --dm-pf-accent: #6faeec;
+      --dm-pf-accent-soft: #1b2a3a;
+      --dm-pf-success: #3dd68c;
+      --dm-pf-warn: #f0b25b;
+      --dm-pf-danger: #f2777a;
+      --dm-pf-toast-bg: rgba(242, 243, 245, 0.96);
+      --dm-pf-toast-ink: #121418;
+    }
+    .dm-pf[data-dm-theme="dark"] .dm-pf-trigger {
+      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.18),
+        0 0 0 3px var(--dm-pf-tone), 0 4px 12px rgba(0, 0, 0, 0.45);
+    }
+    .dm-pf[data-dm-theme="dark"] .dm-pf-trigger:hover {
+      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.26),
+        0 0 0 3px var(--dm-pf-tone), 0 8px 18px rgba(0, 0, 0, 0.55);
     }
   `;
 }

@@ -101,9 +101,10 @@ describe('品牌标记的单一几何源', () => {
     expect(BRAND_MARK_SVG).not.toContain('#1466ad');
   });
 
-  it('字形用浅色极性的配色（深蓝主形 + 品牌蓝副形）', () => {
+  it('字形用单色主形 + 折缝负形（不再有品牌蓝副形）', () => {
     expect(BRAND_MARK_SVG).toContain('fill="#0f2f4d"');
-    expect(BRAND_MARK_SVG).toContain('fill="#1b7fd1"');
+    // 折缝用底板渐变挖出，不再需要第二种字形颜色
+    expect(BRAND_MARK_SVG).not.toContain('fill="#1b7fd1"');
   });
 
   it('底板改为圆形且铺满 viewBox（不再靠 clip-path 裁形状）', () => {

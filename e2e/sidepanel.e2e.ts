@@ -39,7 +39,7 @@ test.describe('Side Panel 翻译工作台', () => {
     // 译文（第二个 textarea，只读）应填入中文
     const translated = page.locator('textarea').nth(1);
     await expect(translated).toHaveValue(/[\u4e00-\u9fff]/, { timeout: 150_000 });
-    await expect(page.locator('.text-red-700')).toHaveCount(0);
+    await expect(page.getByTestId('translate-error')).toHaveCount(0);
   });
 
   test('切到 OpenAI 兼容但未配 Key 时给出提示', async ({
@@ -99,7 +99,7 @@ test.describe('Side Panel 翻译工作台', () => {
       .getByRole('button', { name: '翻译', exact: true })
       .click();
 
-    await expect(page.locator('.text-red-700')).toContainText('无法连接 Ollama', {
+    await expect(page.getByTestId('translate-error')).toContainText('无法连接 Ollama', {
       timeout: 60_000,
     });
   });

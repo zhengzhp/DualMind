@@ -2,8 +2,14 @@
  * 共享 UI 组件（Options 页 / Side Panel / 全页工作台通用）。
  * 这里只放纯展示组件，不依赖任何 storage / messaging，保持可测试。
  */
-export { fieldClass } from './field';
-export { CheckIcon, ChevronDownIcon, RefreshIcon } from './icons';
+export { fieldClass, fieldClassEmphasis, fieldClassQuiet } from './field';
+export {
+  CheckIcon,
+  ChevronDownIcon,
+  RefreshIcon,
+  SettingsIcon,
+  WorkspaceIcon,
+} from './icons';
 export {
   SegmentedControl,
   type SegmentedControlOption,

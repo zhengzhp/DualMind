@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 280" role="img" aria-label="DualMind">
+  <title>DualMind mark — two pages / fold</title>
+  <defs>
+    <mask id="foldMask">
+      <rect x="0" y="0" width="240" height="280" fill="#ffffff"/>
+      <rect x="30" y="30" width="20" height="220" rx="4" fill="#000000"/>
+    </mask>
+  </defs>
+  <path fill="currentColor" mask="url(#foldMask)" d="M22 0 H100 A140 140 0 0 1 100 280 H22 A22 22 0 0 1 0 258 V22 A22 22 0 0 1 22 0 Z"/>
+</svg>

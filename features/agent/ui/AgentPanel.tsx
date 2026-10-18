@@ -9,24 +9,71 @@ import { useAgent } from './useAgent';
 
 export type AgentSurface = 'sidepanel' | 'workspace';
 
-function kindClass(kind: AgentTimelineItem['kind']): string {
+/** 时间线只给图标上色，正文保持中性，避免整行变成「报警条」 */
+function kindIconClass(kind: AgentTimelineItem['kind']): string {
   switch (kind) {
     case 'error':
     case 'blocked':
-      return 'text-red-700';
+      return 'text-danger';
     case 'danger':
-      return 'text-amber-700';
+      return 'text-warn';
     case 'plan':
-      return 'text-brand-800 font-medium';
+      return 'text-accent';
     case 'result':
-      return 'text-emerald-800';
+      return 'text-success';
     default:
-      return 'text-brand-800/90';
+      return 'text-ink-3';
   }
 }
 
+function kindTextClass(kind: AgentTimelineItem['kind']): string {
+  switch (kind) {
+    case 'error':
+    case 'blocked':
+      return 'text-danger';
+    case 'danger':
+      return 'text-warn';
+    default:
+      return 'text-ink-2';
+  }
+}
+
+/** 12px 线性图标：同一套笔画规则，尺寸与正文首行对齐 */
+function KindIcon({ kind }: { kind: AgentTimelineItem['kind'] }) {
+  const path = (() => {
+    switch (kind) {
+      case 'error':
+      case 'blocked':
+        return 'M10 3a7 7 0 1 0 0 14 7 7 0 0 0 0-14Zm-2 5 4 4m0-4-4 4';
+      case 'danger':
+        return 'M10 3l7 13H3l7-13Zm0 4v4m0 2.5v.5';
+      case 'plan':
+        return 'M4 5h12M4 10h12M4 15h8';
+      case 'result':
+        return 'M4 10.5l3.5 3.5L16 5.5';
+      default:
+        return 'M10 3a7 7 0 1 0 0 14 7 7 0 0 0 0-14Zm0 6v4m0-7v.5';
+    }
+  })();
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      fill="none"
+      aria-hidden="true"
+      className="h-3.5 w-3.5"
+    >
+      <path
+        d={path}
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 export function AgentPanel({
-  surface,
   pendingAction,
   onPendingHandled,
 }: {
@@ -39,7 +86,6 @@ export function AgentPanel({
   /** 能力说明默认折叠，把纵向空间留给时间线 */
   const [showHelp, setShowHelp] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const isPage = surface === 'workspace';
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -54,30 +100,33 @@ export function AgentPanel({
       ]
         .filter(Boolean)
         .join(' · ')
-    : agent.phase === 'planning' ? '正在绑定目标网页…' : '未绑定可读网页（请先打开 http(s) 页面）';
+    : agent.phase === 'planning'
+      ? '正在绑定目标网页…'
+      : '未绑定可读网页（请先打开 http(s) 页面）';
 
   const enabled = agent.prefs?.enabled !== false;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2.5">
-      {/* 顶栏：默认两行紧凑；长说明收入「说明」折叠 */}
-      <div className="shrink-0 rounded-xl border border-brand-100/80 bg-white/70 px-3 py-2">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex min-w-0 flex-1 items-center gap-1.5">
-            <p className="shrink-0 text-xs font-medium text-brand-800">
+      {/* 顶栏：标题 + 绑定页 chip + 启用开关；长说明收入「说明」折叠 */}
+      <div className="shrink-0 rounded-card border border-line bg-surface px-3 py-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+            <p className="shrink-0 text-body font-medium text-ink">
               本页操作 Agent
             </p>
-            <p
-              className="min-w-0 truncate text-[11px] text-brand-700/70"
+            <span
+              className="inline-flex min-w-0 max-w-full items-center gap-1 rounded-chip bg-surface-2 px-2 py-0.5 text-meta text-ink-2"
               title={pageLabel}
             >
-              {pageLabel}
-            </p>
+              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
+              <span className="truncate">{pageLabel}</span>
+            </span>
           </div>
-          <label className="flex shrink-0 items-center gap-1.5 text-[11px] text-brand-700">
+          <label className="flex shrink-0 items-center gap-1.5 text-label text-ink-2">
             <input
               type="checkbox"
-              className="rounded border-brand-200"
+              className="h-4 w-4 accent-accent"
               checked={enabled}
               disabled={!agent.prefs || agent.busy}
               onChange={(e) => void agent.setEnabled(e.target.checked)}
@@ -85,23 +134,23 @@ export function AgentPanel({
             启用
           </label>
         </div>
-        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px]">
+        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-label">
           <button
             type="button"
-            className="text-brand-600 underline-offset-2 hover:underline disabled:opacity-40"
+            className="text-ink-2 underline-offset-2 transition hover:text-ink hover:underline disabled:opacity-40"
             onClick={() => void agent.refreshPage()}
             disabled={agent.busy}
           >
             刷新绑定页
           </button>
-          <span className="text-brand-700/40">·</span>
-          <span className="text-brand-700/55">
+          <span className="text-ink-3">·</span>
+          <span className="tabular-nums text-ink-2">
             上限 {agent.prefs?.maxSteps ?? 20} 步
           </span>
-          <span className="text-brand-700/40">·</span>
+          <span className="text-ink-3">·</span>
           <button
             type="button"
-            className="text-brand-600 underline-offset-2 hover:underline"
+            className="text-ink-2 underline-offset-2 transition hover:text-ink hover:underline"
             aria-expanded={showHelp}
             onClick={() => setShowHelp((v) => !v)}
           >
@@ -109,10 +158,10 @@ export function AgentPanel({
           </button>
         </div>
         {showHelp && (
-          <p className="mt-1.5 text-[11px] leading-relaxed text-brand-700/75">
+          <p className="mt-1.5 text-meta leading-relaxed text-ink-2">
             需支持 tool calling 的模型。流程：生成计划 → 你批准 → 本页逐步操作。删除
             等危险动作会再次弹窗确认；
-            <span className="font-medium text-rose-700">
+            <span className="font-medium text-danger">
               支付 / 下单 / 转账等资金类动作直接拒绝
             </span>
             ，不会执行、也无法通过确认放行。不支持 Shadow DOM / 跨域 iframe。
@@ -121,93 +170,128 @@ export function AgentPanel({
       </div>
 
       {!enabled && (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+        <div className="rounded-control border border-warn/20 bg-warn-soft px-3 py-2 text-label leading-relaxed text-warn">
           Agent 已关闭。勾选上方「启用」后再试。
         </div>
       )}
 
-      {/* 计划卡：正文限高可滚，按钮吸底，避免长计划把「批准」顶出视口 */}
+      {/* 计划卡：白卡 + 编号步骤；正文限高可滚，按钮吸底 */}
       {agent.phase === 'awaiting_plan' && agent.plan && (
-        <div className="flex shrink-0 flex-col rounded-xl border border-brand-200 bg-brand-50/80 p-3">
-          <p className="shrink-0 text-xs font-medium text-brand-900">
-            请确认执行计划
-          </p>
-          <pre className="mt-2 max-h-[40vh] min-h-0 overflow-y-auto whitespace-pre-wrap font-sans text-xs leading-relaxed text-brand-800">
-            {agent.planText}
-          </pre>
-          <div className="mt-3 flex shrink-0 gap-2">
+        <div className="flex shrink-0 flex-col rounded-card border border-line bg-surface p-3 shadow-card">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-body font-medium text-ink">请确认执行计划</p>
+            <span className="rounded-chip bg-accent-soft px-2 py-0.5 text-meta font-medium text-accent">
+              计划
+            </span>
+          </div>
+          <ol className="mt-2 max-h-[40vh] min-h-0 space-y-1.5 overflow-y-auto pr-1">
+            {agent.plan.steps.map((step, index) => (
+              <li
+                key={index}
+                className="flex gap-2 text-body leading-[22px] text-ink-2"
+              >
+                <span className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-surface-2 text-meta font-semibold tabular-nums text-ink-2">
+                  {index + 1}
+                </span>
+                <span className="min-w-0 break-words">{step}</span>
+              </li>
+            ))}
+          </ol>
+          {agent.plan.notes && (
+            <p className="mt-2 rounded-chip bg-surface-2 px-2.5 py-1.5 text-meta leading-relaxed text-ink-2">
+              备注：{agent.plan.notes}
+            </p>
+          )}
+          <div className="mt-3 flex shrink-0 justify-end gap-2 border-t border-line pt-3">
             <button
               type="button"
-              className="rounded-lg bg-brand-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-800"
-              onClick={() => agent.approvePlan()}
-            >
-              批准并执行
-            </button>
-            <button
-              type="button"
-              className="rounded-lg border border-brand-200 bg-white px-3 py-1.5 text-xs text-brand-800"
+              className="inline-flex h-8 items-center rounded-control border border-line bg-surface px-3 text-label font-medium text-ink-2 transition hover:bg-surface-2 hover:text-ink"
               onClick={() => agent.rejectPlan()}
             >
               取消
+            </button>
+            <button
+              type="button"
+              className="inline-flex h-8 items-center rounded-control bg-accent px-3 text-label font-semibold text-on-accent transition hover:bg-accent-hover"
+              onClick={() => agent.approvePlan()}
+            >
+              批准并执行
             </button>
           </div>
         </div>
       )}
 
       {agent.result && (
-        <p className={`shrink-0 rounded-lg px-3 py-2 text-xs ${agent.result === 'success' ? 'bg-emerald-50 text-emerald-800' : 'bg-amber-50 text-amber-900'}`}>
-          {agent.result === 'success' ? '任务成功完成' : agent.result === 'cancelled' ? '任务已取消；已发生的页面动作无法撤销' : '任务未完成，请查看步骤记录后重试'}
+        <p
+          className={
+            'shrink-0 rounded-control px-3 py-2 text-label leading-relaxed ' +
+            (agent.result === 'success'
+              ? 'border border-success/20 bg-success-soft text-success'
+              : agent.result === 'cancelled'
+                ? 'border border-warn/20 bg-warn-soft text-warn'
+                : 'border border-danger/20 bg-danger-soft text-danger')
+          }
+        >
+          {agent.result === 'success'
+            ? '任务成功完成'
+            : agent.result === 'cancelled'
+              ? '任务已取消；已发生的页面动作无法撤销'
+              : '任务未完成，请查看步骤记录后重试'}
         </p>
       )}
-      {/* 危险确认：理由过长时可滚，操作按钮始终可见 */}
+
+      {/* 危险确认：浅底深字；跳过在左、仍要执行在右（危险动作） */}
       {agent.danger && (
         <div
           data-testid="agent-danger"
-          className="flex shrink-0 flex-col rounded-xl border border-amber-300 bg-amber-50 p-3"
+          className="flex shrink-0 flex-col rounded-card border border-warn/25 bg-warn-soft p-3"
         >
-          <p className="shrink-0 text-xs font-medium text-amber-900">
-            危险动作待确认
-          </p>
-          <div className="mt-1 max-h-[30vh] min-h-0 overflow-y-auto">
-            <p className="text-xs text-amber-900/90">{agent.danger.summary}</p>
+          <div className="flex items-center gap-2">
+            <span className="rounded-chip bg-warn px-2 py-0.5 text-meta font-semibold text-on-warn">
+              危险动作
+            </span>
+            <p className="text-body font-medium text-warn">需要再次确认</p>
+          </div>
+          <div className="mt-1.5 max-h-[30vh] min-h-0 overflow-y-auto">
+            <p className="text-body leading-[22px] text-warn">
+              {agent.danger.summary}
+            </p>
             {agent.danger.reasons.length > 0 && (
-              <ul className="mt-1 list-inside list-disc text-[11px] text-amber-800/90">
+              <ul className="mt-1 list-inside list-disc text-label leading-relaxed text-warn/90">
                 {agent.danger.reasons.map((r) => (
                   <li key={r}>{r}</li>
                 ))}
               </ul>
             )}
           </div>
-          <div className="mt-3 flex shrink-0 gap-2">
+          <div className="mt-3 flex shrink-0 justify-end gap-2 border-t border-warn/20 pt-3">
             <button
               type="button"
-              className="rounded-lg bg-amber-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-800"
-              onClick={() => agent.confirmDanger()}
-            >
-              仍要执行
-            </button>
-            <button
-              type="button"
-              className="rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-xs text-amber-900"
+              className="inline-flex h-8 items-center rounded-control border border-warn/30 bg-surface px-3 text-label font-medium text-warn transition hover:bg-warn-soft"
               onClick={() => agent.rejectDanger()}
             >
               跳过
+            </button>
+            <button
+              type="button"
+              className="inline-flex h-8 items-center rounded-control bg-danger px-3 text-label font-semibold text-on-danger transition hover:opacity-90"
+              onClick={() => agent.confirmDanger()}
+            >
+              仍要执行
             </button>
           </div>
         </div>
       )}
 
-      {/* 时间线 */}
+      {/* 时间线：12px 图标 + 文字，只有图标上语义色 */}
       <div
         ref={scrollRef}
-        className={`min-h-0 flex-1 overflow-y-auto rounded-xl border border-brand-100/80 bg-white/50 p-3 ${
-          isPage ? '' : ''
-        }`}
+        className="min-h-0 flex-1 overflow-y-auto rounded-card border border-line bg-surface p-3"
       >
         {agent.timeline.length === 0 ? (
-          <p className="text-xs leading-relaxed text-brand-700/65">
+          <p className="text-body leading-relaxed text-ink-2">
             输入目标后开始。建议先在本页做只读或填表练习，
-            <span className="font-medium">不要提交</span>
+            <span className="font-medium text-ink">不要提交</span>
             真实订单或支付。
           </p>
         ) : (
@@ -215,25 +299,41 @@ export function AgentPanel({
             {agent.timeline.map((entry) => (
               <li
                 key={entry.id}
-                className={`text-xs leading-relaxed ${kindClass(entry.kind)}`}
+                className="flex gap-2 text-body leading-[22px]"
               >
-                <span className="mr-1.5 text-[10px] uppercase tracking-wide text-brand-500/70">
-                  {entry.kind}
+                <span
+                  className={
+                    'mt-0.5 shrink-0 ' + kindIconClass(entry.kind)
+                  }
+                >
+                  <KindIcon kind={entry.kind} />
                 </span>
-                {entry.summary}
+                <div className="min-w-0">
+                  <span className="mr-1.5 text-meta uppercase tracking-wide text-ink-2">
+                    {entry.kind}
+                  </span>
+                  <span className={kindTextClass(entry.kind)}>
+                    {entry.summary}
+                  </span>
+                </div>
               </li>
             ))}
           </ul>
         )}
         {agent.error && (
-          <p className="mt-2 text-xs text-red-700">{agent.error}</p>
+          <p
+            data-testid="agent-error"
+            className="mt-2 text-label leading-relaxed text-danger"
+          >
+            {agent.error}
+          </p>
         )}
       </div>
 
-      {/* 输入区 */}
-      <div className="shrink-0 rounded-xl border border-brand-100/80 bg-white/80 p-2.5">
+      {/* 输入区：卡片本身承担 focus 外圈，textarea 不再套一层边框 */}
+      <div className="shrink-0 rounded-card border border-line bg-surface p-2.5 transition focus-within:ring-2 focus-within:ring-accent/15">
         <textarea
-          className="min-h-[64px] w-full resize-none rounded-lg border border-brand-100 bg-white px-2.5 py-2 text-sm text-brand-900 outline-none focus:border-brand-300"
+          className="min-h-[64px] w-full resize-none border-0 bg-transparent p-1 text-body leading-[22px] text-ink outline-none placeholder:text-ink-2 focus-visible:outline-none"
           placeholder="例如：把联系人表单填上张三和 test@example.com，不要提交"
           value={goal}
           disabled={agent.busy || !enabled || !agent.prefs}
@@ -246,16 +346,19 @@ export function AgentPanel({
           }}
         />
         <div className="mt-2 flex items-center justify-between gap-2">
-          <p className="text-[11px] text-brand-600/60">
-            {agent.phase === 'idle' || agent.phase === 'done' || agent.phase === 'error' || agent.phase === 'aborted'
+          <p className="text-meta text-ink-2">
+            {agent.phase === 'idle' ||
+            agent.phase === 'done' ||
+            agent.phase === 'error' ||
+            agent.phase === 'aborted'
               ? '⌘/Ctrl + Enter 开始'
-              : `状态：${agent.phase}`}
+              : '状态：' + agent.phase}
           </p>
           <div className="flex gap-2">
             {agent.busy ? (
               <button
                 type="button"
-                className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700"
+                className="inline-flex h-8 items-center rounded-control border border-danger/20 bg-danger-soft px-3 text-label font-medium text-danger transition hover:opacity-90"
                 onClick={() => agent.stop()}
               >
                 停止
@@ -263,7 +366,7 @@ export function AgentPanel({
             ) : (
               <button
                 type="button"
-                className="rounded-lg bg-brand-700 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-40"
+                className="inline-flex h-8 items-center rounded-control bg-accent px-3 text-label font-semibold text-on-accent transition hover:bg-accent-hover disabled:opacity-40"
                 disabled={!goal.trim() || !enabled || !agent.prefs}
                 onClick={() => agent.start(goal)}
               >

@@ -31,6 +31,20 @@
 
 全页工作台、ModelSelector、模型品牌图标等共享 UI 约定仍适用（见 [features-v2.md](./features-v2.md) 正文说明）；新增 Agent Tab 与之共用 ModelSelector。
 
+### 共享 UI · 外观主题（v0.3）
+
+- **storage**：`local:uiTheme`（`system` / `light` / `dark`，默认 `system`），独立键，不并入 `AppSettings`，避免主题切换触发业务监听。
+- **页面**：Options「外观」三选一；Side Panel / 全页工作台 / Options 在首屏前经 `bootstrapTheme` 读取并写入 `html[data-theme]`，之后监听 storage 与系统偏好。
+- **内容脚本**：划词浮层与页面悬浮入口通过 `bindContentTheme` 写自己的 `data-dm-theme`，**不改宿主页面**；沉浸译正文写 `html[data-dm-theme]`（命名空间属性），未写入时按 `prefers-color-scheme` 兜底。
+- **语义 token**：`tailwind.config.js` 与 `assets/tailwind.css` 的 canvas / surface / line / ink / accent / success / warn / danger / on-*；组件不得再写死浅色值。
+
+### 共享 UI · 字体 / 图标 / 原语（v0.3）
+
+- **字体**：`public/fonts/IBMPlexSansVar-Roman.woff2`（拉丁可变 100–700）+ `IBMPlexSansSC-Regular/SemiBold.woff2`（中文 UI 子集，约 229 KB）。`assets/tailwind.css` 用 @font-face + unicode-range；`scripts/fonts/` 保存字符清单与重建脚本；OFL 见 `LICENSES/IBM-Plex-OFL.txt`。
+- **内容脚本字体**：`shared/ui/fonts.ts` 在 `document.head` 注入 @font-face（shadow root 内的 @font-face Chromium 不加载）；manifest `web_accessible_resources` 只开放 `fonts/*.woff2`。
+- **图标**：`shared/ui/icons.tsx` 统一封装 `lucide-react`，沿用原导出名，按需 tree-shake。
+- **Radix 原语**：`@radix-ui/react-tooltip` 已用于模型刷新按钮；`select` / `dialog` / `popover` 已安装但现有 `SearchableSelect` / `SegmentedControl` 暂保留，后续逐屏替换。
+
 ## LLM 调用约定
 
 - 仅 Background 调用 `shared/llm/run.ts`（`runChat` / `runChatStream`；Agent 用 `runChatWithTools` / `runChatStreamWithTools`，仍经同一层）
