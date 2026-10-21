@@ -1,9 +1,32 @@
 {
   "name": "dualmind",
-  "description": "DualMind — AI browser assistant (translation first)",
+  "description": "BYOK AI browser assistant for Chrome: selection & immersive translation, page Q&A, and an approval-gated on-page agent.",
   "private": true,
   "version": "1.1.0",
   "type": "module",
+  "license": "MIT",
+  "author": "zhengzhp",
+  "homepage": "https://chromewebstore.google.com/detail/dualmind/iaihgihadphkkhohhaebgchfjalonmag",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zhengzhp/DualMind.git"
+  },
+  "bugs": {
+    "url": "https://github.com/zhengzhp/DualMind/issues"
+  },
+  "keywords": [
+    "chrome-extension",
+    "manifest-v3",
+    "wxt",
+    "react",
+    "typescript",
+    "ai-agent",
+    "llm",
+    "translation",
+    "byok",
+    "ollama",
+    "openai-compatible"
+  ],
   "scripts": {
     "dev": "wxt",
     "dev:firefox": "wxt -b firefox",

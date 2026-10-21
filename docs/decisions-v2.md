@@ -102,9 +102,9 @@
 
 ## V2 封板 · 验收快照（2026-10-07）
 
-**背景**：V2 主链路（网页摘要 / 网页问答 / 会话持久化 / 右键与 FAB「总结本页」/ 跨页确认 / 禁用站点菜单置灰 / 历史 Markdown 导出 / 共享 `page-content` 与 `page-fab`）代码与 E2E 已落地；用户按 [.cursor/handoffs/archive/handoff-chat-v2.md](../.cursor/handoffs/archive/handoff-chat-v2.md) 第 6 节清单**实机验收全过**。
+**背景**：V2 主链路（网页摘要 / 网页问答 / 会话持久化 / 右键与 FAB「总结本页」/ 跨页确认 / 禁用站点菜单置灰 / 历史 Markdown 导出 / 共享 `page-content` 与 `page-fab`）代码与 E2E 已落地；用户按归档交接稿第 6 节清单**实机验收全过**。
 
-**决定**：V2 **功能封板**（冻结范围，仅修 bug）。下一版本（V3 Agent）已于 2026-10-07 在 [decisions.md](./decisions.md) 立项；文档切档按 [.cursor/plans/dualmind-docs-versioning.plan.md](../.cursor/plans/dualmind-docs-versioning.plan.md) 执行完毕。
+**决定**：V2 **功能封板**（冻结范围，仅修 bug）。下一版本（V3 Agent）已于 2026-10-07 在 [decisions.md](./decisions.md) 立项；文档切档已按当时的版本化 SOP 执行完毕。
 
 ### 验收结果（2026-10-07 · 人工）
 

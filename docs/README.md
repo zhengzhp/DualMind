@@ -12,6 +12,7 @@
 | [decisions.md](decisions.md) | 当前决策（V3 已立项） | 改产品边界 / 范围 / 权限前 | **权威**：产品与技术决策 |
 | [architecture-v3.md](architecture-v3.md) | 当前架构（V3） | 改分层 / 数据流 / 目录前 | **权威**：架构 |
 | [features.md](features.md) | 当前 Feature 契约表（消息 / storage / UI） | 加 / 改 feature 与消息协议前 | **权威**：契约 |
+| [development.md](development.md) | 本地开发 / 构建 / 热更新踩坑 | 搭环境或排查开发期问题时 | 参考 |
 | [cursor-cheatsheet.md](cursor-cheatsheet.md) | Cursor 快捷键与 `/` 命令 | 查命令与快捷键 | 参考 |
 | [brand-guidelines.md](brand-guidelines.md) | 品牌标识规范 v1（双页标、尺寸、颜色、禁用） | 改图标 / 封面 / 品牌相关 UI 前 | **权威**：品牌视觉 |
 
@@ -20,7 +21,7 @@
 | 文档 | 入口 | 使用时机 | 权威性 |
 |------|------|----------|--------|
 | [ui-refresh-plan.md](ui-refresh-plan.md) | UI 优化方案 v0.3：A+B、内置字体子集、深色模式、图标/组件库、商店素材；含 Logo 重设计与 MasterGo MCP 接入 | 讨论 / 排期 / 核对 UI 改版进度 | **进行中**：P0–P2、深色、P-FONT、P-LIB、P4 已落地；P3 截图待重拍（见 §12） |
-| [assets/ui-refresh/](assets/ui-refresh/) | 方案草图（mockups.html）、Logo 审计板（logo-audit.html）与渲染图 | 对照方案与调参时 | 设计草图 |
+| [assets/ui-refresh/](assets/ui-refresh/) | 品牌规范图、商店封面与主标（过程草稿已清理） | 对照品牌与商店素材时 | 设计成品 |
 
 ## 归档（历史背景，仅按需检索，非当前规则来源）
 
@@ -50,5 +51,5 @@
 
 ## 资产（按需查看）
 
-- `docs/assets/store/`：6 张上架截图（PNG，约 580K）。该目录已在 `.cursorindexingignore` 中排除出**语义索引**（仍可按路径读取）。
+- `docs/assets/store/`：5 张上架截图（PNG，约 570K）。该目录已在 `.cursorindexingignore` 中排除出**语义索引**（仍可按路径读取）。
   需要查看时按文件名直接读取（清单见 [store-screenshots.md](store-screenshots.md)），勿全目录扫描。

@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 安全问题（私密报告）
+    url: https://github.com/zhengzhp/DualMind/security/advisories/new
+    about: 请勿用公开 issue 报告安全漏洞。
+  - name: 使用与开发文档
+    url: https://github.com/zhengzhp/DualMind/blob/main/docs/README.md
+    about: 先查文档地图，很多问题已有说明。

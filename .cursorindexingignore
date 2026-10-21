@@ -3,7 +3,7 @@
 # 说明：.gitignore 已排除 .output / .wxt / .e2e-profile / playwright-report / test-results 等，
 #       故此处只列 .gitignore 未覆盖的项，不重复计入收益。
 
-# 上架截图（6 张 PNG，约 580K）：按需查看路径见 docs/README.md 与 docs/store-screenshots.md
+# 上架截图与品牌素材（5 张截图 PNG + 封面/规范图，约 950K）：按需查看路径见 docs/README.md 与 docs/store-screenshots.md
 docs/assets/
 
 # 依赖锁定文件（约 100K）：需要时直接打开，无需进语义索引

@@ -304,7 +304,7 @@ export async function selectEnglishText(page: Page, text = LONG_ENGLISH_TEXT) {
  * V3 Agent 自动化夹具
  * 目标：把「只能人工」的 A 闸门用例（安全闸门层 / 错误注入 / 多轮纠错 /
  * 生命周期）变成可复现、可留证（trace + report）的自动化用例。
- * 详见 .cursor/plans/dualmind-agent-e2e-harness.plan.md
+ * 背景见 docs/architecture-v3.md 与 docs/features.md 的 Agent 章节
  * ================================================================== */
 
 /** 封板测试页主站端口（与 e2e/pages/serve.mjs 一致） */

@@ -68,6 +68,7 @@
 | `public/fonts/*.woff2` + `LICENSES/IBM-Plex-OFL.txt` | IBM Plex Sans 拉丁可变字体、SC 中文 UI 子集与 OFL 许可证；重建见 `scripts/fonts/README.md` |
 | `docs/assets/ui-refresh/logo-mark.svg` | 主标（currentColor + mask 挖空，供封面/文档使用） |
 | `docs/assets/ui-refresh/brand-sheet.png` | 一页纸规范图 |
+| `docs/assets/ui-refresh/social-preview-1280x640.png` | GitHub 仓库社交预览图（1280×640，2:1） |
 
 ## 8. 变更记录
 

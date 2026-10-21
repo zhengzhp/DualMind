@@ -1,7 +1,7 @@
 # DualMind UI 优化方案 v0.3（决策已定 · 含深色与设计工具接入）
 
 > 状态：**进行中**（2026-10-18）：P0–P2、深色、P-FONT、P-LIB、P4 已落地；P3 商店截图待重拍。范围只覆盖 UI / 视觉层与 Chrome 商店素材，不改核心功能、消息协议与权限。
-> 配套草图（可编辑）：**docs/assets/ui-refresh/mockups.html**（方向 / 封面 / 截图模板）、**logo-audit.html**（Logo 审计）；渲染产物见 **docs/assets/ui-refresh/**。
+> 成品素材：**docs/assets/ui-refresh/**（品牌规范图、商店封面、主标）；过程草稿（HTML 草图 / Logo 审计 / 方向对比）已于 2026-10-21 清理。
 > 现有上架材料：[store-listing.md](./store-listing.md)、[store-screenshots.md](./store-screenshots.md)。
 > 建议阅读顺序：§0 速览 → §3 选方向 → §4 设计 token → §6 商店素材；其余按需。
 
@@ -108,8 +108,6 @@ Chrome 会把 1280×800 截图**降采样到 640×400** 展示。当前截图里
 ---
 
 ## 3. 三个方向（图 + 取舍）
-
-![三个方向对比：同一块 420px 侧栏在 A/B/C 三种设计语言下的样子](./assets/ui-refresh/directions.png)
 
 三张草图都是同一块 **420px 侧栏**、同一段中英对照内容，只换设计语言——便于直接比较"层级、密度、气质"的差异。
 
@@ -322,8 +320,6 @@ Chrome 会把 1280×800 截图**降采样到 640×400** 展示。当前截图里
 
 ### 6.3 截图（6 → 5 张）
 
-![截图模板示例 1280×800：左文案列 + 右侧真实 UI（局部放大 1.5×）](./assets/ui-refresh/screenshot-template-1280x800.png)
-
 统一模板：**左 330px 文案列（深色底）+ 右侧真实 UI**，UI 按场景放大 1.5–1.8× 并裁到关键区域；不铺满整屏，避免缩略后全是小字。
 
 | # | 文件 | 卖点 | 画面主体 | 图内文案 |
@@ -344,9 +340,9 @@ Chrome 会把 1280×800 截图**降采样到 640×400** 展示。当前截图里
 不建议手工 PS，理由是下一版 UI 一改，图就作废。建议：
 
 1. **采集**：沿用 e2e/store-screenshots.e2e.ts（已支持 DM_CAPTURE=1、指定正式包、锁 devicePixelRatio=1），只产出**原始 UI 截图**。
-2. **合成**：新增一个纯模板脚本，把原始截图放进 §6.3 的框里，输出最终 1280×800。模板就是本次的 docs/assets/ui-refresh/mockups.html（可编辑、纯 HTML/CSS）。
-3. **封面**：同一份 HTML 里维护 440×280 与 1400×560 两个 section，改文案只改一处。
-4. **产物入库**：docs/assets/store/（截图）+ docs/assets/store/promo/（封面），README 同步引用。
+2. **合成**：新增一个纯模板脚本，把原始截图放进 §6.3 的框里，输出最终 1280×800。模板曾是本次的 `mockups.html`（已随草稿清理，如重拍按同一版式重建）。
+3. **封面**：以同一份设计源维护 440×280 与 1400×560 两个尺寸，改文案只改一处。
+4. **产物入库**：docs/assets/store/（截图）+ docs/assets/ui-refresh/（封面），README 同步引用。
 
 > 合成脚本属于新增文件（不改功能），按仓库约定需要你点头；也可以先手工用这份 HTML 出图，等 UI 定稿再脚本化。
 
@@ -444,15 +440,13 @@ MasterGo MCP 可用后，Logo 不再是"只能出 brief"：可以直接在 Maste
 | 文件 | 说明 |
 |---|---|
 | docs/ui-refresh-plan.md | 本文 |
-| docs/assets/ui-refresh/mockups.html | 可编辑草图（三方向 + 两张封面 + 截图模板），改文案 / 配色后可直接重拍 |
-| docs/assets/ui-refresh/directions.png | 三方向对比板（1560×1010） |
-| docs/assets/ui-refresh/cover-1400x560.png | Marquee 封面提案 |
-| docs/assets/ui-refresh/cover-440x280.png | 小宣传图提案（必填素材） |
-| docs/assets/ui-refresh/screenshot-template-1280x800.png | 截图统一模板示例 |
-| docs/assets/ui-refresh/logo-audit.png | 现有 Logo 审计板（尺寸 / 灰度 / 剪影 / 16px 同行） |
-| docs/assets/ui-refresh/logo-audit.html | 审计板源文件 |
+| docs/assets/ui-refresh/cover-1400x560.png | Marquee 封面（成品） |
+| docs/assets/ui-refresh/cover-440x280.png | 小宣传图（成品，商店必填） |
+| docs/assets/ui-refresh/brand-sheet.png | 一页纸品牌规范图 |
+| docs/assets/ui-refresh/logo-mark.svg | 主标（currentColor + mask 挖空） |
+| docs/assets/store/*.png | 5 张商店截图（成品） |
 
-> 说明：草图为**设计提案**，用 HTML/CSS 近似还原，不是最终像素稿；正文里提到的问题与数值均来自当前代码与官方文档。
+> 说明：本文保留方案、取舍与数值记录；过程草图已于 2026-10-21 清理，成品见上表。
 
 ---
 
@@ -464,8 +458,6 @@ MasterGo MCP 可用后，Logo 不再是"只能出 brief"：可以直接在 Maste
 ### 11.1 现状审计
 
 资产：[logo.svg](../assets/logo.svg)（浅色底）、[logo-mark-blue.svg](../assets/logo-mark-blue.svg)、[logo-lockup.svg](../assets/logo-lockup.svg)、[wordmark.svg](../public/wordmark.svg)、[icon/128.png](../public/icon/128.png) / [icon/16.png](../public/icon/16.png)。
-
-![现有 Logo 审计：真实尺寸、灰度、剪影、16px 同行对比](./assets/ui-refresh/logo-audit.png)
 
 > 审计结论：剪影测试直接失败——整块变成黑色方块，说明图形没有独立于底板的轮廓识别点；这也是 16px 下"双 D"消失的根因。新标必须先过剪影，再谈配色与概念。
 
@@ -572,7 +564,7 @@ MasterGo MCP 可用后，Logo 不再是"只能出 brief"：可以直接在 Maste
 | 认证 | `CODIFY_ACCESS_KEY`（`sk-...`），需要 Codify 账号 |
 | 能力 | 读选中图层 / 生成页面 / 改删节点 / 变量 / 图表 / 前端代码 / 双向同步（10+ 工具） |
 | 实测 | **已打通并出图**：`get_variables` 读到 `DualMind-logo-scratch`（documentId `206656985814597`）；已生成 v0 概念板（双页 / 对折 / 引号）与两轮双页细化板，选定**双页 · V3 折缝**方向 |
-| 16px 实测 | 折缝宽度 A 10.8% / B 8.3% / C 6.7% 三档在 16px 下对比：A 左页偏细、B 折缝与左页最均衡、C 接近实心 D；产物见 `docs/assets/ui-refresh/logo-size-test.png`，建议 **B** |
+| 16px 实测 | 折缝宽度 A 10.8% / B 8.3% / C 6.7% 三档在 16px 下对比：A 左页偏细、B 折缝与左页最均衡、C 接近实心 D；过程图已清理，建议 **B** |
 | 隐私 | 设计稿与代码会经 Codify 云端，**不是本地闭环**；只用于 logo/UI 草稿可接受，但需你确认 |
 | 成本 | 官方 FAQ：免费计划可生成 HTML/CSS；付费约 ¥35/月（设计系统/组件库等高级能力）。画布操作是否免费需实测 |
 
@@ -623,12 +615,7 @@ MasterGo MCP 可用后，Logo 不再是"只能出 brief"：可以直接在 Maste
 | 文件 | 说明 |
 |---|---|
 | docs/assets/ui-refresh/logo-mark.svg | 主标（currentColor + mask 挖空） |
-| docs/assets/ui-refresh/logo-mark-solid.svg | 简化标（无折缝） |
-| docs/assets/ui-refresh/icon-16/32/48/128.png | 预览图标（RGBA） |
-| docs/assets/ui-refresh/logo-preview.png | 尺寸 / 深浅底 / 单色对比 |
-| docs/assets/ui-refresh/logo-size-test.png | 16px 折缝三档实测（A/B/C） |
-
-![Logo 生产预览：图标尺寸阶梯与单色/反白](./assets/ui-refresh/logo-preview.png)
+| public/icon/16,32,48,128.png | 正式扩展图标（已替换） |
 
 **签收状态（2026-10-18）**：已签收 B 档；`public/icon/16/32/48/128.png` 已替换为双页标（16/32 实心简化，48/128 带折缝）。manifest 仍指向同一路径，无需改配置。
 
@@ -640,7 +627,7 @@ MasterGo MCP 可用后，Logo 不再是"只能出 brief"：可以直接在 Maste
 
 **剩余品牌一致性工作**：
 
-1. ~~把商店封面草图（`docs/assets/ui-refresh/mockups.html`）里的旧标记换掉并重拍（P3）~~ ✅ 2026-10-18 已重拍两张封面；
+1. ~~把商店封面草图里的旧标记换掉并重拍（P3）~~ ✅ 2026-10-18 已重拍两张封面；
 2. README 截图与 5 张商店截图同步新标（P3，需正式包重拍）。
 
 ---
@@ -654,7 +641,7 @@ MasterGo MCP 可用后，Logo 不再是"只能出 brief"：可以直接在 Maste
 - **P1 · 阅读助手 + Agent（已完成）**：上下文压成一行 chip、三枚操作分主次、助手消息去卡片、用户消息 surface-2、空态 3 条建议提问；Agent 计划改白卡 + 编号步骤、危险确认浅底深字（跳过在左 / 仍要执行在右）、时间线 12px 图标 + 中性正文、输入区卡片 focus 外圈。
 - **P2 · 内容脚本（已完成）**：划词浮层改纯白卡 + 1 主 3 图标 + 顶部 2px 进度条（宽 300）；沉浸译去掉 3px 左色边与浅蓝底，改上间距 + `.94em` + 次要文字色；悬浮入口只换 token（几何 / 贴边 / 注意力逻辑未动）。
 - **P-DARK（已完成）**：新增 `local:uiTheme`（system / light / dark）与设置页三选一；扩展页面首屏前 `bootstrapTheme`；划词浮层与悬浮入口通过 `bindContentTheme` 跟随扩展主题（只写自己的 shadow 容器）；沉浸译正文通过 `html[data-dm-theme]` 跟随扩展主题，未写入时按系统深色兜底。
-- **视觉层级收尾（2026-10-18 · 依据 [ui-refresh-review.md](./ui-refresh-review.md)）**：
+- **视觉层级收尾（2026-10-18 · 依据 UI 审查报告）**：
   - 模型横栏：模型名 14px/600 保持唯一强调，「模型」标签降权到 ink-3；Provider 改 chip + 状态点（异常 / 待配置 / 已配置），刷新仍只有图标；
   - 字重统一：中文子集只有 400/600，全站 `font-medium` → `font-semibold`，消除中英混排一行两种字重；
   - 深色对比度：`ink-3` 提到 #8A93A2（surface 上 5.45:1、surface-2 上 4.96:1）；非交互信息（版本号、字符数、分区标题）改用 ink-2；
@@ -668,7 +655,7 @@ MasterGo MCP 可用后，Logo 不再是"只能出 brief"：可以直接在 Maste
 - **P-FONT（已完成）**：IBM Plex Sans 拉丁可变 woff2（39 KB，100–700）+ IBM Plex Sans SC 400/600 子集（94 / 96 KB，869 个 UI 字形），合计约 229 KB；三个入口预载 400 字重，@font-face 按 unicode-range 让正文缺字回退系统字体；字符清单与重建脚本在 `scripts/fonts/`，OFL 在 `LICENSES/IBM-Plex-OFL.txt`；内容脚本改为在 `document.head` 注入字体（Chromium 不加载 shadow root 内的 @font-face），manifest 只开放 `fonts/*.woff2`。
 - **P-LIB（已完成）**：新增 `lucide-react`（共享图标统一走 Lucide）与 `@radix-ui/react-tooltip`（模型刷新按钮）；`@radix-ui/react-select` / `dialog` / `popover` 已安装，现有 `SearchableSelect` / `SegmentedControl` 保留、后续逐屏替换。构建总产物体积：P-FONT 后 873.24 KB，P-LIB 后 932.63 KB（+59.39 KB 未压缩，含 Tooltip 与图标；gzip 更小）。
 - **P4（已完成）**：设置页桌面左导航（sticky + IntersectionObserver 高亮当前分区），移动端隐藏；分区锚点与 `scroll-mt`；底部保存条保持 sticky。
-- **P3 · 封面（部分完成）**：`mockups.html` 引用新标后重拍 `cover-440x280.png` / `cover-1400x560.png`（440×280 / 1400×560，deviceScaleFactor=1）。截图 6→5 与 README 截图仍待正式包重拍。
+- **P3 · 封面（部分完成）**：封面草图引用新标后重拍 `cover-440x280.png` / `cover-1400x560.png`（440×280 / 1400×560，deviceScaleFactor=1）。截图 6→5 与 README 截图仍待正式包重拍。
 - **验证**：`pnpm compile` 通过；`pnpm build` 通过；`page-fab` / `immersive` / `chat export` 定向单测 51 passed；构建产物目检侧栏 / 全页工作台 / 设置页浅色与深色、划词浮层与悬浮入口浅深色、字体实际加载（3 个 @font-face loaded）、模型刷新 Tooltip、设置左导航 sticky/高亮/移动端隐藏。按用户要求**未跑全量 test / e2e**。
 
 ### 仍未做

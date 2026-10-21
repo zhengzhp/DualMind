@@ -1,0 +1,86 @@
+name: Bug report
+description: 报告可复现的缺陷
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢反馈。请先确认使用的是最新版本，并**不要**粘贴真实 API Key。
+  - type: input
+    id: version
+    attributes:
+      label: DualMind 版本
+      placeholder: 例如 1.1.0
+    validations:
+      required: true
+  - type: input
+    id: chrome
+    attributes:
+      label: 浏览器与版本
+      placeholder: 例如 Chrome 131.0.6778.86 / macOS 15.1
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: 安装方式
+      options:
+        - Chrome Web Store
+        - 本地开发（pnpm dev）
+        - 本地构建（.output/chrome-mv3）
+    validations:
+      required: true
+  - type: dropdown
+    id: provider
+    attributes:
+      label: 模型来源
+      options:
+        - OpenAI 兼容端点
+        - 本地 Ollama
+        - 两者都试过
+    validations:
+      required: true
+  - type: input
+    id: model
+    attributes:
+      label: 模型名
+      placeholder: 例如 deepseek-chat / qwen2.5:7b
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      description: 尽量给出最小步骤；涉及具体网页时请说明页面类型（不要贴敏感 URL）。
+      placeholder: |
+        1. 打开 ...
+        2. 选中 ...
+        3. 按 Alt+K ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期望行为
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: 实际行为
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: 控制台 / 错误信息（可选）
+      description: Background Service Worker 与页面控制台的报错。请先删除 Key、Cookie 等敏感信息。
+      render: shell
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: 确认
+      options:
+        - label: 我已搜索过现有 issue，确认不是重复问题。
+          required: true
+        - label: 我已移除日志中的 API Key、Cookie 等敏感信息。
+          required: true

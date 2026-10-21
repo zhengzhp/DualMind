@@ -4,7 +4,7 @@
 > V2 归档见 [decisions-v2.md](./decisions-v2.md)；V1 / V1.5 见 [decisions-v1.md](./decisions-v1.md)。  
 > 架构见 [architecture-v3.md](./architecture-v3.md)（当前）与 [architecture-v2.md](./architecture-v2.md)（V2 归档）。  
 > 代理入口与 Always / Ask / Never 见仓库根目录 [AGENTS.md](../AGENTS.md)。  
-> 文档版本化 SOP：[.cursor/plans/dualmind-docs-versioning.plan.md](../.cursor/plans/dualmind-docs-versioning.plan.md)。
+> 文档地图与阅读纪律见 [docs/README.md](./README.md)。
 
 ## 发布与验证节奏（跨版本 · 当前生效）
 

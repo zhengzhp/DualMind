@@ -14,6 +14,11 @@ blob-report
 
 # 本地环境变量（参考 .env.example）
 .env
-.env.local
+.env.*
+!.env.example
+
+# 临时脚本 / 本地打包产物（约定用完即删）
+_tmp-*
+*.zip
 # 个人编辑器调试配置
 .vscode/

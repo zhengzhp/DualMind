@@ -1,7 +1,7 @@
 /**
  * V3 测试专用「OpenAI 兼容」mock 服务器（**零新增依赖**，仅 node:http）
  *
- * 为什么需要它（见 .cursor/plans/dualmind-agent-e2e-harness.plan.md）：
+ * 为什么需要它（背景见 docs/architecture-v3.md 的 Agent 章节）：
  * - Agent 的 tool 环要求模型返回**结构化** tool_calls，真模型是**概率性**的；
  *   安全闸门层（SEC-17）需要模型**必然**吐出危险 tool_call —— 人工两次都没构造出来。
  * - 错误注入（NET-04：401/429/5xx/连接重置/慢响应）与超时（LIFE-06）需要确定性。
